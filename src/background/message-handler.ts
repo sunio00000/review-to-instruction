@@ -5,6 +5,11 @@
 
 import { ApiClient } from './api-client';
 import type { Message, MessageResponse, Comment, Repository, Platform } from '../types';
+import { parseComment, isConventionComment } from '../core/parser';
+import { findMatchingFile, generateFilePath, ensureUniqueFileName } from '../core/file-matcher';
+import { generateInstruction } from '../core/instruction-generator';
+import { generateSkill } from '../core/skill-generator';
+import { createPullRequest } from '../core/pr-creator';
 
 /**
  * 메시지 핸들러
@@ -113,36 +118,102 @@ async function handleConvertComment(
       repository: `${repository.owner}/${repository.name}`
     });
 
-    // 토큰 가져오기
+    // 1. 컨벤션 관련 코멘트인지 확인
+    if (!isConventionComment(comment.content)) {
+      throw new Error('이 코멘트는 컨벤션 관련 내용이 아닙니다.');
+    }
+
+    // 2. 토큰 가져오기
     const tokenKey = repository.platform === 'github' ? 'githubToken' : 'gitlabToken';
     const storage = await chrome.storage.sync.get([tokenKey]);
     const token = storage[tokenKey] as string | undefined;
 
     if (!token) {
-      throw new Error(`${repository.platform} token not configured`);
+      throw new Error(`${repository.platform} token이 설정되지 않았습니다.`);
     }
 
-    // API 클라이언트 생성 (Phase 6-9에서 사용 예정)
-    // @ts-expect-error - will be used in Phase 6-9
-    const _client = new ApiClient({
+    // 3. API 클라이언트 생성
+    const client = new ApiClient({
       token,
       platform: repository.platform
     });
 
-    // TODO: Phase 6-9에서 구현
-    // 1. 코멘트 파싱 (keywords, category 추출)
-    // 2. .claude/ 디렉토리에서 매칭 파일 찾기
-    // 3. instruction/skills 파일 생성
-    // 4. 브랜치 생성 및 PR/MR 생성
+    // 4. 코멘트 파싱
+    console.log('[MessageHandler] Parsing comment...');
+    const parsedComment = parseComment(comment.content);
 
-    // 임시 응답 (Phase 6-9에서 실제 구현)
-    console.log('[MessageHandler] Comment conversion will be implemented in Phase 6-9');
+    if (parsedComment.keywords.length === 0) {
+      throw new Error('키워드를 추출할 수 없습니다. 더 명확한 컨벤션 설명이 필요합니다.');
+    }
+
+    console.log('[MessageHandler] Parsed comment:', {
+      keywords: parsedComment.keywords,
+      category: parsedComment.category
+    });
+
+    // 5. 매칭 파일 찾기
+    console.log('[MessageHandler] Finding matching file...');
+    const matchResult = await findMatchingFile(client, repository, parsedComment);
+
+    let filePath: string;
+    let fileContent: string;
+    let isUpdate = false;
+
+    if (matchResult.isMatch && matchResult.file) {
+      // 기존 파일 업데이트
+      console.log('[MessageHandler] Updating existing file:', matchResult.file.path);
+      isUpdate = true;
+      filePath = matchResult.file.path;
+
+      // Skills 파일 업데이트
+      fileContent = generateSkill({
+        parsedComment,
+        originalComment: comment,
+        repository,
+        existingContent: matchResult.file.content
+      });
+    } else {
+      // 새 파일 생성
+      console.log('[MessageHandler] Creating new instruction file');
+      const basePath = generateFilePath(false, parsedComment.suggestedFileName);
+      filePath = await ensureUniqueFileName(client, repository, basePath);
+
+      fileContent = generateInstruction({
+        parsedComment,
+        originalComment: comment,
+        repository
+      });
+    }
+
+    console.log('[MessageHandler] File path:', filePath);
+
+    // 6. PR/MR 생성
+    console.log('[MessageHandler] Creating PR/MR...');
+    const prResult = await createPullRequest({
+      client,
+      repository,
+      parsedComment,
+      originalComment: comment,
+      filePath,
+      fileContent,
+      isUpdate
+    });
+
+    if (!prResult.success) {
+      throw new Error(prResult.error || 'PR/MR 생성에 실패했습니다.');
+    }
+
+    console.log('[MessageHandler] PR/MR created successfully:', prResult.prUrl);
+
+    // 7. 성공 응답
     sendResponse({
       success: true,
       data: {
-        message: 'Comment conversion is not yet implemented. Coming in Phase 6-9!',
-        comment,
-        repository
+        prUrl: prResult.prUrl,
+        filePath,
+        isUpdate,
+        category: parsedComment.category,
+        keywords: parsedComment.keywords
       }
     });
 
