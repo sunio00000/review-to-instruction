@@ -5,8 +5,9 @@
 
 import type { Platform } from '../types';
 import { GitHubInjector } from './github-injector';
+import { GitLabInjector } from './gitlab-injector';
 
-let injector: GitHubInjector | null = null;
+let injector: GitHubInjector | GitLabInjector | null = null;
 
 // 현재 플랫폼 감지
 function detectPlatform(): Platform | null {
@@ -37,8 +38,8 @@ async function init() {
     injector = new GitHubInjector();
     await injector.start();
   } else if (platform === 'gitlab') {
-    // TODO: Phase 3에서 GitLab injector 구현
-    console.log('[PR Convention Bridge] GitLab support coming in Phase 3');
+    injector = new GitLabInjector();
+    await injector.start();
   }
 }
 
