@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR Convention Bridge Settings</title>
+  <link rel="stylesheet" href="./popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PR Convention Bridge</h1>
+      <p class="subtitle">AI agents를 위한 컨벤션 브리지</p>
+    </header>
+
+    <main>
+      <!-- GitHub 설정 -->
+      <section class="settings-section">
+        <h2>GitHub 설정</h2>
+        <div class="input-group">
+          <label for="github-token">Personal Access Token:</label>
+          <input
+            type="password"
+            id="github-token"
+            placeholder="ghp_..."
+            autocomplete="off"
+          />
+        </div>
+        <button id="test-github" class="btn btn-secondary">연결 테스트</button>
+        <div id="github-status" class="status"></div>
+      </section>
+
+      <!-- GitLab 설정 -->
+      <section class="settings-section">
+        <h2>GitLab 설정</h2>
+        <div class="input-group">
+          <label for="gitlab-token">Personal Access Token:</label>
+          <input
+            type="password"
+            id="gitlab-token"
+            placeholder="glpat-..."
+            autocomplete="off"
+          />
+        </div>
+        <button id="test-gitlab" class="btn btn-secondary">연결 테스트</button>
+        <div id="gitlab-status" class="status"></div>
+      </section>
+
+      <!-- 버튼 설정 -->
+      <section class="settings-section">
+        <h2>버튼 설정</h2>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-buttons" checked />
+          <span>PR/MR 코멘트에 "Convert to Instruction" 버튼 표시</span>
+        </label>
+      </section>
+
+      <!-- 저장 위치 -->
+      <section class="settings-section">
+        <h2>저장 위치</h2>
+        <div class="input-group">
+          <label>기본 디렉토리:</label>
+          <input type="text" value=".claude/" readonly class="readonly-input" />
+        </div>
+        <small class="help-text">
+          Instructions는 .claude/instructions/, Skills는 .claude/skills/에 저장됩니다.
+        </small>
+      </section>
+
+      <!-- 저장 버튼 -->
+      <div class="actions">
+        <button id="save" class="btn btn-primary">저장</button>
+      </div>
+
+      <div id="save-status" class="status"></div>
+    </main>
+
+    <footer>
+      <p>v1.0.0 | <a href="https://github.com" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script type="module" src="./popup.ts"></script>
+</body>
+</html>

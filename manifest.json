@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "PR Convention Bridge",
+  "version": "1.0.0",
+  "description": "GitHub/GitLab PR 리뷰 코멘트를 AI agents용 instruction/skills로 변환하는 Chrome Extension",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://gitlab.com/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*/pull/*",
+        "https://gitlab.com/*/-/merge_requests/*"
+      ],
+      "js": [
+        "src/content/main.ts"
+      ],
+      "css": [
+        "src/content/styles.css"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  }
+}

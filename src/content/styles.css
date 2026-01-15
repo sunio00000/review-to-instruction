@@ -1,0 +1,63 @@
+/**
+ * PR Convention Bridge - Content Script 스타일
+ */
+
+/* 버튼 스타일 (Phase 2, 3에서 구현) */
+.pr-convention-bridge-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+/* GitHub 스타일 */
+.pr-convention-bridge-button.github {
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  color: #24292f;
+}
+
+.pr-convention-bridge-button.github:hover {
+  background-color: #f3f4f6;
+  border-color: #8c959f;
+}
+
+/* GitLab 스타일 */
+.pr-convention-bridge-button.gitlab {
+  background-color: #fca326;
+  border: 1px solid #e08800;
+  color: #ffffff;
+}
+
+.pr-convention-bridge-button.gitlab:hover {
+  background-color: #e08800;
+}
+
+/* 버튼 상태 */
+.pr-convention-bridge-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pr-convention-bridge-button.loading {
+  opacity: 0.7;
+}
+
+.pr-convention-bridge-button.success {
+  background-color: #2da44e;
+  border-color: #2da44e;
+  color: #ffffff;
+}
+
+.pr-convention-bridge-button.error {
+  background-color: #cf222e;
+  border-color: #cf222e;
+  color: #ffffff;
+}

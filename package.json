@@ -1,0 +1,20 @@
+{
+  "name": "pr-convention-bridge",
+  "version": "1.0.0",
+  "description": "Chrome Extension to convert GitHub/GitLab PR review comments into AI-readable instructions and skills",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["chrome-extension", "github", "gitlab", "ai", "claude-code"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.3.0",
+    "@types/chrome": "^0.1.33",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
