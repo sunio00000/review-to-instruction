@@ -9,6 +9,10 @@
 [![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-4285F4.svg)](https://developer.chrome.com/docs/extensions/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
+[![AI Generated](https://img.shields.io/badge/🤖_AI_Generated-Claude_Sonnet_4.5-8A2BE2.svg)](https://www.anthropic.com/claude)
+
+> **Note:** This project was developed with the assistance of Claude Sonnet 4.5 AI. All code, documentation, and architecture were collaboratively created through AI-human pair programming.
+
 </div>
 
 ---
