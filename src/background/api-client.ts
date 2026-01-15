@@ -322,20 +322,40 @@ export class ApiClient {
     branchName: string,
     fromBranch: string
   ): Promise<void> {
-    // 1. 기준 브랜치의 SHA 가져오기
-    const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${fromBranch}`;
-    const refResponse = await this.fetch(refUrl);
-    const sha = refResponse.object.sha;
+    try {
+      console.log('[ApiClient] Creating GitHub branch:', {
+        branchName,
+        fromBranch,
+        repository: `${repository.owner}/${repository.name}`
+      });
 
-    // 2. 새 브랜치 생성
-    const createUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs`;
-    await this.fetch(createUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        ref: `refs/heads/${branchName}`,
-        sha
-      })
-    });
+      // 1. 기준 브랜치의 SHA 가져오기
+      // 브랜치명에 슬래시가 있을 수 있으므로 URL 인코딩
+      const encodedFromBranch = encodeURIComponent(fromBranch);
+      const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${encodedFromBranch}`;
+      console.log('[ApiClient] Getting ref for base branch:', refUrl);
+
+      const refResponse = await this.fetch(refUrl);
+      const sha = refResponse.object.sha;
+      console.log('[ApiClient] Base branch SHA:', sha);
+
+      // 2. 새 브랜치 생성
+      const createUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs`;
+      console.log('[ApiClient] Creating new branch with ref:', `refs/heads/${branchName}`);
+
+      await this.fetch(createUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: `refs/heads/${branchName}`,
+          sha
+        })
+      });
+
+      console.log('[ApiClient] Branch created successfully:', branchName);
+    } catch (error) {
+      console.error('[ApiClient] Failed to create GitHub branch:', error);
+      throw error;
+    }
   }
 
   /**
