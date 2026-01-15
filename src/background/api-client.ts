@@ -105,7 +105,7 @@ export class ApiClient {
     path: string
   ): Promise<DirectoryItem[]> {
     try {
-      const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}`;
+      const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`;
       const response = await this.fetch(url);
       const items = Array.isArray(response) ? response : [response];
 
@@ -180,7 +180,7 @@ export class ApiClient {
     repository: Repository,
     path: string
   ): Promise<FileContent> {
-    const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}`;
+    const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`;
     const response = await this.fetch(url);
 
     return {
