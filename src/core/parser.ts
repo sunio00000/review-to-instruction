@@ -26,10 +26,11 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 
 // 프로그래밍 언어 및 프레임워크 키워드
 const TECH_KEYWORDS = [
-  'javascript', 'typescript', 'python', 'java', 'go', 'rust',
-  'react', 'vue', 'angular', 'next.js', 'express',
-  'component', 'hook', 'class', 'interface', 'type',
-  '컴포넌트', '훅', '클래스', '인터페이스', '타입'
+  'javascript', 'typescript', 'python', 'java', 'go', 'rust', 'c++', 'c#', 'php', 'ruby', 'swift', 'kotlin',
+  'react', 'vue', 'angular', 'next.js', 'nuxt', 'svelte', 'express', 'fastify', 'nestjs',
+  'spring', 'django', 'flask', 'rails', 'laravel',
+  'component', 'hook', 'class', 'interface', 'type', 'enum', 'struct',
+  '컴포넌트', '훅', '클래스', '인터페이스', '타입', '열거형', '구조체'
 ];
 
 /**
