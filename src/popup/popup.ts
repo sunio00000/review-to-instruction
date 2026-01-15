@@ -43,30 +43,76 @@ async function saveConfig() {
   }
 }
 
-// GitHub API 테스트 (Phase 5에서 구현)
+// GitHub API 테스트
 async function testGithubApi() {
   const token = githubTokenInput.value.trim();
+  const statusElement = document.getElementById('github-status')!;
 
   if (!token) {
-    showStatus(document.getElementById('github-status')!, 'Token을 입력하세요.', 'error');
+    showStatus(statusElement, 'Token을 입력하세요.', 'error');
     return;
   }
 
-  // TODO: Phase 5에서 실제 API 호출 구현
-  showStatus(document.getElementById('github-status')!, 'API 테스트는 Phase 5에서 구현됩니다.', 'info');
+  // 버튼 비활성화
+  testGithubButton.disabled = true;
+  testGithubButton.textContent = '테스트 중...';
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'TEST_API',
+      payload: {
+        platform: 'github',
+        token
+      }
+    });
+
+    if (response.success) {
+      showStatus(statusElement, `연결 성공! (사용자: ${response.data.user})`, 'success');
+    } else {
+      showStatus(statusElement, `연결 실패: ${response.error}`, 'error');
+    }
+  } catch (error) {
+    showStatus(statusElement, `에러: ${error}`, 'error');
+  } finally {
+    testGithubButton.disabled = false;
+    testGithubButton.textContent = '연결 테스트';
+  }
 }
 
-// GitLab API 테스트 (Phase 5에서 구현)
+// GitLab API 테스트
 async function testGitlabApi() {
   const token = gitlabTokenInput.value.trim();
+  const statusElement = document.getElementById('gitlab-status')!;
 
   if (!token) {
-    showStatus(document.getElementById('gitlab-status')!, 'Token을 입력하세요.', 'error');
+    showStatus(statusElement, 'Token을 입력하세요.', 'error');
     return;
   }
 
-  // TODO: Phase 5에서 실제 API 호출 구현
-  showStatus(document.getElementById('gitlab-status')!, 'API 테스트는 Phase 5에서 구현됩니다.', 'info');
+  // 버튼 비활성화
+  testGitlabButton.disabled = true;
+  testGitlabButton.textContent = '테스트 중...';
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'TEST_API',
+      payload: {
+        platform: 'gitlab',
+        token
+      }
+    });
+
+    if (response.success) {
+      showStatus(statusElement, `연결 성공! (사용자: ${response.data.user})`, 'success');
+    } else {
+      showStatus(statusElement, `연결 실패: ${response.error}`, 'error');
+    }
+  } catch (error) {
+    showStatus(statusElement, `에러: ${error}`, 'error');
+  } finally {
+    testGitlabButton.disabled = false;
+    testGitlabButton.textContent = '연결 테스트';
+  }
 }
 
 // 상태 메시지 표시
