@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PR Convention Bridge",
+  "name": "Review to Instruction",
   "version": "1.0.0",
-  "description": "GitHub/GitLab PR 리뷰 코멘트를 AI agents용 instruction/skills로 변환하는 Chrome Extension",
+  "description": "GitHub/GitLab 리뷰 코멘트를 AI agents용 instruction/skills로 자동 변환하는 Chrome Extension",
   "permissions": [
     "storage",
     "activeTab"
@@ -24,9 +24,6 @@
       ],
       "js": [
         "src/content/main.ts"
-      ],
-      "css": [
-        "src/content/styles.css"
       ]
     }
   ],

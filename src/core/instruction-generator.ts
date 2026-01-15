@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Instruction Generator
+ * Review to Instruction - Instruction Generator
  * Claude Code instruction 파일 생성
  */
 

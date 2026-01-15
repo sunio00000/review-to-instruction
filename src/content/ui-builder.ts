@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - UI Builder
+ * Review to Instruction - UI Builder
  * 코멘트에 버튼을 추가하고 UI를 관리합니다.
  */
 
@@ -58,7 +58,7 @@ export class UIBuilder {
    */
   private createButton(options: ButtonOptions): HTMLButtonElement {
     const button = document.createElement('button');
-    button.className = `pr-convention-bridge-button ${options.platform}`;
+    button.className = `review-to-instruction-button ${options.platform}`;
     button.setAttribute('data-comment-id', options.comment.id);
     button.setAttribute('type', 'button');
 
@@ -86,7 +86,7 @@ export class UIBuilder {
   private insertButton(contentElement: HTMLElement, button: HTMLButtonElement) {
     // 코멘트 본문 다음에 버튼 삽입
     const container = document.createElement('div');
-    container.className = 'pr-convention-bridge-button-container';
+    container.className = 'review-to-instruction-button-container';
     container.appendChild(button);
 
     // 코멘트 엘리먼트의 부모를 찾아서 삽입
@@ -175,14 +175,14 @@ export class UIBuilder {
     if (!container) return;
 
     // 기존 결과 메시지 제거
-    const existingResult = container.querySelector('.pr-convention-bridge-result');
+    const existingResult = container.querySelector('.review-to-instruction-result');
     if (existingResult) {
       existingResult.remove();
     }
 
     // 새 결과 메시지 추가
     const resultDiv = document.createElement('div');
-    resultDiv.className = 'pr-convention-bridge-result success';
+    resultDiv.className = 'review-to-instruction-result success';
 
     const actionText = isUpdate ? '업데이트' : '생성';
     resultDiv.innerHTML = `
@@ -216,14 +216,14 @@ export class UIBuilder {
     if (!container) return;
 
     // 기존 결과 메시지 제거
-    const existingResult = container.querySelector('.pr-convention-bridge-result');
+    const existingResult = container.querySelector('.review-to-instruction-result');
     if (existingResult) {
       existingResult.remove();
     }
 
     // 새 결과 메시지 추가
     const resultDiv = document.createElement('div');
-    resultDiv.className = 'pr-convention-bridge-result error';
+    resultDiv.className = 'review-to-instruction-result error';
     resultDiv.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/>

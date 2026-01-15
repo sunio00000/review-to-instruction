@@ -1,8 +1,8 @@
-# PR Convention Bridge - 테스트 가이드
+# Review to Instruction - 테스트 가이드
 
 ## 개요
 
-이 문서는 PR Convention Bridge의 End-to-End 테스트 시나리오와 검증 방법을 설명합니다.
+이 문서는 Review to Instruction의 End-to-End 테스트 시나리오와 검증 방법을 설명합니다.
 
 ## 사전 준비
 
@@ -231,10 +231,10 @@ npm run build
 
 1. **Chrome DevTools Console 확인**
    - F12 → Console 탭
-   - `[PR Convention Bridge]` 접두사가 있는 로그 확인
+   - `[Review to Instruction]` 접두사가 있는 로그 확인
 
 2. **Background Service Worker 로그**
-   - `chrome://extensions` → PR Convention Bridge → "service worker" 링크 클릭
+   - `chrome://extensions` → Review to Instruction → "service worker" 링크 클릭
 
 3. **네트워크 요청 확인**
    - DevTools → Network 탭

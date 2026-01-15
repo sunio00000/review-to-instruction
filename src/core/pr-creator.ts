@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - PR Creator
+ * Review to Instruction - PR Creator
  * 브랜치 생성, 파일 커밋, PR/MR 생성
  */
 
@@ -209,7 +209,7 @@ function generatePrBody(
   sections.push('');
   sections.push('---');
   sections.push('');
-  sections.push('🤖 이 PR은 [PR Convention Bridge](https://github.com)에 의해 자동 생성되었습니다.');
+  sections.push('🤖 이 PR은 [Review to Instruction](https://github.com/sunio00000/review-to-instruction)에 의해 자동 생성되었습니다.');
 
   return sections.join('\n');
 }

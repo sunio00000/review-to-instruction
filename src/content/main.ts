@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Content Script
+ * Review to Instruction - Content Script
  * GitHub/GitLab PR 페이지에 주입되는 스크립트
  */
 
@@ -28,11 +28,11 @@ async function init() {
   const platform = detectPlatform();
 
   if (!platform) {
-    console.log('[PR Convention Bridge] Not on supported platform');
+    console.log('[Review to Instruction] Not on supported platform');
     return;
   }
 
-  console.log(`[PR Convention Bridge] Initialized on ${platform}`);
+  console.log(`[Review to Instruction] Initialized on ${platform}`);
 
   // 플랫폼별 injector 시작
   if (platform === 'github') {

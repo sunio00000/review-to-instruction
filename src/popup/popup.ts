@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Popup Script
+ * Review to Instruction - Popup Script
  */
 
 import type { ApiConfig } from '../types';

@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - File Matcher
+ * Review to Instruction - File Matcher
  * .claude/ 디렉토리에서 기존 파일을 찾고 키워드 기반으로 매칭
  */
 

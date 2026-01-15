@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - 공통 타입 정의
+ * Review to Instruction - 공통 타입 정의
  */
 
 // GitHub/GitLab 플랫폼 타입

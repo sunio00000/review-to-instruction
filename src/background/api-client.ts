@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - API Client
+ * Review to Instruction - API Client
  * GitHub/GitLab REST API 클라이언트
  */
 
@@ -104,15 +104,25 @@ export class ApiClient {
     repository: Repository,
     path: string
   ): Promise<DirectoryItem[]> {
-    const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}`;
-    const response = await this.fetch(url);
-    const items = Array.isArray(response) ? response : [response];
+    try {
+      const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/contents/${path}`;
+      const response = await this.fetch(url);
+      const items = Array.isArray(response) ? response : [response];
 
-    return items.map((item: any) => ({
-      name: item.name,
-      path: item.path,
-      type: item.type === 'dir' ? 'dir' : 'file'
-    }));
+      return items.map((item: any) => ({
+        name: item.name,
+        path: item.path,
+        type: item.type === 'dir' ? 'dir' : 'file'
+      }));
+    } catch (error) {
+      // 404 (디렉토리가 없음)는 정상 - 빈 배열 반환
+      if (error instanceof Error && error.message.includes('404')) {
+        console.log(`[ApiClient] Directory not found: ${path} (this is normal for new repos)`);
+        return [];
+      }
+      // 다른 에러는 재발생
+      throw error;
+    }
   }
 
   /**
@@ -122,16 +132,26 @@ export class ApiClient {
     repository: Repository,
     path: string
   ): Promise<DirectoryItem[]> {
-    const projectPath = encodeURIComponent(`${repository.owner}/${repository.name}`);
-    const url = `${this.baseUrl}/projects/${projectPath}/repository/tree?path=${encodeURIComponent(path)}`;
-    const response = await this.fetch(url);
-    const items = Array.isArray(response) ? response : [];
+    try {
+      const projectPath = encodeURIComponent(`${repository.owner}/${repository.name}`);
+      const url = `${this.baseUrl}/projects/${projectPath}/repository/tree?path=${encodeURIComponent(path)}`;
+      const response = await this.fetch(url);
+      const items = Array.isArray(response) ? response : [];
 
-    return items.map((item: any) => ({
-      name: item.name,
-      path: item.path,
-      type: item.type === 'tree' ? 'dir' : 'file'
-    }));
+      return items.map((item: any) => ({
+        name: item.name,
+        path: item.path,
+        type: item.type === 'tree' ? 'dir' : 'file'
+      }));
+    } catch (error) {
+      // 404 (디렉토리가 없음)는 정상 - 빈 배열 반환
+      if (error instanceof Error && error.message.includes('404')) {
+        console.log(`[ApiClient] Directory not found: ${path} (this is normal for new repos)`);
+        return [];
+      }
+      // 다른 에러는 재발생
+      throw error;
+    }
   }
 
   /**

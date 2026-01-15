@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Skill Generator
+ * Review to Instruction - Skill Generator
  * Claude Code skill 파일 생성
  */
 

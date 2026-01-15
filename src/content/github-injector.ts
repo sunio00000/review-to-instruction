@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - GitHub Injector
+ * Review to Instruction - GitHub Injector
  * GitHub PR 페이지에 버튼을 주입합니다.
  */
 

@@ -1,10 +1,10 @@
 /**
- * PR Convention Bridge - Content Script Styles
+ * Review to Instruction - Content Script Styles
  * 코멘트 버튼 스타일 및 애니메이션
  */
 
 /* 버튼 컨테이너 */
-.pr-convention-bridge-button-container {
+.review-to-instruction-button-container {
   margin-top: 12px;
   display: flex;
   align-items: center;
@@ -12,7 +12,7 @@
 }
 
 /* 기본 버튼 스타일 */
-.pr-convention-bridge-button {
+.review-to-instruction-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -29,36 +29,36 @@
   outline: none;
 }
 
-.pr-convention-bridge-button:hover:not(:disabled) {
+.review-to-instruction-button:hover:not(:disabled) {
   background-color: #f3f4f6;
   border-color: rgba(27, 31, 36, 0.3);
 }
 
-.pr-convention-bridge-button:active:not(:disabled) {
+.review-to-instruction-button:active:not(:disabled) {
   background-color: #ebecf0;
   transform: scale(0.98);
 }
 
-.pr-convention-bridge-button:disabled {
+.review-to-instruction-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 /* 버튼 아이콘 */
-.pr-convention-bridge-button svg {
+.review-to-instruction-button svg {
   width: 16px;
   height: 16px;
   transition: transform 0.2s ease;
 }
 
 /* 로딩 상태 */
-.pr-convention-bridge-button.loading {
+.review-to-instruction-button.loading {
   background-color: #0969da;
   color: #ffffff;
   border-color: #0969da;
 }
 
-.pr-convention-bridge-button.loading svg {
+.review-to-instruction-button.loading svg {
   animation: spin 1s linear infinite;
 }
 
@@ -72,7 +72,7 @@
 }
 
 /* 성공 상태 */
-.pr-convention-bridge-button.success {
+.review-to-instruction-button.success {
   background-color: #2da44e;
   color: #ffffff;
   border-color: #2da44e;
@@ -92,7 +92,7 @@
 }
 
 /* 에러 상태 */
-.pr-convention-bridge-button.error {
+.review-to-instruction-button.error {
   background-color: #cf222e;
   color: #ffffff;
   border-color: #cf222e;
@@ -112,7 +112,7 @@
 }
 
 /* 결과 메시지 */
-.pr-convention-bridge-result {
+.review-to-instruction-result {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -133,52 +133,52 @@
   }
 }
 
-.pr-convention-bridge-result.success {
+.review-to-instruction-result.success {
   background-color: #dafbe1;
   color: #1a7f37;
   border: 1px solid #4ac776;
 }
 
-.pr-convention-bridge-result.error {
+.review-to-instruction-result.error {
   background-color: #ffebe9;
   color: #cf222e;
   border: 1px solid #ff818266;
 }
 
-.pr-convention-bridge-result a {
+.review-to-instruction-result a {
   color: inherit;
   text-decoration: underline;
   font-weight: 600;
 }
 
-.pr-convention-bridge-result a:hover {
+.review-to-instruction-result a:hover {
   opacity: 0.8;
 }
 
 /* GitHub 다크 모드 지원 */
 @media (prefers-color-scheme: dark) {
-  .pr-convention-bridge-button {
+  .review-to-instruction-button {
     background-color: #21262d;
     color: #c9d1d9;
     border-color: rgba(240, 246, 252, 0.1);
   }
 
-  .pr-convention-bridge-button:hover:not(:disabled) {
+  .review-to-instruction-button:hover:not(:disabled) {
     background-color: #30363d;
     border-color: rgba(240, 246, 252, 0.2);
   }
 
-  .pr-convention-bridge-button:active:not(:disabled) {
+  .review-to-instruction-button:active:not(:disabled) {
     background-color: #161b22;
   }
 
-  .pr-convention-bridge-result.success {
+  .review-to-instruction-result.success {
     background-color: rgba(46, 160, 67, 0.15);
     color: #3fb950;
     border-color: rgba(46, 160, 67, 0.4);
   }
 
-  .pr-convention-bridge-result.error {
+  .review-to-instruction-result.error {
     background-color: rgba(248, 81, 73, 0.15);
     color: #f85149;
     border-color: rgba(248, 81, 73, 0.4);
@@ -186,63 +186,63 @@
 }
 
 /* HTML에 data-color-mode 속성이 있는 경우 (GitHub) */
-html[data-color-mode="dark"] .pr-convention-bridge-button {
+html[data-color-mode="dark"] .review-to-instruction-button {
   background-color: #21262d;
   color: #c9d1d9;
   border-color: rgba(240, 246, 252, 0.1);
 }
 
-html[data-color-mode="dark"] .pr-convention-bridge-button:hover:not(:disabled) {
+html[data-color-mode="dark"] .review-to-instruction-button:hover:not(:disabled) {
   background-color: #30363d;
   border-color: rgba(240, 246, 252, 0.2);
 }
 
-html[data-color-mode="dark"] .pr-convention-bridge-button:active:not(:disabled) {
+html[data-color-mode="dark"] .review-to-instruction-button:active:not(:disabled) {
   background-color: #161b22;
 }
 
-html[data-color-mode="dark"] .pr-convention-bridge-result.success {
+html[data-color-mode="dark"] .review-to-instruction-result.success {
   background-color: rgba(46, 160, 67, 0.15);
   color: #3fb950;
   border-color: rgba(46, 160, 67, 0.4);
 }
 
-html[data-color-mode="dark"] .pr-convention-bridge-result.error {
+html[data-color-mode="dark"] .review-to-instruction-result.error {
   background-color: rgba(248, 81, 73, 0.15);
   color: #f85149;
   border-color: rgba(248, 81, 73, 0.4);
 }
 
 /* GitLab 다크 모드 지원 */
-body.gl-dark .pr-convention-bridge-button {
+body.gl-dark .review-to-instruction-button {
   background-color: #2f2f2f;
   color: #fafafa;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-body.gl-dark .pr-convention-bridge-button:hover:not(:disabled) {
+body.gl-dark .review-to-instruction-button:hover:not(:disabled) {
   background-color: #404040;
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-body.gl-dark .pr-convention-bridge-button:active:not(:disabled) {
+body.gl-dark .review-to-instruction-button:active:not(:disabled) {
   background-color: #1f1f1f;
 }
 
-body.gl-dark .pr-convention-bridge-result.success {
+body.gl-dark .review-to-instruction-result.success {
   background-color: rgba(46, 160, 67, 0.15);
   color: #3fb950;
   border-color: rgba(46, 160, 67, 0.4);
 }
 
-body.gl-dark .pr-convention-bridge-result.error {
+body.gl-dark .review-to-instruction-result.error {
   background-color: rgba(248, 81, 73, 0.15);
   color: #f85149;
   border-color: rgba(248, 81, 73, 0.4);
 }
 
 /* 로딩 스피너 아이콘 */
-.pr-convention-bridge-spinner {
+.review-to-instruction-spinner {
   display: inline-block;
   width: 16px;
   height: 16px;

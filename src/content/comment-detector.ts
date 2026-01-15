@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Comment Detector
+ * Review to Instruction - Comment Detector
  * MutationObserver를 사용하여 PR/MR 페이지의 코멘트를 감지합니다.
  */
 

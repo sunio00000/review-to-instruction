@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - GitLab Injector
+ * Review to Instruction - GitLab Injector
  * GitLab MR 페이지에 버튼을 주입합니다.
  */
 

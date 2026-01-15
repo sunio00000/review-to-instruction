@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Message Handler
+ * Review to Instruction - Message Handler
  * Content script와 Background 간 메시지 처리
  */
 

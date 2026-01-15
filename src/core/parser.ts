@@ -1,5 +1,5 @@
 /**
- * PR Convention Bridge - Comment Parser
+ * Review to Instruction - Comment Parser
  * 코멘트 내용을 파싱하여 키워드, 카테고리, 코드 예시 추출
  */
 
