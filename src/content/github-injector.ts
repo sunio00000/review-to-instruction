@@ -156,6 +156,10 @@ export class GitHubInjector {
    */
   private async onButtonClick(comment: Comment) {
     console.log('[GitHubInjector] Button clicked for comment:', comment.id);
+    console.log('[GitHubInjector] Sending to background:', {
+      repository: this.repository,
+      commentLength: comment.content.length
+    });
 
     const button = this.uiBuilder.getButton(comment.id);
     if (!button) return;
