@@ -9,7 +9,8 @@ import type { ParsedComment } from '../types';
 const CONVENTION_KEYWORDS = [
   'convention', 'pattern', 'rule', 'guideline', 'standard',
   'best practice', 'should', 'must', 'always', 'never',
-  '컨벤션', '규칙', '패턴', '가이드라인', '표준'
+  '컨벤션', '규칙', '패턴', '가이드라인', '표준',
+  'p1', 'p2', 'p3', 'p4', 'p5'  // 우선순위 레벨
 ];
 
 // 카테고리별 키워드 매핑

@@ -181,6 +181,34 @@ review-to-instruction/
 - "Additional Cases" section added to existing file
 - `last_updated` date automatically refreshed
 
+#### Scenario 3: Using Priority Levels (P1-P5)
+
+You can mark the importance of conventions using priority levels from P1 (critical) to P5 (optional):
+
+1. Write a comment with priority level:
+   ```
+   P1: All user inputs must be sanitized before database queries to prevent SQL injection.
+
+   This is a critical security rule that must be followed without exception.
+   ```
+
+2. Click the **"Convert to AI Instruction"** button
+3. The P1-P5 keyword will be detected and included in the instruction
+
+**Priority Level Guidelines:**
+- **P1**: Critical (Security vulnerabilities, data loss risks)
+- **P2**: Important (Performance issues, major bugs)
+- **P3**: Recommended (Code quality, maintainability)
+- **P4**: Nice to have (Style preferences, minor improvements)
+- **P5**: Optional (Suggestions for consideration)
+
+**Example with P2:**
+```
+P2: Avoid using `any` type in TypeScript. Use proper types for better type safety.
+```
+
+The priority level will be automatically included as a keyword in the generated instruction file, making it easy to filter and prioritize conventions.
+
 ### 3️⃣ Generated File Example
 
 #### Instruction File (`.claude/instructions/component-naming.md`)
@@ -333,6 +361,7 @@ Comments containing the following keywords are detected:
 - "convention", "rule", "pattern", "guideline", "standard"
 - Korean equivalents: "컨벤션", "규칙", "패턴", "가이드라인"
 - "should", "must", "always", "never"
+- Priority levels: "P1", "P2", "P3", "P4", "P5" (case-insensitive)
 - Or structured explanations with code examples (```)
 
 ### Q2: How are file categories determined?
