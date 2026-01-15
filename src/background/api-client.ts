@@ -437,6 +437,9 @@ export class ApiClient {
    * HTTP fetch 래퍼
    */
   private async fetch(url: string, options: RequestInit = {}): Promise<any> {
+    // API 호출 로깅 (디버깅용)
+    console.log(`[ApiClient] ${options.method || 'GET'} ${url}`);
+
     const headers: HeadersInit = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -456,9 +459,11 @@ export class ApiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[ApiClient] API request failed: ${options.method || 'GET'} ${url} -> ${response.status}`);
       throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
+    console.log(`[ApiClient] ${options.method || 'GET'} ${url} -> ${response.status} OK`);
     return response.json();
   }
 }
