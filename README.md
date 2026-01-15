@@ -1,4 +1,4 @@
-# PR Convention Bridge
+# Review to Instruction
 
 <div align="center">
 
@@ -78,7 +78,7 @@ Built files will be generated in the `dist/` directory.
 ## 📁 Project Structure
 
 ```
-pr-convention-bridge/
+review-to-instruction/
 ├── src/
 │   ├── content/          # Content scripts (injected into GitHub/GitLab pages)
 │   ├── background/       # Background service worker
@@ -98,8 +98,8 @@ pr-convention-bridge/
 
 1. Clone this repository and build:
    ```bash
-   git clone https://github.com/yourusername/pr-convention-bridge.git
-   cd pr-convention-bridge
+   git clone https://github.com/sunio00000/review-to-instruction.git
+   cd review-to-instruction
    npm install
    npm run build
    ```
@@ -285,11 +285,11 @@ This convention was established during the review process of [PR #123](https://g
 
 **View Content Script Logs:**
 1. Press F12 (DevTools) on PR/MR page
-2. Check Console tab for logs with `[PR Convention Bridge]` prefix
+2. Check Console tab for logs with `[Review to Instruction]` prefix
 
 **View Background Service Worker Logs:**
 1. Navigate to `chrome://extensions`
-2. Find "PR Convention Bridge" extension
+2. Find "Review to Instruction" extension
 3. Click "service worker" link
 4. Check logs in Console tab
 
@@ -390,13 +390,13 @@ This project was made possible by these open source projects:
 
 ## 📧 Contact
 
-For questions or suggestions, please reach out through [GitHub Issues](https://github.com/yourusername/pr-convention-bridge/issues)!
+For questions or suggestions, please reach out through [GitHub Issues](https://github.com/sunio00000/review-to-instruction/issues)!
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by the PR Convention Bridge team**
+**Made with ❤️ by the Review to Instruction team**
 
 ⭐ If this project helped you, please star it!
 
