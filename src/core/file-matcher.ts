@@ -279,24 +279,33 @@ export async function ensureUniqueFileName(
   repository: Repository,
   basePath: string
 ): Promise<string> {
+  console.log('[FileMatcher] Checking file uniqueness:', basePath);
   let path = basePath;
   let counter = 1;
 
   while (true) {
-    const existingFile = await client.getFileContent(repository, path);
-    if (!existingFile) {
-      // 파일이 존재하지 않으면 사용 가능
+    try {
+      const existingFile = await client.getFileContent(repository, path);
+      if (!existingFile) {
+        // 파일이 존재하지 않으면 사용 가능
+        console.log('[FileMatcher] File path available:', path);
+        return path;
+      }
+
+      // 파일이 존재하면 중복되므로 숫자 추가
+      console.log('[FileMatcher] File exists, trying alternative name');
+      const pathWithoutExt = basePath.replace('.md', '');
+      path = `${pathWithoutExt}-${counter}.md`;
+      counter++;
+
+      // 무한 루프 방지 (최대 100개)
+      if (counter > 100) {
+        return `${pathWithoutExt}-${Date.now()}.md`;
+      }
+    } catch (error) {
+      // 에러 발생 시 (404 등) 파일이 없다고 간주
+      console.log('[FileMatcher] Error checking file, assuming it does not exist:', error);
       return path;
-    }
-
-    // 중복되면 숫자 추가
-    const pathWithoutExt = basePath.replace('.md', '');
-    path = `${pathWithoutExt}-${counter}.md`;
-    counter++;
-
-    // 무한 루프 방지 (최대 100개)
-    if (counter > 100) {
-      return `${pathWithoutExt}-${Date.now()}.md`;
     }
   }
 }

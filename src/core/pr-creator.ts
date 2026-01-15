@@ -34,8 +34,10 @@ export async function createPullRequest(
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
     console.log('[PrCreator] Branch name:', branchName);
+    console.log('[PrCreator] Base branch:', repository.branch);
 
     // 2. 브랜치 생성
+    console.log('[PrCreator] Creating branch...');
     const branchCreated = await client.createBranch(
       repository,
       branchName,
@@ -49,7 +51,10 @@ export async function createPullRequest(
     console.log('[PrCreator] Branch created successfully');
 
     // 3. 파일 커밋
+    console.log('[PrCreator] Preparing to commit file:', filePath);
     const commitMessage = generateCommitMessage(parsedComment, originalComment, repository, isUpdate);
+    console.log('[PrCreator] Commit message:', commitMessage.split('\n')[0]);
+
     const commitSuccess = await client.createOrUpdateFile(
       repository,
       filePath,
@@ -62,7 +67,7 @@ export async function createPullRequest(
       throw new Error('Failed to commit file');
     }
 
-    console.log('[PrCreator] File committed successfully');
+    console.log('[PrCreator] File committed successfully to branch:', branchName);
 
     // 4. PR/MR 생성
     const prTitle = generatePrTitle(parsedComment, isUpdate);
