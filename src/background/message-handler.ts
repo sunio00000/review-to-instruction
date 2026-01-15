@@ -153,7 +153,15 @@ async function handleConvertComment(
 
     // 5. 매칭 파일 찾기
     console.log('[MessageHandler] Finding matching file...');
-    const matchResult = await findMatchingFile(client, repository, parsedComment);
+    let matchResult;
+    try {
+      matchResult = await findMatchingFile(client, repository, parsedComment);
+      console.log('[MessageHandler] Match result:', { isMatch: matchResult.isMatch, path: matchResult.file?.path });
+    } catch (error) {
+      console.error('[MessageHandler] Error during file matching:', error);
+      // 파일 매칭 실패해도 계속 진행 (새 파일 생성)
+      matchResult = { file: null, score: 0, isMatch: false };
+    }
 
     let filePath: string;
     let fileContent: string;
@@ -188,7 +196,13 @@ async function handleConvertComment(
     console.log('[MessageHandler] File path:', filePath);
 
     // 6. PR/MR 생성
-    console.log('[MessageHandler] Creating PR/MR...');
+    console.log('[MessageHandler] Creating PR/MR...', {
+      repository: `${repository.owner}/${repository.name}`,
+      branch: repository.branch,
+      filePath,
+      isUpdate
+    });
+
     const prResult = await createPullRequest({
       client,
       repository,
@@ -200,6 +214,7 @@ async function handleConvertComment(
     });
 
     if (!prResult.success) {
+      console.error('[MessageHandler] PR/MR creation failed:', prResult.error);
       throw new Error(prResult.error || 'PR/MR 생성에 실패했습니다.');
     }
 

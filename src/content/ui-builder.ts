@@ -280,7 +280,9 @@ export class UIBuilder {
 
     // API 에러
     if (errorLower.includes('404')) {
-      return '레포지토리 또는 리소스를 찾을 수 없습니다.';
+      // 404는 대부분 .claude/ 디렉토리가 없는 정상 상황
+      // 하지만 다른 404일 수도 있으므로 원본 에러 표시
+      return `일시적인 문제가 발생했습니다: ${error.substring(0, 100)}`;
     }
 
     if (errorLower.includes('422')) {
