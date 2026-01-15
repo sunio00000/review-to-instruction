@@ -3,6 +3,7 @@
  * GitHub/GitLab PR 페이지에 주입되는 스크립트
  */
 
+import './styles.css';
 import type { Platform } from '../types';
 import { GitHubInjector } from './github-injector';
 import { GitLabInjector } from './gitlab-injector';

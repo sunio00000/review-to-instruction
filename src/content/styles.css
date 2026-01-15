@@ -1,63 +1,253 @@
 /**
- * PR Convention Bridge - Content Script 스타일
+ * PR Convention Bridge - Content Script Styles
+ * 코멘트 버튼 스타일 및 애니메이션
  */
 
-/* 버튼 스타일 (Phase 2, 3에서 구현) */
+/* 버튼 컨테이너 */
+.pr-convention-bridge-button-container {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 기본 버튼 스타일 */
 .pr-convention-bridge-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 20px;
+  border: 1px solid rgba(27, 31, 36, 0.15);
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 8px;
-}
-
-/* GitHub 스타일 */
-.pr-convention-bridge-button.github {
   background-color: #f6f8fa;
-  border: 1px solid #d0d7de;
   color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
-.pr-convention-bridge-button.github:hover {
+.pr-convention-bridge-button:hover:not(:disabled) {
   background-color: #f3f4f6;
-  border-color: #8c959f;
+  border-color: rgba(27, 31, 36, 0.3);
 }
 
-/* GitLab 스타일 */
-.pr-convention-bridge-button.gitlab {
-  background-color: #fca326;
-  border: 1px solid #e08800;
-  color: #ffffff;
+.pr-convention-bridge-button:active:not(:disabled) {
+  background-color: #ebecf0;
+  transform: scale(0.98);
 }
 
-.pr-convention-bridge-button.gitlab:hover {
-  background-color: #e08800;
-}
-
-/* 버튼 상태 */
 .pr-convention-bridge-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.pr-convention-bridge-button.loading {
-  opacity: 0.7;
+/* 버튼 아이콘 */
+.pr-convention-bridge-button svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
 }
 
+/* 로딩 상태 */
+.pr-convention-bridge-button.loading {
+  background-color: #0969da;
+  color: #ffffff;
+  border-color: #0969da;
+}
+
+.pr-convention-bridge-button.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 성공 상태 */
 .pr-convention-bridge-button.success {
   background-color: #2da44e;
-  border-color: #2da44e;
   color: #ffffff;
+  border-color: #2da44e;
+  animation: successPulse 0.5s ease;
 }
 
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 에러 상태 */
 .pr-convention-bridge-button.error {
   background-color: #cf222e;
-  border-color: #cf222e;
   color: #ffffff;
+  border-color: #cf222e;
+  animation: errorShake 0.5s ease;
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* 결과 메시지 */
+.pr-convention-bridge-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pr-convention-bridge-result.success {
+  background-color: #dafbe1;
+  color: #1a7f37;
+  border: 1px solid #4ac776;
+}
+
+.pr-convention-bridge-result.error {
+  background-color: #ffebe9;
+  color: #cf222e;
+  border: 1px solid #ff818266;
+}
+
+.pr-convention-bridge-result a {
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.pr-convention-bridge-result a:hover {
+  opacity: 0.8;
+}
+
+/* GitHub 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .pr-convention-bridge-button {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border-color: rgba(240, 246, 252, 0.1);
+  }
+
+  .pr-convention-bridge-button:hover:not(:disabled) {
+    background-color: #30363d;
+    border-color: rgba(240, 246, 252, 0.2);
+  }
+
+  .pr-convention-bridge-button:active:not(:disabled) {
+    background-color: #161b22;
+  }
+
+  .pr-convention-bridge-result.success {
+    background-color: rgba(46, 160, 67, 0.15);
+    color: #3fb950;
+    border-color: rgba(46, 160, 67, 0.4);
+  }
+
+  .pr-convention-bridge-result.error {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border-color: rgba(248, 81, 73, 0.4);
+  }
+}
+
+/* HTML에 data-color-mode 속성이 있는 경우 (GitHub) */
+html[data-color-mode="dark"] .pr-convention-bridge-button {
+  background-color: #21262d;
+  color: #c9d1d9;
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+html[data-color-mode="dark"] .pr-convention-bridge-button:hover:not(:disabled) {
+  background-color: #30363d;
+  border-color: rgba(240, 246, 252, 0.2);
+}
+
+html[data-color-mode="dark"] .pr-convention-bridge-button:active:not(:disabled) {
+  background-color: #161b22;
+}
+
+html[data-color-mode="dark"] .pr-convention-bridge-result.success {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border-color: rgba(46, 160, 67, 0.4);
+}
+
+html[data-color-mode="dark"] .pr-convention-bridge-result.error {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+/* GitLab 다크 모드 지원 */
+body.gl-dark .pr-convention-bridge-button {
+  background-color: #2f2f2f;
+  color: #fafafa;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.gl-dark .pr-convention-bridge-button:hover:not(:disabled) {
+  background-color: #404040;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.gl-dark .pr-convention-bridge-button:active:not(:disabled) {
+  background-color: #1f1f1f;
+}
+
+body.gl-dark .pr-convention-bridge-result.success {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border-color: rgba(46, 160, 67, 0.4);
+}
+
+body.gl-dark .pr-convention-bridge-result.error {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+/* 로딩 스피너 아이콘 */
+.pr-convention-bridge-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }

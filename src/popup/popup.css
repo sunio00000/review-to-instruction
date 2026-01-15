@@ -215,3 +215,133 @@ footer a {
 footer a:hover {
   text-decoration: underline;
 }
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #c9d1d9;
+    background-color: #0d1117;
+  }
+
+  .settings-section {
+    border-bottom-color: #30363d;
+  }
+
+  .settings-section h2 {
+    color: #c9d1d9;
+  }
+
+  .input-group label {
+    color: #8b949e;
+  }
+
+  .input-group input[type="text"],
+  .input-group input[type="password"] {
+    background-color: #161b22;
+    color: #c9d1d9;
+    border-color: #30363d;
+  }
+
+  .input-group input[type="text"]:focus,
+  .input-group input[type="password"]:focus {
+    border-color: #58a6ff;
+  }
+
+  .readonly-input {
+    background-color: #21262d;
+  }
+
+  .btn-primary {
+    background-color: #238636;
+  }
+
+  .btn-primary:hover {
+    background-color: #2ea043;
+  }
+
+  .btn-secondary {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border-color: #30363d;
+  }
+
+  .btn-secondary:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+  }
+
+  .status.success {
+    background-color: rgba(46, 160, 67, 0.15);
+    color: #3fb950;
+    border-color: rgba(46, 160, 67, 0.4);
+  }
+
+  .status.error {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border-color: rgba(248, 81, 73, 0.4);
+  }
+
+  .status.info {
+    background-color: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    border-color: rgba(88, 166, 255, 0.4);
+  }
+
+  .help-text {
+    color: #8b949e;
+  }
+
+  footer {
+    color: #8b949e;
+    border-top-color: #30363d;
+  }
+
+  footer a {
+    color: #58a6ff;
+  }
+}
+
+/* 로딩 애니메이션 */
+.btn.loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 상태 메시지 애니메이션 */
+.status {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

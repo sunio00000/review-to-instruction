@@ -53,9 +53,10 @@ async function testGithubApi() {
     return;
   }
 
-  // 버튼 비활성화
+  // 버튼 로딩 상태
   testGithubButton.disabled = true;
-  testGithubButton.textContent = '테스트 중...';
+  testGithubButton.classList.add('loading');
+  const originalText = testGithubButton.textContent;
 
   try {
     const response = await chrome.runtime.sendMessage({
@@ -75,7 +76,8 @@ async function testGithubApi() {
     showStatus(statusElement, `에러: ${error}`, 'error');
   } finally {
     testGithubButton.disabled = false;
-    testGithubButton.textContent = '연결 테스트';
+    testGithubButton.classList.remove('loading');
+    testGithubButton.textContent = originalText || '연결 테스트';
   }
 }
 
@@ -89,9 +91,10 @@ async function testGitlabApi() {
     return;
   }
 
-  // 버튼 비활성화
+  // 버튼 로딩 상태
   testGitlabButton.disabled = true;
-  testGitlabButton.textContent = '테스트 중...';
+  testGitlabButton.classList.add('loading');
+  const originalText = testGitlabButton.textContent;
 
   try {
     const response = await chrome.runtime.sendMessage({
@@ -111,7 +114,8 @@ async function testGitlabApi() {
     showStatus(statusElement, `에러: ${error}`, 'error');
   } finally {
     testGitlabButton.disabled = false;
-    testGitlabButton.textContent = '연결 테스트';
+    testGitlabButton.classList.remove('loading');
+    testGitlabButton.textContent = originalText || '연결 테스트';
   }
 }
 

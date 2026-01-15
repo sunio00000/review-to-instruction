@@ -158,6 +158,9 @@ export class GitLabInjector {
   private async onButtonClick(comment: Comment) {
     console.log('[GitLabInjector] Button clicked for comment:', comment.id);
 
+    const button = this.uiBuilder.getButton(comment.id);
+    if (!button) return;
+
     try {
       // Background script로 메시지 전송
       const response = await chrome.runtime.sendMessage({
@@ -169,24 +172,23 @@ export class GitLabInjector {
       });
 
       if (response.success) {
-        console.log('[GitLabInjector] Comment converted successfully');
+        console.log('[GitLabInjector] Comment converted successfully:', response.data);
 
-        // 버튼 상태를 success로 변경
-        const button = this.uiBuilder.getButton(comment.id);
-        if (button) {
-          this.uiBuilder.setButtonState(button, 'success');
-        }
+        // 성공 메시지 표시 (PR URL 링크 포함)
+        this.uiBuilder.showSuccessMessage(
+          button,
+          response.data.prUrl,
+          response.data.isUpdate
+        );
       } else {
         throw new Error(response.error || 'Unknown error');
       }
     } catch (error) {
       console.error('[GitLabInjector] Failed to convert comment:', error);
 
-      // 버튼 상태를 error로 변경
-      const button = this.uiBuilder.getButton(comment.id);
-      if (button) {
-        this.uiBuilder.setButtonState(button, 'error');
-      }
+      // 에러 메시지 표시
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.uiBuilder.showErrorMessage(button, errorMessage);
     }
   }
 
