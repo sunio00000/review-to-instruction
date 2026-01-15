@@ -17,6 +17,8 @@ export class CommentDetector {
   private callback: CommentCallback;
   private selector: string;
   private contentSelector: string;
+  private debounceTimer: number | null = null;
+  private pendingMutations: MutationRecord[] = [];
 
   constructor(
     callback: CommentCallback,
@@ -56,7 +58,15 @@ export class CommentDetector {
       this.observer.disconnect();
       this.observer = null;
     }
+
+    // 대기 중인 타이머 정리
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
     this.processedComments.clear();
+    this.pendingMutations = [];
     console.log('[CommentDetector] Stopped observing');
   }
 
@@ -74,10 +84,29 @@ export class CommentDetector {
   }
 
   /**
-   * MutationObserver 콜백
+   * MutationObserver 콜백 (디바운싱 적용)
    */
   private handleMutations(mutations: MutationRecord[]) {
-    for (const mutation of mutations) {
+    this.pendingMutations.push(...mutations);
+
+    // 기존 타이머 취소
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    // 100ms 후에 처리 (디바운싱)
+    this.debounceTimer = window.setTimeout(() => {
+      this.processPendingMutations();
+      this.pendingMutations = [];
+      this.debounceTimer = null;
+    }, 100);
+  }
+
+  /**
+   * 대기 중인 mutation 처리
+   */
+  private processPendingMutations() {
+    for (const mutation of this.pendingMutations) {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
