@@ -3,11 +3,11 @@
  * Claude Code skill 파일 생성
  */
 
-import type { ParsedComment, Comment, Repository } from '../types';
+import type { ParsedComment, EnhancedComment, Comment, Repository } from '../types';
 import { summarizeComment } from './parser';
 
 export interface SkillOptions {
-  parsedComment: ParsedComment;
+  parsedComment: ParsedComment | EnhancedComment; // EnhancedComment 허용
   originalComment: Comment;
   repository: Repository;
   existingContent?: string;

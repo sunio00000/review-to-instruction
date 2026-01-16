@@ -25,6 +25,23 @@ export interface ParsedComment {
   suggestedFileName: string;    // 제안 파일명
 }
 
+// 코드 설명
+export interface CodeExplanation {
+  code: string;                 // 원본 코드
+  explanation: string;          // LLM 생성 설명
+  isGoodExample?: boolean;      // 올바른 예시 여부
+}
+
+// LLM 강화 코멘트 (ParsedComment 확장)
+export interface EnhancedComment extends ParsedComment {
+  llmEnhanced: boolean;                    // LLM으로 강화되었는지 여부
+  summary?: string;                         // LLM 생성 요약
+  detailedExplanation?: string;            // LLM 생성 상세 설명
+  codeExplanations?: CodeExplanation[];    // 코드 예시 설명
+  additionalKeywords?: string[];           // LLM이 추출한 추가 키워드
+  suggestedCategory?: string;              // LLM이 제안한 카테고리
+}
+
 // 레포지토리 정보
 export interface Repository {
   owner: string;
@@ -51,11 +68,34 @@ export interface MatchResult {
   isMatch: boolean;             // score >= 70
 }
 
+// LLM 제공자 타입
+export type LLMProvider = 'claude' | 'openai' | 'none';
+
+// LLM 설정
+export interface LLMConfig {
+  provider: LLMProvider;      // 'claude', 'openai', 'none'
+  claudeApiKey?: string;
+  openaiApiKey?: string;
+  enabled: boolean;            // LLM 기능 활성화 여부
+}
+
 // API 설정
 export interface ApiConfig {
   githubToken?: string;
   gitlabToken?: string;
   showButtons?: boolean;
+  llm?: LLMConfig;             // LLM 설정 추가
+}
+
+// 프로젝트 타입 관련 (Feature 1)
+export type { ProjectType, ProjectTypeConfig, ProjectTypeDetectionResult, CachedDetectionResult } from './project-types';
+
+// 파일 생성 결과 (Feature 1)
+export interface FileGenerationResult {
+  projectType: string;  // ProjectType
+  filePath: string;
+  content: string;
+  isUpdate: boolean;
 }
 
 // 메시지 타입 (Content Script ↔ Background)
@@ -64,7 +104,9 @@ export type MessageType =
   | 'SAVE_CONFIG'
   | 'CONVERT_COMMENT'
   | 'CREATE_PR'
-  | 'TEST_API';
+  | 'TEST_API'
+  | 'GET_CACHE_STATS'   // Feature 2: 캐시 통계 조회
+  | 'CLEAR_CACHE';      // Feature 2: 캐시 초기화
 
 export interface Message {
   type: MessageType;

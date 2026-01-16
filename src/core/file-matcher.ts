@@ -1,10 +1,11 @@
 /**
  * Review to Instruction - File Matcher
  * .claude/ 디렉토리에서 기존 파일을 찾고 키워드 기반으로 매칭
+ * Feature 1: 프로젝트 타입별 파일 매칭 지원
  */
 
 import type { ApiClient } from '../background/api-client';
-import type { Repository, ClaudeFile, MatchResult, ParsedComment } from '../types';
+import type { Repository, ClaudeFile, MatchResult, ParsedComment, ProjectType } from '../types';
 
 /**
  * .claude/ 디렉토리에서 매칭되는 파일 찾기
@@ -308,4 +309,124 @@ export async function ensureUniqueFileName(
       return path;
     }
   }
+}
+
+// ==================== Feature 1: 프로젝트 타입별 파일 매칭 ====================
+
+/**
+ * 프로젝트 타입별 매칭 결과
+ */
+export interface ProjectTypeMatchResult {
+  existingContent?: string;  // 기존 파일 내용 (업데이트용)
+  filePath: string;          // 생성될 파일 경로
+}
+
+/**
+ * 특정 프로젝트 타입에 대한 파일 매칭
+ */
+export async function findMatchingFileForProjectType(
+  client: ApiClient,
+  repository: Repository,
+  parsedComment: ParsedComment,
+  projectType: ProjectType
+): Promise<ProjectTypeMatchResult> {
+  console.log(`[FileMatcher] Finding matching file for ${projectType}`);
+
+  switch (projectType) {
+    case 'claude-code':
+      return findMatchingFileForClaudeCode(client, repository, parsedComment);
+    case 'cursor':
+      return findMatchingFileForCursor(client, repository);
+    case 'windsurf':
+      return findMatchingFileForWindsurf(client, repository, parsedComment);
+    default:
+      throw new Error(`Unknown project type: ${projectType}`);
+  }
+}
+
+/**
+ * Claude Code 파일 매칭
+ */
+async function findMatchingFileForClaudeCode(
+  client: ApiClient,
+  repository: Repository,
+  parsedComment: ParsedComment
+): Promise<ProjectTypeMatchResult> {
+  // 기존 findMatchingFile() 로직 재사용
+  const matchResult = await findMatchingFile(client, repository, parsedComment);
+
+  if (matchResult.isMatch && matchResult.file) {
+    // 기존 파일 발견
+    return {
+      existingContent: matchResult.file.content,
+      filePath: matchResult.file.path
+    };
+  } else {
+    // 새 파일 생성 (파일 경로는 Generator가 결정)
+    return {
+      filePath: '' // Generator에서 결정
+    };
+  }
+}
+
+/**
+ * Cursor 파일 매칭 (단일 파일 .cursorrules)
+ */
+async function findMatchingFileForCursor(
+  client: ApiClient,
+  repository: Repository
+): Promise<ProjectTypeMatchResult> {
+  try {
+    const fileContent = await client.getFileContent(repository, '.cursorrules');
+
+    if (fileContent && fileContent.content) {
+      // 기존 .cursorrules 파일 존재
+      const content = decodeBase64(fileContent.content);
+      return {
+        existingContent: content,
+        filePath: '.cursorrules'
+      };
+    }
+  } catch (error) {
+    console.log('[FileMatcher] .cursorrules not found, will create new');
+  }
+
+  // 새 파일 생성
+  return {
+    filePath: '.cursorrules'
+  };
+}
+
+/**
+ * Windsurf 파일 매칭 (rules/ 디렉토리)
+ */
+async function findMatchingFileForWindsurf(
+  client: ApiClient,
+  repository: Repository,
+  parsedComment: ParsedComment
+): Promise<ProjectTypeMatchResult> {
+  try {
+    // rules/ 디렉토리에서 매칭 파일 찾기
+    const matchResult = await findInDirectory(
+      client,
+      repository,
+      'rules',
+      parsedComment
+    );
+
+    if (matchResult.isMatch && matchResult.file) {
+      // 기존 파일 발견
+      return {
+        existingContent: matchResult.file.content,
+        filePath: matchResult.file.path
+      };
+    }
+  } catch (error) {
+    console.log('[FileMatcher] Error finding Windsurf file:', error);
+  }
+
+  // 새 파일 생성 (파일 경로는 Generator가 결정)
+  return {
+    filePath: '' // Generator에서 결정
+  };
 }

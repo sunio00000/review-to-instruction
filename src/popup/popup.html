@@ -55,6 +55,93 @@
         </label>
       </section>
 
+      <!-- LLM 설정 -->
+      <section class="settings-section">
+        <h2>🤖 LLM 분석 (선택)</h2>
+        <label class="checkbox-label">
+          <input type="checkbox" id="llm-enabled" />
+          <span>LLM을 사용하여 코멘트 자동 분석 및 재구성</span>
+        </label>
+        <small class="help-text warning">
+          ⚠️ LLM API 호출 시 비용이 발생합니다. (코멘트당 평균 5-20원)
+        </small>
+
+        <div id="llm-settings" class="llm-settings" style="display: none;">
+          <div class="input-group" style="margin-top: 12px;">
+            <label for="llm-provider">제공자:</label>
+            <select id="llm-provider" class="select-input">
+              <option value="none">사용 안 함</option>
+              <option value="claude">Anthropic Claude (Sonnet 4.5)</option>
+              <option value="openai">OpenAI (GPT-4 Turbo)</option>
+            </select>
+          </div>
+
+          <div id="claude-api-key-group" class="input-group api-key-group" style="display: none;">
+            <label for="claude-api-key">Claude API Key:</label>
+            <input
+              type="password"
+              id="claude-api-key"
+              placeholder="sk-ant-..."
+              autocomplete="off"
+            />
+            <small class="help-text">
+              <a href="https://console.anthropic.com/settings/keys" target="_blank">API 키 발급받기</a>
+            </small>
+          </div>
+
+          <div id="openai-api-key-group" class="input-group api-key-group" style="display: none;">
+            <label for="openai-api-key">OpenAI API Key:</label>
+            <input
+              type="password"
+              id="openai-api-key"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+            <small class="help-text">
+              <a href="https://platform.openai.com/api-keys" target="_blank">API 키 발급받기</a>
+            </small>
+          </div>
+        </div>
+      </section>
+
+      <!-- 캐시 관리 (Feature 2) -->
+      <section class="settings-section">
+        <h2>📊 캐시 관리</h2>
+        <small class="help-text">
+          LLM 응답을 캐싱하여 API 비용과 응답 시간을 절감합니다.
+        </small>
+
+        <div class="cache-stats" id="cache-stats">
+          <div class="stat-item">
+            <span class="stat-label">캐시 항목:</span>
+            <span class="stat-value" id="cache-entries">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">캐시 적중률:</span>
+            <span class="stat-value" id="cache-hit-rate">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 HIT:</span>
+            <span class="stat-value" id="cache-hits">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 MISS:</span>
+            <span class="stat-value" id="cache-misses">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">캐시 크기:</span>
+            <span class="stat-value" id="cache-size">-</span>
+          </div>
+        </div>
+
+        <div class="cache-actions">
+          <button id="refresh-cache-stats" class="btn btn-secondary">통계 갱신</button>
+          <button id="clear-cache" class="btn btn-danger">캐시 초기화</button>
+        </div>
+
+        <div id="cache-status" class="status"></div>
+      </section>
+
       <!-- 저장 위치 -->
       <section class="settings-section">
         <h2>저장 위치</h2>

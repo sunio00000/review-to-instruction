@@ -1,10 +1,11 @@
 /**
  * Review to Instruction - PR Creator
  * 브랜치 생성, 파일 커밋, PR/MR 생성
+ * Feature 1: 다중 파일 PR 생성 지원
  */
 
 import type { ApiClient } from '../background/api-client';
-import type { Repository, ParsedComment, Comment } from '../types';
+import type { Repository, ParsedComment, Comment, FileGenerationResult } from '../types';
 
 export interface PrCreationOptions {
   client: ApiClient;
@@ -212,6 +213,258 @@ function generatePrBody(
 
   sections.push('```');
   sections.push('');
+  sections.push('---');
+  sections.push('');
+  sections.push('🤖 이 PR은 [Review to Instruction](https://github.com/sunio00000/review-to-instruction)에 의해 자동 생성되었습니다.');
+
+  return sections.join('\n');
+}
+
+// ==================== Feature 1: 다중 파일 PR 생성 ====================
+
+/**
+ * 다중 파일 PR 생성 옵션
+ */
+export interface MultiFilePrCreationOptions {
+  client: ApiClient;
+  repository: Repository;
+  parsedComment: ParsedComment;
+  originalComment: Comment;
+  files: FileGenerationResult[];  // 여러 파일
+}
+
+/**
+ * 다중 파일 PR 생성 전체 플로우
+ * - 여러 프로젝트 타입에 대한 파일을 한 번에 커밋
+ * - 단일 PR로 생성
+ */
+export async function createPullRequestWithMultipleFiles(
+  options: MultiFilePrCreationOptions
+): Promise<PrCreationResult> {
+  const { client, repository, parsedComment, originalComment, files } = options;
+
+  try {
+    console.log(`[PrCreator] Creating PR with ${files.length} files`);
+
+    // 1. 브랜치명 생성
+    const branchName = generateBranchName(parsedComment);
+    console.log('[PrCreator] Branch name:', branchName);
+
+    // 2. 브랜치 생성
+    console.log('[PrCreator] Creating branch...');
+    const branchCreated = await client.createBranch(
+      repository,
+      branchName,
+      repository.branch
+    );
+
+    if (!branchCreated) {
+      throw new Error('Failed to create branch');
+    }
+
+    console.log('[PrCreator] Branch created successfully');
+
+    // 3. 각 파일 순차적으로 커밋
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(`[PrCreator] Committing file ${i + 1}/${files.length}: ${file.filePath}`);
+
+      const commitMessage = generateMultiFileCommitMessage(
+        parsedComment,
+        originalComment,
+        repository,
+        file
+      );
+
+      const commitSuccess = await client.createOrUpdateFile(
+        repository,
+        file.filePath,
+        file.content,
+        commitMessage,
+        branchName
+      );
+
+      if (!commitSuccess) {
+        throw new Error(`Failed to commit file: ${file.filePath}`);
+      }
+
+      console.log(`[PrCreator] File ${i + 1}/${files.length} committed successfully`);
+    }
+
+    // 4. PR/MR 생성
+    const prTitle = generateMultiFilePrTitle(parsedComment, files);
+    const prBody = generateMultiFilePrBody(
+      parsedComment,
+      originalComment,
+      repository,
+      files
+    );
+
+    const prResult = await client.createPullRequest(
+      repository,
+      prTitle,
+      prBody,
+      branchName,
+      repository.branch
+    );
+
+    if (!prResult.success) {
+      throw new Error(prResult.error || 'Failed to create PR/MR');
+    }
+
+    console.log('[PrCreator] Multi-file PR/MR created successfully:', prResult.url);
+
+    return {
+      success: true,
+      prUrl: prResult.url
+    };
+
+  } catch (error) {
+    console.error('[PrCreator] Failed to create multi-file PR/MR:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+/**
+ * 다중 파일 커밋 메시지 생성
+ */
+function generateMultiFileCommitMessage(
+  parsedComment: ParsedComment,
+  originalComment: Comment,
+  repository: Repository,
+  file: FileGenerationResult
+): string {
+  const action = file.isUpdate ? 'Update' : 'Add';
+  const projectType = file.projectType;
+
+  const category = parsedComment.category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  const title = `${action} ${category} convention for ${projectType}`;
+
+  const purpose = file.isUpdate
+    ? `PR #${repository.prNumber} 리뷰에서 확인된 추가 사례를 ${projectType} 컨벤션에 반영`
+    : `PR #${repository.prNumber} 리뷰에서 확립된 ${category} 규칙을 ${projectType}용으로 추가`;
+
+  const source = `\n\n출처: PR #${repository.prNumber}, ${originalComment.author}의 코멘트`;
+
+  return `${title}\n\n목적: ${purpose}${source}`;
+}
+
+/**
+ * 다중 파일 PR 제목 생성
+ */
+function generateMultiFilePrTitle(
+  parsedComment: ParsedComment,
+  files: FileGenerationResult[]
+): string {
+  const hasUpdates = files.some(f => f.isUpdate);
+  const action = hasUpdates ? 'Update' : 'Add';
+
+  const category = parsedComment.category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  const keyword = parsedComment.keywords[0];
+  const keywordTitle = keyword
+    ? keyword.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    : category;
+
+  // 프로젝트 타입 목록
+  const projectTypes = files.map(f => {
+    const typeMap: Record<string, string> = {
+      'claude-code': 'Claude Code',
+      'cursor': 'Cursor',
+      'windsurf': 'Windsurf'
+    };
+    return typeMap[f.projectType] || f.projectType;
+  });
+
+  const typesStr = projectTypes.join(', ');
+
+  return `${action} AI conventions (${typesStr}): ${keywordTitle}`;
+}
+
+/**
+ * 다중 파일 PR 본문 생성
+ */
+function generateMultiFilePrBody(
+  parsedComment: ParsedComment,
+  originalComment: Comment,
+  repository: Repository,
+  files: FileGenerationResult[]
+): string {
+  const hasUpdates = files.some(f => f.isUpdate);
+  const action = hasUpdates ? '업데이트' : '추가';
+
+  const sections = [
+    '## 개요',
+    `PR #${repository.prNumber}의 리뷰 과정에서 확립된 컨벤션을 여러 AI 도구용 instruction으로 ${action}했습니다.`,
+    '',
+    '## 변경 사항',
+    '',
+    '### 공통 정보',
+    `- 카테고리: ${parsedComment.category}`,
+    `- 키워드: ${parsedComment.keywords.join(', ')}`,
+    '',
+    '### 생성된 파일',
+  ];
+
+  // 각 파일 정보
+  files.forEach((file, index) => {
+    const typeMap: Record<string, string> = {
+      'claude-code': 'Claude Code',
+      'cursor': 'Cursor',
+      'windsurf': 'Windsurf'
+    };
+    const typeName = typeMap[file.projectType] || file.projectType;
+    const updateStatus = file.isUpdate ? '(업데이트)' : '(신규)';
+
+    sections.push(`${index + 1}. **${typeName}** ${updateStatus}`);
+    sections.push(`   - 파일: \`${file.filePath}\``);
+  });
+
+  sections.push('');
+  sections.push('## 출처');
+  sections.push(`- 원본 PR: #${repository.prNumber}`);
+  sections.push(`- 코멘트 작성자: @${originalComment.author}`);
+  sections.push(`- 코멘트 링크: ${originalComment.url}`);
+  sections.push('');
+
+  // 각 파일 미리보기
+  sections.push('## 생성된 파일 미리보기');
+  sections.push('');
+
+  files.forEach((file, index) => {
+    const typeMap: Record<string, string> = {
+      'claude-code': 'Claude Code',
+      'cursor': 'Cursor',
+      'windsurf': 'Windsurf'
+    };
+    const typeName = typeMap[file.projectType] || file.projectType;
+
+    sections.push(`### ${index + 1}. ${typeName} (\`${file.filePath}\`)`);
+    sections.push('');
+    sections.push('```markdown');
+
+    // 파일 내용 미리보기 (처음 20줄)
+    const previewLines = file.content.split('\n').slice(0, 20);
+    sections.push(...previewLines);
+
+    if (file.content.split('\n').length > 20) {
+      sections.push('...');
+    }
+
+    sections.push('```');
+    sections.push('');
+  });
+
   sections.push('---');
   sections.push('');
   sections.push('🤖 이 PR은 [Review to Instruction](https://github.com/sunio00000/review-to-instruction)에 의해 자동 생성되었습니다.');

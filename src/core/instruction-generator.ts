@@ -3,11 +3,11 @@
  * Claude Code instruction 파일 생성
  */
 
-import type { ParsedComment, Comment, Repository } from '../types';
+import type { ParsedComment, EnhancedComment, Comment, Repository } from '../types';
 import { summarizeComment } from './parser';
 
 export interface InstructionOptions {
-  parsedComment: ParsedComment;
+  parsedComment: ParsedComment | EnhancedComment; // EnhancedComment 허용
   originalComment: Comment;
   repository: Repository;
   existingContent?: string;
@@ -36,6 +36,10 @@ function createInstruction(options: InstructionOptions): string {
   const title = generateTitle(parsedComment);
   const date = new Date().toISOString().split('T')[0];
 
+  // LLM 강화 여부 확인
+  const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
+  const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
+
   // YAML frontmatter
   const frontmatter = [
     '---',
@@ -45,34 +49,68 @@ function createInstruction(options: InstructionOptions): string {
     `created_from: "PR #${repository.prNumber}, Comment by ${originalComment.author}"`,
     `created_at: "${date}"`,
     `last_updated: "${date}"`,
+    enhanced ? `llm_enhanced: true` : '',
     '---',
     ''
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
-  // 주석 추가 (새 범주인 경우)
+  // 주석 추가
   const note = generateNote(parsedComment);
 
   // Markdown 본문
   const body = [
     note ? `${note}\n` : '',
     `# ${title}`,
-    '',
-    '## 규칙',
-    summarizeComment(originalComment.content),
     ''
   ];
 
-  // 코드 예시 추가
+  // LLM 요약 (있으면)
+  if (enhanced?.summary) {
+    body.push('## 요약');
+    body.push(enhanced.summary);
+    body.push('');
+  }
+
+  // 규칙 (LLM 상세 설명 또는 원본)
+  body.push('## 규칙');
+  if (enhanced?.detailedExplanation) {
+    body.push(enhanced.detailedExplanation);
+  } else {
+    body.push(summarizeComment(originalComment.content));
+  }
+  body.push('');
+
+  // 코드 예시 (LLM 설명 포함)
   if (parsedComment.codeExamples.length > 0) {
     body.push('## 예시\n');
-    parsedComment.codeExamples.forEach((example, index) => {
-      if (parsedComment.codeExamples.length > 1) {
-        body.push(`### 예시 ${index + 1}\n`);
-      }
-      body.push('```');
-      body.push(example);
-      body.push('```\n');
-    });
+
+    if (enhanced?.codeExplanations && enhanced.codeExplanations.length > 0) {
+      // LLM 설명 있음
+      enhanced.codeExplanations.forEach((explanation, index) => {
+        if (enhanced.codeExplanations!.length > 1) {
+          const label = explanation.isGoodExample !== undefined
+            ? (explanation.isGoodExample ? '올바른 예시' : '잘못된 예시')
+            : `예시 ${index + 1}`;
+          body.push(`### ${label}\n`);
+        }
+        body.push('```');
+        body.push(explanation.code);
+        body.push('```');
+        body.push('');
+        body.push(`**설명:** ${explanation.explanation}`);
+        body.push('');
+      });
+    } else {
+      // LLM 설명 없음 (기존 방식)
+      parsedComment.codeExamples.forEach((example, index) => {
+        if (parsedComment.codeExamples.length > 1) {
+          body.push(`### 예시 ${index + 1}\n`);
+        }
+        body.push('```');
+        body.push(example);
+        body.push('```\n');
+      });
+    }
   }
 
   // 출처

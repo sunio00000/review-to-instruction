@@ -4,12 +4,14 @@
  */
 
 import { ApiClient } from './api-client';
-import type { Message, MessageResponse, Comment, Repository, Platform } from '../types';
+import type { Message, MessageResponse, Comment, Repository, Platform, EnhancedComment, LLMConfig, FileGenerationResult } from '../types';
 import { parseComment, isConventionComment } from '../core/parser';
-import { findMatchingFile, generateFilePath, ensureUniqueFileName } from '../core/file-matcher';
-import { generateInstruction } from '../core/instruction-generator';
-import { generateSkill } from '../core/skill-generator';
-import { createPullRequest } from '../core/pr-creator';
+import { findMatchingFileForProjectType } from '../core/file-matcher';
+import { createPullRequestWithMultipleFiles } from '../core/pr-creator';
+import { enhanceWithLLM } from './llm/enhancer';
+import { ProjectTypeDetector } from '../core/project-detector';
+import { GeneratorFactory } from '../core/generators/generator-factory';
+import { llmCache } from './llm/cache';
 
 /**
  * 메시지 핸들러
@@ -37,6 +39,14 @@ export async function handleMessage(
       await handleConvertComment(message.payload, sendResponse);
       break;
 
+    case 'GET_CACHE_STATS':
+      await handleGetCacheStats(sendResponse);
+      break;
+
+    case 'CLEAR_CACHE':
+      await handleClearCache(sendResponse);
+      break;
+
     default:
       sendResponse({ success: false, error: 'Unknown message type' });
   }
@@ -47,7 +57,7 @@ export async function handleMessage(
  */
 async function handleGetConfig(sendResponse: (response: MessageResponse) => void) {
   try {
-    const config = await chrome.storage.sync.get(['githubToken', 'gitlabToken', 'showButtons']);
+    const config = await chrome.storage.sync.get(['githubToken', 'gitlabToken', 'showButtons', 'llm']);
     sendResponse({ success: true, data: config });
   } catch (error) {
     sendResponse({ success: false, error: String(error) });
@@ -105,6 +115,7 @@ async function handleTestApi(
 
 /**
  * 코멘트 변환 (instruction/skills 생성)
+ * Feature 1: 다중 프로젝트 타입 지원
  */
 async function handleConvertComment(
   payload: { comment: Comment; repository: Repository },
@@ -123,10 +134,11 @@ async function handleConvertComment(
       throw new Error('이 코멘트는 컨벤션 관련 내용이 아닙니다.');
     }
 
-    // 2. 토큰 가져오기
+    // 2. 토큰 및 LLM 설정 가져오기
     const tokenKey = repository.platform === 'github' ? 'githubToken' : 'gitlabToken';
-    const storage = await chrome.storage.sync.get([tokenKey]);
+    const storage = await chrome.storage.sync.get([tokenKey, 'llm']);
     const token = storage[tokenKey] as string | undefined;
+    const llmConfig = (storage.llm || { enabled: false, provider: 'none' }) as LLMConfig;
 
     if (!token) {
       throw new Error(`${repository.platform} token이 설정되지 않았습니다.`);
@@ -138,7 +150,7 @@ async function handleConvertComment(
       platform: repository.platform
     });
 
-    // 4. 코멘트 파싱
+    // 4. 코멘트 파싱 (규칙 기반)
     console.log('[MessageHandler] Parsing comment...');
     const parsedComment = parseComment(comment.content);
 
@@ -151,66 +163,92 @@ async function handleConvertComment(
       category: parsedComment.category
     });
 
-    // 5. 매칭 파일 찾기
-    console.log('[MessageHandler] Finding matching file...');
-    let matchResult;
-    try {
-      matchResult = await findMatchingFile(client, repository, parsedComment);
-      console.log('[MessageHandler] Match result:', { isMatch: matchResult.isMatch, path: matchResult.file?.path });
-    } catch (error) {
-      console.error('[MessageHandler] Error during file matching:', error);
-      // 파일 매칭 실패해도 계속 진행 (새 파일 생성)
-      matchResult = { file: null, score: 0, isMatch: false };
-    }
+    // 5. LLM 강화
+    console.log('[MessageHandler] Enhancing with LLM...');
+    const enhancedComment: EnhancedComment = await enhanceWithLLM(parsedComment, llmConfig);
 
-    let filePath: string;
-    let fileContent: string;
-    let isUpdate = false;
-
-    if (matchResult.isMatch && matchResult.file) {
-      // 기존 파일 업데이트
-      console.log('[MessageHandler] Updating existing file:', matchResult.file.path);
-      isUpdate = true;
-      filePath = matchResult.file.path;
-
-      // Skills 파일 업데이트
-      fileContent = generateSkill({
-        parsedComment,
-        originalComment: comment,
-        repository,
-        existingContent: matchResult.file.content
+    if (enhancedComment.llmEnhanced) {
+      console.log('[MessageHandler] LLM enhancement successful:', {
+        provider: llmConfig.provider,
+        addedKeywords: enhancedComment.additionalKeywords?.length || 0
       });
     } else {
-      // 새 파일 생성
-      console.log('[MessageHandler] Creating new instruction file');
-      const basePath = generateFilePath(false, parsedComment.suggestedFileName);
-      filePath = await ensureUniqueFileName(client, repository, basePath);
-
-      fileContent = generateInstruction({
-        parsedComment,
-        originalComment: comment,
-        repository
-      });
+      console.log('[MessageHandler] Using original parsed comment (LLM disabled or failed)');
     }
 
-    console.log('[MessageHandler] File path:', filePath);
+    // 6. 프로젝트 타입 감지 (Feature 1)
+    console.log('[MessageHandler] Detecting project types...');
+    const projectDetector = new ProjectTypeDetector();
+    const detectionResult = await projectDetector.detect(client, repository);
 
-    // 6. PR/MR 생성
-    console.log('[MessageHandler] Creating PR/MR...', {
-      repository: `${repository.owner}/${repository.name}`,
-      branch: repository.branch,
-      filePath,
-      isUpdate
-    });
+    if (detectionResult.detectedTypes.length === 0) {
+      throw new Error('지원되는 AI 도구 형식(.claude/, .cursorrules, rules/)을 찾을 수 없습니다.');
+    }
 
-    const prResult = await createPullRequest({
+    console.log('[MessageHandler] Detected project types:', detectionResult.detectedTypes);
+
+    // 7. 각 프로젝트 타입별 Generator 생성
+    const generators = GeneratorFactory.createGenerators(detectionResult.detectedTypes);
+    console.log(`[MessageHandler] Created ${generators.size} generators`);
+
+    // 8. 각 타입별 파일 생성
+    const files: FileGenerationResult[] = [];
+
+    for (const [projectType, generator] of generators) {
+      console.log(`[MessageHandler] Generating file for ${projectType}...`);
+
+      try {
+        // 매칭 파일 찾기
+        const matchResult = await findMatchingFileForProjectType(
+          client,
+          repository,
+          enhancedComment,
+          projectType
+        );
+
+        // Generator로 파일 생성
+        const generationResult = generator.generate({
+          parsedComment: enhancedComment,
+          originalComment: comment,
+          repository,
+          existingContent: matchResult.existingContent
+        });
+
+        // 파일 경로가 비어있으면 Generator가 결정한 경로 사용
+        const finalFilePath = generationResult.filePath || matchResult.filePath;
+
+        files.push({
+          projectType: projectType,
+          filePath: finalFilePath,
+          content: generationResult.content,
+          isUpdate: generationResult.isUpdate
+        });
+
+        console.log(`[MessageHandler] Generated file for ${projectType}:`, {
+          filePath: finalFilePath,
+          isUpdate: generationResult.isUpdate
+        });
+
+      } catch (error) {
+        console.error(`[MessageHandler] Failed to generate file for ${projectType}:`, error);
+        // 한 타입 실패해도 다른 타입은 계속 진행 (부분 성공 허용)
+      }
+    }
+
+    if (files.length === 0) {
+      throw new Error('파일 생성에 모두 실패했습니다.');
+    }
+
+    console.log(`[MessageHandler] Successfully generated ${files.length} files`);
+
+    // 9. 다중 파일 PR/MR 생성
+    console.log('[MessageHandler] Creating PR/MR with multiple files...');
+    const prResult = await createPullRequestWithMultipleFiles({
       client,
       repository,
-      parsedComment,
+      parsedComment: enhancedComment,
       originalComment: comment,
-      filePath,
-      fileContent,
-      isUpdate
+      files
     });
 
     if (!prResult.success) {
@@ -220,20 +258,72 @@ async function handleConvertComment(
 
     console.log('[MessageHandler] PR/MR created successfully:', prResult.prUrl);
 
-    // 7. 성공 응답
+    // 10. 성공 응답
     sendResponse({
       success: true,
       data: {
         prUrl: prResult.prUrl,
-        filePath,
-        isUpdate,
-        category: parsedComment.category,
-        keywords: parsedComment.keywords
+        files: files.map(f => ({ projectType: f.projectType, filePath: f.filePath, isUpdate: f.isUpdate })),
+        category: enhancedComment.category,
+        keywords: enhancedComment.keywords,
+        llmEnhanced: enhancedComment.llmEnhanced
       }
     });
 
   } catch (error) {
     console.error('[MessageHandler] Failed to convert comment:', error);
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * 캐시 통계 조회 (Feature 2)
+ */
+async function handleGetCacheStats(
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    console.log('[MessageHandler] Getting cache stats...');
+
+    const stats = await llmCache.getStats();
+
+    sendResponse({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('[MessageHandler] Failed to get cache stats:', error);
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * 캐시 초기화 (Feature 2)
+ */
+async function handleClearCache(
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    console.log('[MessageHandler] Clearing cache...');
+
+    await llmCache.clear();
+
+    console.log('[MessageHandler] Cache cleared successfully');
+
+    sendResponse({
+      success: true,
+      data: { message: 'Cache cleared successfully' }
+    });
+
+  } catch (error) {
+    console.error('[MessageHandler] Failed to clear cache:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)

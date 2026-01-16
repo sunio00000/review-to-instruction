@@ -101,6 +101,23 @@ main {
   cursor: not-allowed;
 }
 
+/* Select 입력 */
+.select-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  outline: none;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.select-input:focus {
+  border-color: #0969da;
+}
+
 /* 체크박스 */
 .checkbox-label {
   display: flex;
@@ -113,6 +130,18 @@ main {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* LLM 설정 */
+.llm-settings {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+}
+
+.api-key-group {
+  margin-top: 12px;
 }
 
 /* 버튼 */
@@ -196,6 +225,20 @@ main {
   margin-top: 6px;
   font-size: 12px;
   color: #57606a;
+}
+
+.help-text.warning {
+  color: #d1242f;
+  font-weight: 500;
+}
+
+.help-text a {
+  color: #0969da;
+  text-decoration: none;
+}
+
+.help-text a:hover {
+  text-decoration: underline;
 }
 
 /* 푸터 */
@@ -292,6 +335,28 @@ footer a:hover {
     color: #8b949e;
   }
 
+  .help-text.warning {
+    color: #f85149;
+  }
+
+  .help-text a {
+    color: #58a6ff;
+  }
+
+  .select-input {
+    background-color: #161b22;
+    color: #c9d1d9;
+    border-color: #30363d;
+  }
+
+  .select-input:focus {
+    border-color: #58a6ff;
+  }
+
+  .llm-settings {
+    background-color: #161b22;
+  }
+
   footer {
     color: #8b949e;
     border-top-color: #30363d;
@@ -344,4 +409,74 @@ footer a:hover {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ==================== Feature 2: 캐시 관리 스타일 ==================== */
+
+/* 캐시 통계 */
+.cache-stats {
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.stat-item:not(:last-child) {
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #57606a;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 14px;
+  color: #24292f;
+  font-weight: 600;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+/* 캐시 액션 버튼 */
+.cache-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cache-actions .btn {
+  flex: 1;
+}
+
+/* 위험 버튼 (빨간색) */
+.btn-danger {
+  background-color: #cf222e;
+  color: #ffffff;
+  border: 1px solid #a40e26;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #a40e26;
+  border-color: #8c0820;
+}
+
+.btn-danger:active:not(:disabled) {
+  background-color: #8c0820;
+  transform: translateY(1px);
+}
+
+.btn-danger:disabled {
+  background-color: #f6f8fa;
+  color: #8c959f;
+  border-color: #d0d7de;
+  cursor: not-allowed;
 }
