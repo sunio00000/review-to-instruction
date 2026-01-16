@@ -39,52 +39,70 @@ Into AI-ready instruction files automatically:
 *Click "Convert to AI Instruction" button on any convention-related PR comment*
 
 ### Before & After
-<table>
-<tr>
-<td width="50%">
 
-#### ❌ Before (Manual Process)
+---
 
-When you see a convention in PR comments:
+### ❌ **Without Extension** (Manual Process)
 
-1. 📋 **Copy comment** text manually
-2. 🔍 **Navigate** to `.claude/instructions/` folder
-3. 📝 **Create** new `.md` file with appropriate name
-4. ⚙️ **Write** YAML frontmatter (title, keywords, category...)
-5. ✍️ **Format** content in Markdown
-6. 🌿 **Create** new branch
-7. 💾 **Commit** the file
-8. 🔀 **Open** Pull Request
-9. 📄 **Write** PR description
-10. 🔁 **Repeat** for Cursor (`.cursorrules`)
-11. 🔁 **Repeat** for Windsurf (`rules/`)
+When you see a convention in PR comments, you need to:
 
-**Time: ~15-20 minutes per convention** ⏱️
+```
+1. 📋  Copy comment text manually
+2. 🔍  Navigate to .claude/instructions/ folder
+3. 📝  Create new .md file with appropriate name
+4. ⚙️   Write YAML frontmatter (title, keywords, category...)
+5. ✍️   Format content in Markdown
+6. 🌿  Create new branch
+7. 💾  Commit the file
+8. 🔀  Open Pull Request
+9. 📄  Write PR description
+10. 🔁  Repeat steps 2-9 for Cursor (.cursorrules)
+11. 🔁  Repeat steps 2-9 for Windsurf (rules/)
+```
 
-</td>
-<td width="50%">
+<div align="center">
 
-#### ✅ After (One-Click Automation)
+### ⏱️ **Time Required: 15-20 minutes per convention**
+
+*Plus mental context switching and risk of inconsistent formatting*
+
+</div>
+
+---
+
+### ✅ **With Extension** (One-Click Automation)
 
 ![Generated PR](./docs/images/generated-pr.png)
 
-1. 🖱️ **Click** "Convert to AI Instruction" button
-2. ✨ **Done!** Extension automatically:
-   - 🤖 Analyzes comment with AI
-   - 📝 Generates professional summaries
-   - 📁 Creates files for all tools (Claude/Cursor/Windsurf)
-   - 🌿 Creates branch with timestamp
-   - 💾 Commits all files
-   - 🔀 Opens PR with preview
-   - 🎯 Targets correct branch
+Simply **click "Convert to AI Instruction"** button, and the extension:
 
-**Time: 5 seconds** ⚡
+```
+✨ Automatically handles everything:
 
-**90%+ time saved!**
+  🤖  Analyzes comment with AI (Claude/OpenAI)
+  📝  Generates professional summaries and explanations
+  🎯  Extracts keywords and categorizes content
+  📁  Creates files for ALL tools simultaneously:
+      • .claude/instructions/xxx.md (Claude Code)
+      • .cursorrules (Cursor)
+      • rules/xxx.md (Windsurf)
+  🌿  Creates branch with unique timestamp
+  💾  Commits all files with detailed messages
+  🔀  Opens Pull Request with preview
+  🎯  Targets the correct branch automatically
+```
 
-</td>
-</tr>
-</table>
+<div align="center">
+
+### ⚡ **Time Required: 5 seconds**
+
+### 🎉 **Save 90%+ of your time!**
+
+*No context switching. No formatting errors. Consistent quality every time.*
+
+</div>
+
+---
 
 </div>
 
