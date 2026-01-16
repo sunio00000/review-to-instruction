@@ -28,3 +28,11 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+nul
+
+# Test results
+test-results/
+playwright-report/
+
+# Local settings
+.claude/settings.local.json
