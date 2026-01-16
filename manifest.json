@@ -20,7 +20,8 @@
     {
       "matches": [
         "https://github.com/*/pull/*",
-        "https://gitlab.com/*/-/merge_requests/*"
+        "https://gitlab.com/*/-/merge_requests/*",
+        "http://localhost:3002/*"
       ],
       "js": [
         "src/content/main.ts"

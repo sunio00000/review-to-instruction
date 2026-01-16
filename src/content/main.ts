@@ -14,7 +14,7 @@ let injector: GitHubInjector | GitLabInjector | null = null;
 function detectPlatform(): Platform | null {
   const hostname = window.location.hostname;
 
-  if (hostname.includes('github.com')) {
+  if (hostname.includes('github.com') || hostname === 'localhost') {
     return 'github';
   } else if (hostname.includes('gitlab.com')) {
     return 'gitlab';
