@@ -21,11 +21,17 @@ export class ConfigServiceImpl implements ConfigService {
    * 플랫폼에 맞는 설정을 Chrome Storage에서 로드
    */
   async loadConfig(platform: Platform): Promise<ConfigServiceResult> {
+    console.log('[ConfigService] Loading config for platform:', platform);
+
     // 1. 플랫폼에 따른 토큰 키 결정
     const tokenKey = platform === 'github' ? 'githubToken' : 'gitlabToken';
 
     // 2. Chrome Storage에서 설정 가져오기
     const storage = await chrome.storage.sync.get([tokenKey, 'llm']);
+    console.log('[ConfigService] Raw storage data:', {
+      hasToken: !!storage[tokenKey],
+      llmData: storage.llm
+    });
 
     // 3. Token 추출 및 검증
     const token = storage[tokenKey] as string | undefined;
@@ -35,6 +41,12 @@ export class ConfigServiceImpl implements ConfigService {
 
     // 4. LLM 설정 추출 (기본값 포함)
     const llmConfig = this.ensureLLMConfig(storage.llm);
+    console.log('[ConfigService] Final LLM config:', {
+      enabled: llmConfig.enabled,
+      provider: llmConfig.provider,
+      hasClaudeKey: !!llmConfig.claudeApiKey,
+      hasOpenAIKey: !!llmConfig.openaiApiKey
+    });
 
     return { token, llmConfig };
   }

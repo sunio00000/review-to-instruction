@@ -50,19 +50,29 @@ export class SmartFileNaming {
     analysisResult: AnalysisResult | null,
     llmConfig: LLMConfig
   ): Promise<FileNamingResult> {
+    console.log('[SmartFileNaming] Starting AI-based filename generation');
+    console.log('[SmartFileNaming] LLM Provider:', llmConfig.provider);
+    console.log('[SmartFileNaming] Has API Key:', llmConfig.provider === 'claude' ? !!llmConfig.claudeApiKey : !!llmConfig.openaiApiKey);
+
     // LLM 클라이언트 생성
     const client = llmConfig.provider === 'claude'
       ? new ClaudeClient(llmConfig.claudeApiKey!)
       : new OpenAIClient(llmConfig.openaiApiKey!);
 
+    console.log('[SmartFileNaming] LLM client created');
+
     // 프롬프트 구성
     const prompt = this.buildAINamingPrompt(parsedComment, analysisResult);
+    console.log('[SmartFileNaming] Prompt built, length:', prompt.length);
 
     // AI 호출
+    console.log('[SmartFileNaming] Calling AI API...');
     const response = await client.generateFileName(prompt);
+    console.log('[SmartFileNaming] AI API responded, length:', response.length);
 
     // 응답 파싱
     const result = this.parseAIResponse(response, analysisResult);
+    console.log('[SmartFileNaming] Final result:', result);
 
     return result;
   }
@@ -130,24 +140,54 @@ Respond ONLY with valid JSON, no additional text.`;
     analysisResult: AnalysisResult | null
   ): FileNamingResult {
     try {
-      // JSON 추출 (```json 태그 제거)
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      console.log('[SmartFileNaming] Raw AI response:', response);
+
+      // JSON 추출 - 여러 패턴 시도
+      let jsonText: string | null = null;
+
+      // 1. ```json``` 블록 내부 찾기
+      const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonText = codeBlockMatch[1].trim();
+        console.log('[SmartFileNaming] Found JSON in code block');
+      }
+
+      // 2. 중괄호로 시작하는 JSON 객체 찾기
+      if (!jsonText) {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[0];
+          console.log('[SmartFileNaming] Found JSON object');
+        }
+      }
+
+      if (!jsonText) {
         throw new Error('No JSON found in response');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonText);
+      console.log('[SmartFileNaming] Parsed JSON:', parsed);
+
+      // 필수 필드 검증
+      if (!parsed.filename) {
+        throw new Error('Missing filename in AI response');
+      }
+
+      const directory = parsed.directory || '.claude/instructions';
+      const filename = parsed.filename;
 
       return {
-        filename: parsed.filename || 'instruction.md',
-        directory: parsed.directory || '.claude/instructions',
-        fullPath: `${parsed.directory}/${parsed.filename}`,
+        filename,
+        directory,
+        fullPath: `${directory}/${filename}`,
         confidence: 90,
-        reasoning: parsed.reasoning
+        reasoning: parsed.reasoning || 'AI-generated filename'
       };
     } catch (error) {
       console.error('[SmartFileNaming] Failed to parse AI response:', error);
+      console.error('[SmartFileNaming] Response was:', response);
       // 파싱 실패 시 규칙 기반으로 폴백
+      console.warn('[SmartFileNaming] Falling back to rule-based naming');
       return this.generateWithRules(
         { keywords: [], category: 'general', content: '', codeExamples: [], suggestedFileName: '' },
         analysisResult

@@ -162,6 +162,11 @@ export class GitLabInjector {
     if (!button) return;
 
     try {
+      // Chrome Extension API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+        throw new Error('Chrome Extension API를 사용할 수 없습니다. Extension이 제대로 로드되었는지 확인해주세요.');
+      }
+
       // Background script로 메시지 전송
       const response = await chrome.runtime.sendMessage({
         type: 'CONVERT_COMMENT',
@@ -197,6 +202,12 @@ export class GitLabInjector {
    */
   private async getConfig() {
     try {
+      // Chrome API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        console.warn('[GitLabInjector] Chrome storage API not available');
+        return { showButtons: true };
+      }
+
       const result = await chrome.storage.sync.get(['showButtons']);
       return {
         showButtons: result.showButtons !== false  // 기본값 true

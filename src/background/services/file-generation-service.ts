@@ -151,9 +151,17 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     // 1. AI 기반 파일명 생성 (Claude Code 타입이고 LLM이 활성화된 경우)
     let smartFilePath: string | null = null;
 
+    console.log('[FileGenerationService] Checking AI naming conditions:', {
+      projectType,
+      isClaudeCode: projectType === 'claude-code',
+      llmEnabled: llmConfig?.enabled,
+      llmProvider: llmConfig?.provider,
+      hasAnalysisResult: !!analysisResult
+    });
+
     if (projectType === 'claude-code' && llmConfig?.enabled && analysisResult) {
       try {
-        console.log('[FileGenerationService] Using AI-based file naming...');
+        console.log('[FileGenerationService] All conditions met, using AI-based file naming...');
 
         const namingResult = await this.smartFileNaming.generateFileName({
           parsedComment: enhancedComment,
@@ -169,8 +177,11 @@ export class FileGenerationServiceImpl implements FileGenerationService {
           reasoning: namingResult.reasoning
         });
       } catch (error) {
-        console.warn('[FileGenerationService] AI file naming failed, falling back to rule-based:', error);
+        console.error('[FileGenerationService] AI file naming failed:', error);
+        console.warn('[FileGenerationService] Falling back to rule-based naming');
       }
+    } else {
+      console.log('[FileGenerationService] Skipping AI naming, using traditional approach');
     }
 
     // 2. 매칭 파일 찾기 (기존 방식)

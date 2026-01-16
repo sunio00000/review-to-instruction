@@ -25,6 +25,12 @@ function detectPlatform(): Platform | null {
 
 // 초기화
 async function init() {
+  // Chrome Extension API 존재 여부 확인
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+    console.warn('[Review to Instruction] Chrome Extension API not available');
+    return;
+  }
+
   const platform = detectPlatform();
 
   if (!platform) {
@@ -34,13 +40,17 @@ async function init() {
 
   console.log(`[Review to Instruction] Initialized on ${platform}`);
 
-  // 플랫폼별 injector 시작
-  if (platform === 'github') {
-    injector = new GitHubInjector();
-    await injector.start();
-  } else if (platform === 'gitlab') {
-    injector = new GitLabInjector();
-    await injector.start();
+  try {
+    // 플랫폼별 injector 시작
+    if (platform === 'github') {
+      injector = new GitHubInjector();
+      await injector.start();
+    } else if (platform === 'gitlab') {
+      injector = new GitLabInjector();
+      await injector.start();
+    }
+  } catch (error) {
+    console.error('[Review to Instruction] Failed to initialize injector:', error);
   }
 }
 
