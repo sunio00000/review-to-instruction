@@ -48,6 +48,8 @@ Into AI-ready instruction files automatically:
 
 When you see a convention comment during PR review, you need to:
 
+💬 Discuss with team if this should be a convention<br/>
+🤝 Get team consensus on the approach<br/>
 📋 Copy the comment text manually<br/>
 🤔 Think of an appropriate filename<br/>
 🔍 Navigate to `.claude/instructions/` folder<br/>
