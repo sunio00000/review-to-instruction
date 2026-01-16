@@ -31,20 +31,39 @@ export async function enhanceWithLLM(
 
   try {
     // 클라이언트 생성
+    console.log('[LLM Enhancer] Creating client:', config.provider);
     const client = createClient(config.provider, apiKey);
 
     // LLM 분석 호출
+    console.log('[LLM Enhancer] Calling analyzeComment...');
+    console.log('[LLM Enhancer] Content length:', parsedComment.content.length);
+    console.log('[LLM Enhancer] Code examples:', parsedComment.codeExamples.length);
+
     const response = await client.analyzeComment(
       parsedComment.content,
       parsedComment.codeExamples
     );
 
+    console.log('[LLM Enhancer] Response received:', {
+      success: response.success,
+      hasData: !!response.data,
+      error: response.error
+    });
+
     if (!response.success || !response.data) {
-      console.error('[LLM Enhancer] LLM analysis failed:', response.error);
+      console.error('[LLM Enhancer] ❌ LLM analysis failed');
+      console.error('[LLM Enhancer] Response:', response);
       return { ...parsedComment, llmEnhanced: false };
     }
 
     const { data } = response;
+
+    console.log('[LLM Enhancer] Analysis data:', {
+      hasSummary: !!data.summary,
+      hasExplanation: !!data.detailedExplanation,
+      additionalKeywords: data.additionalKeywords?.length || 0,
+      suggestedCategory: data.suggestedCategory
+    });
 
     // 키워드 병합 (중복 제거)
     const mergedKeywords = Array.from(new Set([
