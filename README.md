@@ -46,7 +46,6 @@ Into AI-ready instruction files automatically:
 
 When you see a convention in PR comments, you need to:
 
-```
 1. 📋  Copy comment text manually
 2. 🔍  Navigate to .claude/instructions/ folder
 3. 📝  Create new .md file with appropriate name
@@ -58,7 +57,7 @@ When you see a convention in PR comments, you need to:
 9. 📄  Write PR description
 10. 🔁  Repeat steps 2-9 for Cursor (.cursorrules)
 11. 🔁  Repeat steps 2-9 for Windsurf (rules/)
-```
+
 
 <div align="center">
 
@@ -74,9 +73,9 @@ When you see a convention in PR comments, you need to:
 
 ![Generated PR](./docs/images/generated-pr.png)
 
-Simply **click "Convert to AI Instruction"** button, and the extension:
+🔥🔥 Simply **click "Convert to AI Instruction"** button, and the extension: 🔥🔥
 
-```
+
 ✨ Automatically handles everything:
 
   🤖  Analyzes comment with AI (Claude/OpenAI)
@@ -90,7 +89,7 @@ Simply **click "Convert to AI Instruction"** button, and the extension:
   💾  Commits all files with detailed messages
   🔀  Opens Pull Request with preview
   🎯  Targets the correct branch automatically
-```
+
 
 <div align="center">
 
