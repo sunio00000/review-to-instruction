@@ -30,38 +30,74 @@ Into AI-ready instruction files automatically:
 
 **All in one PR with a single click.**
 
+## 📸 Demo
+
+<div align="center">
+
+### Extension in Action
+![Demo](./docs/images/demo.gif)
+*Click "Convert to AI Instruction" button on any convention-related PR comment*
+
+### Before & After
+<table>
+<tr>
+<td width="50%">
+
+**GitHub PR Comment**
+![PR Comment](./docs/images/pr-comment.png)
+
+</td>
+<td width="50%">
+
+**Generated PR**
+![Generated PR](./docs/images/generated-pr.png)
+
+</td>
+</tr>
+</table>
+
+</div>
+
+> **Note**: Screenshots will be added soon. To contribute demo materials, see [CONTRIBUTING.md](./CONTRIBUTING.md)
+
 ## 🏗️ How It Works
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#0969da','primaryTextColor':'#ffffff','primaryBorderColor':'#1f6feb','lineColor':'#57606a','secondaryColor':'#238636','tertiaryColor':'#9a6700','noteBkgColor':'#ffffff','noteTextColor':'#1f2328'}}}%%
 graph LR
-    A[PR Comment] -->|1. Detect| B[Extension Button]
-    B -->|2. Parse| C[Extract Keywords]
-    C -->|3. Match| D[Find Existing Files]
-    D -->|4. Generate| E[Create/Update Files]
-    E -->|5. Auto-Commit| F[New PR Created]
+    A["💬 PR Comment"] -->|1. Detect| B["🔘 Extension Button"]
+    B -->|2. Parse| C["🔍 Extract Keywords"]
+    C -->|3. Match| D["📂 Find Existing Files"]
+    D -->|4. Generate| E["📝 Create/Update Files"]
+    E -->|5. Auto-Commit| F["✅ New PR Created"]
 
-    style A fill:#e1f5ff
-    style F fill:#d4edda
+    style A fill:#0969da,stroke:#1f6feb,stroke-width:2px,color:#ffffff
+    style B fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style C fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style D fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style E fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style F fill:#238636,stroke:#2da44e,stroke-width:2px,color:#ffffff
 ```
 
 ### Architecture
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#0969da','primaryTextColor':'#ffffff','primaryBorderColor':'#1f6feb','lineColor':'#57606a','secondaryColor':'#238636','tertiaryColor':'#9a6700'}}}%%
 graph TB
     subgraph "GitHub/GitLab Page"
-        A[Content Script]
+        A["📄 Content Script"]
     end
 
     subgraph "Extension Background"
-        B[Message Handler]
-        C[API Client]
-        D[Parser]
-        E[File Generator]
+        B["📨 Message Handler"]
+        C["🌐 API Client"]
+        D["🔍 Parser"]
+        E["⚙️ File Generator"]
     end
 
     subgraph "External APIs"
-        F[GitHub/GitLab API]
-        G[LLM API Optional]
+        F["📡 GitHub/GitLab API"]
+        G["🤖 LLM API<br/>(Optional)"]
     end
 
     A -->|Comment Data| B
@@ -72,10 +108,13 @@ graph TB
     B -.->|Enhance| G
     C -->|Create PR| F
 
-    style A fill:#e1f5ff
-    style B fill:#fff3cd
-    style F fill:#d4edda
-    style G fill:#f8d7da,stroke-dasharray: 5 5
+    style A fill:#0969da,stroke:#1f6feb,stroke-width:2px,color:#ffffff
+    style B fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style C fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style D fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style E fill:#1f6feb,stroke:#0969da,stroke-width:2px,color:#ffffff
+    style F fill:#238636,stroke:#2da44e,stroke-width:2px,color:#ffffff
+    style G fill:#9a6700,stroke:#bf8700,stroke-width:2px,stroke-dasharray: 5 5,color:#ffffff
 ```
 
 ## 🚀 Quick Start
