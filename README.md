@@ -44,29 +44,26 @@ Into AI-ready instruction files automatically:
 
 ### ❌ **Without Extension** (Manual Process)
 
-When you see a convention in PR comments, you need to:
-```md
-1. 💬  Share convention with team via Slack/Email
-2. 🤝  Coordinate who will create the instruction files
-3. 📋  Copy comment text manually
-4. 🔍  Navigate to .claude/instructions/ folder
-5. 📝  Create new .md file with appropriate name
-6. ⚙️   Write YAML frontmatter (title, keywords, category...)
-7. ✍️   Format content in Markdown
-8. 🌿  Create new branch
-9. 💾  Commit the file
-10. 🔀  Open Pull Request
-11. 📄  Write PR description
-12. 👥  Request review from team for consistency
-13. 🔁  Repeat steps 4-12 for Cursor (.cursorrules)
-14. 🔁  Repeat steps 4-12 for Windsurf (rules/)
-```
-
 <div align="center">
+
+When you see a convention comment during PR review, you need to:
+
+📋 Copy the comment text manually
+🤔 Think of an appropriate filename
+🔍 Navigate to `.claude/instructions/` folder
+📝 Create new `.md` file
+⚙️ Write YAML frontmatter (title, keywords, category...)
+✍️ Format content in Markdown
+🌿 Create new branch
+💾 Commit the file
+🔀 Open Pull Request
+📄 Write PR description
+🔁 Repeat for `.cursorrules` (Cursor)
+🔁 Repeat for `rules/` (Windsurf)
 
 ### ⏱️ **Time Required: 15-20 minutes per convention**
 
-*Plus mental context switching, team coordination overhead, and risk of inconsistent formatting*
+*Plus mental context switching and risk of inconsistent formatting*
 
 </div>
 
@@ -74,30 +71,29 @@ When you see a convention in PR comments, you need to:
 
 ### ✅ **With Extension** (One-Click Automation)
 
-🔥🔥 Simply **click "Convert to AI Instruction"** button, and the extension: 🔥🔥
-
-✨ Automatically handles everything:
-```md
-  🤖  Analyzes comment with AI (Claude/OpenAI)     
-  📝  Generates professional summaries and explanations   
-  🎯  Extracts keywords and categorizes content   
-  📁  Creates files for ALL tools simultaneously:   
-      • .claude/instructions/xxx.md (Claude Code)   
-      • .cursorrules (Cursor)   
-      • rules/xxx.md (Windsurf)   
-  🌿  Creates branch with unique timestamp    
-  💾  Commits all files with detailed messages   
-  🔀  Opens Pull Request with preview   
-  🎯  Targets the correct branch automatically   
-```
-
 <div align="center">
+
+🔥🔥 Simply **click "Convert to AI Instruction"** button 🔥🔥
+
+✨ **Extension automatically handles everything:**
+
+🤖 Analyzes comment with AI (Claude/OpenAI)
+📝 Generates professional summaries and explanations
+🎯 Extracts keywords and categorizes content
+📁 Creates files for **ALL tools simultaneously:**
+&nbsp;&nbsp;&nbsp;&nbsp;• `.claude/instructions/xxx.md` (Claude Code)
+&nbsp;&nbsp;&nbsp;&nbsp;• `.cursorrules` (Cursor)
+&nbsp;&nbsp;&nbsp;&nbsp;• `rules/xxx.md` (Windsurf)
+🌿 Creates branch with unique timestamp
+💾 Commits all files with detailed messages
+🔀 Opens Pull Request with preview
+🎯 Targets the correct branch automatically
 
 ### ⚡ **Time Required: 5 seconds**
 
 ### 🎉 **Save 90%+ of your time!**
 
-*No context switching. No team coordination. No formatting errors. Consistent quality every time.*
+*No context switching. No formatting errors. Consistent quality every time.*
 
 <br/>
 
