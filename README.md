@@ -188,12 +188,6 @@ Done! Your AI agents now understand this convention.
   - Provides reasoning for filename choices
 - **Duplicate Detection**: Finds similar instructions to suggest updates instead of creating new files
 
-### Developer Experience
-- **Service Layer Architecture**: Clean, testable code with dependency injection
-- **Robust Error Handling**: Standardized error responses with detailed context
-- **E2E Testing**: Comprehensive test infrastructure with Playwright and MSW
-- **Type Safety**: Full TypeScript coverage for better reliability
-
 ## 🛠️ Tech Stack
 
 **Frontend**: TypeScript · Vite · Chrome Extension (Manifest V3)
