@@ -36,9 +36,34 @@ export class GitHubInjector {
         const name = pathParts[1];
         const prNumber = parseInt(pathParts[3], 10);
 
-        // 현재 브랜치 정보 (PR 페이지에서 추출)
-        const branchElement = document.querySelector('.head-ref');
-        const branch = branchElement?.textContent?.trim() || 'main';
+        // 기본 브랜치 정보 추출 (PR이 머지될 대상 브랜치)
+        // 1. base-ref 시도 (PR의 target branch)
+        let branch = document.querySelector('.base-ref')?.textContent?.trim();
+
+        // 2. branch-select 메뉴에서 기본 브랜치 찾기
+        if (!branch) {
+          const branchButton = document.querySelector('[data-hovercard-type="repository"]');
+          branch = branchButton?.textContent?.trim();
+        }
+
+        // 3. 메타 태그에서 기본 브랜치 찾기
+        if (!branch) {
+          const metaTag = document.querySelector('meta[name="octolytics-dimension-repository_default_branch"]');
+          branch = metaTag?.getAttribute('content') || undefined;
+        }
+
+        // 4. 최종 fallback
+        if (!branch) {
+          console.warn('[GitHubInjector] Could not detect base branch, defaulting to "main"');
+          branch = 'main';
+        }
+
+        console.log('[GitHubInjector] Extracted repository info:', {
+          owner,
+          name,
+          branch,
+          prNumber
+        });
 
         return {
           owner,
@@ -75,10 +100,51 @@ export class GitHubInjector {
       return;
     }
 
-    console.log('[GitHubInjector] Repository:', this.repository);
+    console.log('[GitHubInjector] Initial repository info:', this.repository);
+
+    // API를 통해 기본 브랜치 확인 및 업데이트
+    try {
+      await this.updateDefaultBranch();
+    } catch (error) {
+      console.warn('[GitHubInjector] Failed to update default branch from API:', error);
+      // API 호출 실패해도 계속 진행 (추출한 branch 사용)
+    }
+
+    console.log('[GitHubInjector] Final repository info:', this.repository);
 
     // 코멘트 감지 시작
     this.detector.start();
+  }
+
+  /**
+   * API를 통해 repository의 기본 브랜치 가져오기
+   */
+  private async updateDefaultBranch() {
+    if (!this.repository) return;
+
+    // Chrome Extension API 확인
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+      return;
+    }
+
+    try {
+      // Background script를 통해 API 호출
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_REPOSITORY_INFO',
+        payload: {
+          owner: this.repository.owner,
+          name: this.repository.name
+        }
+      });
+
+      if (response.success && response.data.default_branch) {
+        console.log('[GitHubInjector] Updated branch from API:', response.data.default_branch);
+        this.repository.branch = response.data.default_branch;
+      }
+    } catch (error) {
+      // API 호출 실패는 무시 (이미 추출한 branch 사용)
+      console.warn('[GitHubInjector] API call for default branch failed:', error);
+    }
   }
 
   /**

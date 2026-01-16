@@ -302,6 +302,13 @@ export class ApiClient {
     fromBranch: string
   ): Promise<boolean> {
     try {
+      console.log('[ApiClient] createBranch called with:', {
+        repository: `${repository.owner}/${repository.name}`,
+        branchName,
+        fromBranch,
+        platform: this.platform
+      });
+
       if (this.platform === 'github') {
         await this.createGitHubBranch(repository, branchName, fromBranch);
       } else {
@@ -310,6 +317,10 @@ export class ApiClient {
       return true;
     } catch (error) {
       console.error('[ApiClient] Failed to create branch:', error);
+      if (error instanceof Error) {
+        console.error('[ApiClient] Error message:', error.message);
+        console.error('[ApiClient] Error stack:', error.stack);
+      }
       return false;
     }
   }

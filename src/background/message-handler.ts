@@ -43,6 +43,10 @@ export async function handleMessage(
       await handleClearCache(sendResponse);
       break;
 
+    case 'GET_REPOSITORY_INFO':
+      await handleGetRepositoryInfo(message.payload, sendResponse);
+      break;
+
     default:
       sendResponse({ success: false, error: 'Unknown message type' });
   }
@@ -179,6 +183,58 @@ async function handleClearCache(
 
   } catch (error) {
     console.error('[MessageHandler] Failed to clear cache:', error);
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Repository 정보 가져오기 (기본 브랜치 확인용)
+ */
+async function handleGetRepositoryInfo(
+  payload: { owner: string; name: string },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    console.log('[MessageHandler] Getting repository info:', payload);
+
+    // GitHub token 가져오기
+    const storage = await chrome.storage.sync.get(['githubToken']);
+    const token = storage.githubToken;
+
+    if (!token) {
+      throw new Error('GitHub token not configured');
+    }
+
+    // Repository 정보 조회
+    const url = `https://api.github.com/repos/${payload.owner}/${payload.name}`;
+    const headers = {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    };
+
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+
+    const repoData = await response.json();
+
+    console.log('[MessageHandler] Repository default branch:', repoData.default_branch);
+
+    sendResponse({
+      success: true,
+      data: {
+        default_branch: repoData.default_branch,
+        full_name: repoData.full_name
+      }
+    });
+
+  } catch (error) {
+    console.error('[MessageHandler] Failed to get repository info:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)

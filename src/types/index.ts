@@ -105,8 +105,9 @@ export type MessageType =
   | 'CONVERT_COMMENT'
   | 'CREATE_PR'
   | 'TEST_API'
-  | 'GET_CACHE_STATS'   // Feature 2: 캐시 통계 조회
-  | 'CLEAR_CACHE';      // Feature 2: 캐시 초기화
+  | 'GET_CACHE_STATS'      // Feature 2: 캐시 통계 조회
+  | 'CLEAR_CACHE'          // Feature 2: 캐시 초기화
+  | 'GET_REPOSITORY_INFO'; // Repository 기본 브랜치 조회
 
 export interface Message {
   type: MessageType;
