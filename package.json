@@ -8,12 +8,22 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "keywords": ["chrome-extension", "github", "gitlab", "ai", "claude-code"],
+  "keywords": [
+    "chrome-extension",
+    "github",
+    "gitlab",
+    "ai",
+    "claude-code"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.3.0",
+    "@playwright/test": "^1.57.0",
     "@types/chrome": "^0.1.33",
+    "@types/express": "^5.0.6",
+    "express": "^5.2.1",
+    "msw": "^2.12.7",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }
