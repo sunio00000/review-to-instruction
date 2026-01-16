@@ -118,3 +118,13 @@ export interface MessageResponse {
   data?: any;
   error?: string;
 }
+
+// 에러 응답 (표준화된 에러 형식)
+export interface ErrorResponse {
+  success: false;
+  error: {
+    message: string;      // 사용자에게 표시할 메시지
+    code?: string;        // 에러 코드 (선택)
+    timestamp: number;    // 에러 발생 시각
+  };
+}
