@@ -36,27 +36,24 @@ export class GitHubInjector {
         const name = pathParts[1];
         const prNumber = parseInt(pathParts[3], 10);
 
-        // 기본 브랜치 정보 추출 (PR이 머지될 대상 브랜치)
-        // 1. base-ref 시도 (PR의 target branch)
-        let branch = document.querySelector('.base-ref')?.textContent?.trim();
+        // PR의 작업 브랜치 정보 추출 (instruction을 추가할 대상)
+        // 1. head-ref 시도 (PR의 source/head branch - 작업 중인 브랜치)
+        let branch = document.querySelector('.head-ref')?.textContent?.trim();
 
-        // 2. branch-select 메뉴에서 기본 브랜치 찾기
+        // 2. branch-name 클래스 시도
         if (!branch) {
-          const branchButton = document.querySelector('[data-hovercard-type="repository"]');
-          branch = branchButton?.textContent?.trim();
+          const branchElement = document.querySelector('.commit-ref.head-ref .css-truncate-target');
+          branch = branchElement?.textContent?.trim();
         }
 
-        // 3. 메타 태그에서 기본 브랜치 찾기
+        // 3. API를 통해 PR 정보 가져오기 (fallback)
         if (!branch) {
-          const metaTag = document.querySelector('meta[name="octolytics-dimension-repository_default_branch"]');
-          branch = metaTag?.getAttribute('content') || undefined;
+          console.warn('[GitHubInjector] Could not detect head branch from DOM, will try API later');
+          // API fallback은 updateDefaultBranch에서 처리
+          branch = 'main';  // 임시값
         }
 
-        // 4. 최종 fallback
-        if (!branch) {
-          console.warn('[GitHubInjector] Could not detect base branch, defaulting to "main"');
-          branch = 'main';
-        }
+        console.log('[GitHubInjector] Extracted head branch (PR source):', branch);
 
         console.log('[GitHubInjector] Extracted repository info:', {
           owner,
@@ -117,7 +114,7 @@ export class GitHubInjector {
   }
 
   /**
-   * API를 통해 repository의 기본 브랜치 가져오기
+   * API를 통해 PR의 head branch 가져오기
    */
   private async updateDefaultBranch() {
     if (!this.repository) return;
@@ -128,22 +125,23 @@ export class GitHubInjector {
     }
 
     try {
-      // Background script를 통해 API 호출
+      // Background script를 통해 PR 정보 API 호출
       const response = await chrome.runtime.sendMessage({
-        type: 'GET_REPOSITORY_INFO',
+        type: 'GET_PR_INFO',
         payload: {
           owner: this.repository.owner,
-          name: this.repository.name
+          name: this.repository.name,
+          prNumber: this.repository.prNumber
         }
       });
 
-      if (response.success && response.data.default_branch) {
-        console.log('[GitHubInjector] Updated branch from API:', response.data.default_branch);
-        this.repository.branch = response.data.default_branch;
+      if (response.success && response.data.head_branch) {
+        console.log('[GitHubInjector] Updated head branch from API:', response.data.head_branch);
+        this.repository.branch = response.data.head_branch;
       }
     } catch (error) {
-      // API 호출 실패는 무시 (이미 추출한 branch 사용)
-      console.warn('[GitHubInjector] API call for default branch failed:', error);
+      // API 호출 실패는 무시 (DOM에서 추출한 branch 사용)
+      console.warn('[GitHubInjector] API call for PR head branch failed:', error);
     }
   }
 

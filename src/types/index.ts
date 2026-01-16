@@ -107,7 +107,8 @@ export type MessageType =
   | 'TEST_API'
   | 'GET_CACHE_STATS'      // Feature 2: 캐시 통계 조회
   | 'CLEAR_CACHE'          // Feature 2: 캐시 초기화
-  | 'GET_REPOSITORY_INFO'; // Repository 기본 브랜치 조회
+  | 'GET_REPOSITORY_INFO'  // Repository 기본 브랜치 조회
+  | 'GET_PR_INFO';         // PR head/base 브랜치 조회
 
 export interface Message {
   type: MessageType;
