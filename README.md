@@ -48,17 +48,17 @@ Into AI-ready instruction files automatically:
 
 When you see a convention comment during PR review, you need to:
 
-📋 Copy the comment text manually
-🤔 Think of an appropriate filename
-🔍 Navigate to `.claude/instructions/` folder
-📝 Create new `.md` file
-⚙️ Write YAML frontmatter (title, keywords, category...)
-✍️ Format content in Markdown
-🌿 Create new branch
-💾 Commit the file
-🔀 Open Pull Request
-📄 Write PR description
-🔁 Repeat for `.cursorrules` (Cursor)
+📋 Copy the comment text manually<br/>
+🤔 Think of an appropriate filename<br/>
+🔍 Navigate to `.claude/instructions/` folder<br/>
+📝 Create new `.md` file<br/>
+⚙️ Write YAML frontmatter (title, keywords, category...)<br/>
+✍️ Format content in Markdown<br/>
+🌿 Create new branch<br/>
+💾 Commit the file<br/>
+🔀 Open Pull Request<br/>
+📄 Write PR description<br/>
+🔁 Repeat for `.cursorrules` (Cursor)<br/>
 🔁 Repeat for `rules/` (Windsurf)
 
 ### ⏱️ **Time Required: 15-20 minutes per convention**
@@ -77,16 +77,16 @@ When you see a convention comment during PR review, you need to:
 
 ✨ **Extension automatically handles everything:**
 
-🤖 Analyzes comment with AI (Claude/OpenAI)
-📝 Generates professional summaries and explanations
-🎯 Extracts keywords and categorizes content
-📁 Creates files for **ALL tools simultaneously:**
-&nbsp;&nbsp;&nbsp;&nbsp;• `.claude/instructions/xxx.md` (Claude Code)
-&nbsp;&nbsp;&nbsp;&nbsp;• `.cursorrules` (Cursor)
-&nbsp;&nbsp;&nbsp;&nbsp;• `rules/xxx.md` (Windsurf)
-🌿 Creates branch with unique timestamp
-💾 Commits all files with detailed messages
-🔀 Opens Pull Request with preview
+🤖 Analyzes comment with AI (Claude/OpenAI)<br/>
+📝 Generates professional summaries and explanations<br/>
+🎯 Extracts keywords and categorizes content<br/>
+📁 Creates files for **ALL tools simultaneously:**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;• `.claude/instructions/xxx.md` (Claude Code)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;• `.cursorrules` (Cursor)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;• `rules/xxx.md` (Windsurf)<br/>
+🌿 Creates branch with unique timestamp<br/>
+💾 Commits all files with detailed messages<br/>
+🔀 Opens Pull Request with preview<br/>
 🎯 Targets the correct branch automatically
 
 ### ⚡ **Time Required: 5 seconds**
