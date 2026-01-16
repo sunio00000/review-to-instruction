@@ -2,570 +2,159 @@
 
 <div align="center">
 
-**A Chrome Extension that automatically converts GitHub/GitLab PR/MR review comments into Claude Code instructions/skills for AI agents**
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.0+-646CFF.svg)](https://vitejs.dev/)
-[![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-4285F4.svg)](https://developer.chrome.com/docs/extensions/)
+[![AI Generated](https://img.shields.io/badge/🤖_AI_Generated-Claude_Sonnet_4.5-8A2BE2.svg)](https://www.anthropic.com/claude)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-[![AI Generated](https://img.shields.io/badge/🤖_AI_Generated-Claude_Sonnet_4.5-8A2BE2.svg)](https://www.anthropic.com/claude)
+**One-Click Conversion of PR Review Comments into AI-Ready Instructions**
 
-> **Note:** This project was developed with the assistance of Claude Sonnet 4.5 AI. All code, documentation, and architecture were collaboratively created through AI-human pair programming.
+Transform GitHub/GitLab review comments into structured instruction files for Claude Code, Cursor, and Windsurf
 
 </div>
 
 ---
 
-## 📌 Overview
+## 🎯 What It Does
 
-A tool that helps AI agents (especially Claude Code) automatically learn and utilize **conventions and patterns** established during your team's code review process.
+Turns this PR comment:
+```
+Our team uses PascalCase for component file names.
 
-It detects rules or patterns written in PR/MR comments by reviewers and saves them as instruction or skill files in the `.claude/` directory with **a single click**. This enables AI to automatically learn your team's coding style and rules, generating consistent code.
+✅ UserProfile.tsx
+❌ userProfile.tsx
+```
 
-### ✨ Key Features
+Into AI-ready instruction files automatically:
+- `.claude/instructions/component-naming.md`
+- `.cursorrules` (appends rule)
+- `rules/component-naming.md`
 
-- **🔍 Auto Comment Detection**: Real-time detection of review comments on GitHub PR and GitLab MR pages
-- **🎯 Smart Button Addition**: "Convert to AI Instruction" button appears only on convention-related comments
-- **🧠 Keyword Extraction**: Automatically extracts convention-related keywords from comment content (English/Korean support)
-- **🤖 LLM-Powered Analysis** (Optional): Uses Claude or OpenAI to automatically summarize comments, generate detailed explanations, and add code explanations
-- **🎯 Multi-Tool Support** (NEW): Auto-detects and generates files for Claude Code, Cursor, and Windsurf simultaneously
-- **📂 Smart File Matching**: Matches with existing files to decide between update or new creation for each tool
-- **📝 Format-Specific Generation**: Automatically generates files in each tool's standard format (YAML frontmatter, Markdown, etc.)
-- **💾 Intelligent Caching** (NEW): Caches LLM responses to reduce API costs by 50-70% and improve response times by 95%+
-- **🚀 Auto PR/MR Creation**: Creates new branches and automatically generates PR/MR with all generated files
-- **🎨 Dark Mode Support**: Automatically adapts to GitHub/GitLab dark themes
-- **⚡ User-Friendly UI**: Loading animations, success/error messages, PR URL links, cache management dashboard
+**All in one PR with a single click.**
 
-## 🛠️ Tech Stack
+## 🏗️ How It Works
 
-- **Language**: TypeScript
-- **Build Tool**: Vite + @crxjs/vite-plugin
-- **Platform**: Chrome Extension (Manifest V3)
-- **API**: GitHub REST API, GitLab REST API
+```mermaid
+graph LR
+    A[PR Comment] -->|1. Detect| B[Extension Button]
+    B -->|2. Parse| C[Extract Keywords]
+    C -->|3. Match| D[Find Existing Files]
+    D -->|4. Generate| E[Create/Update Files]
+    E -->|5. Auto-Commit| F[New PR Created]
 
-## 🚀 Development Setup
+    style A fill:#e1f5ff
+    style F fill:#d4edda
+```
 
-### Prerequisites
+### Architecture
 
-- Node.js 18+
-- npm or yarn
+```mermaid
+graph TB
+    subgraph "GitHub/GitLab Page"
+        A[Content Script]
+    end
 
-### Installation
+    subgraph "Extension Background"
+        B[Message Handler]
+        C[API Client]
+        D[Parser]
+        E[File Generator]
+    end
+
+    subgraph "External APIs"
+        F[GitHub/GitLab API]
+        G[LLM API Optional]
+    end
+
+    A -->|Comment Data| B
+    B --> D
+    D -->|Keywords| E
+    E --> C
+    C --> F
+    B -.->|Enhance| G
+    C -->|Create PR| F
+
+    style A fill:#e1f5ff
+    style B fill:#fff3cd
+    style F fill:#d4edda
+    style G fill:#f8d7da,stroke-dasharray: 5 5
+```
+
+## 🚀 Quick Start
+
+### 1. Install Extension
 
 ```bash
+git clone https://github.com/sunio00000/review-to-instruction.git
+cd review-to-instruction
 npm install
-```
-
-### Development Mode
-
-```bash
-npm run dev
-```
-
-### Build
-
-```bash
 npm run build
 ```
 
-Built files will be generated in the `dist/` directory.
+Load `dist/` folder in Chrome (`chrome://extensions` → Developer mode → Load unpacked)
 
-### Load in Chrome
+### 2. Configure API Token
 
-1. Navigate to `chrome://extensions` in Chrome
-2. Enable **"Developer mode"** (top right)
-3. Click **"Load unpacked"**
-4. Select the `dist/` folder
+1. Click extension icon
+2. Generate GitHub/GitLab token with `repo` scope
+3. Paste token and click "Test Connection"
+4. Save
 
-## 📁 Project Structure
+### 3. Use in PR
 
-```
-review-to-instruction/
-├── src/
-│   ├── content/          # Content scripts (injected into GitHub/GitLab pages)
-│   ├── background/       # Background service worker
-│   ├── popup/            # Extension settings popup
-│   ├── core/             # Core business logic
-│   ├── types/            # TypeScript type definitions
-│   └── utils/            # Utility functions
-├── public/               # Static files
-└── dist/                 # Build output
-```
+1. Write convention comment with keywords (`convention`, `rule`, `pattern`)
+2. Click **"Convert to AI Instruction"** button
+3. Review generated PR
+4. Merge
 
-## 📖 Usage Guide
+Done! Your AI agents now understand this convention.
 
-### 1️⃣ Extension Installation & Setup
+## ✨ Key Features
 
-#### Load Chrome Extension
+- **Multi-Tool Support**: Auto-detects Claude Code, Cursor, Windsurf in your project
+- **Smart Matching**: Updates existing files or creates new ones intelligently
+- **LLM Enhancement** (Optional): Uses Claude/OpenAI for better summaries and explanations
+- **Intelligent Caching**: Reduces LLM API costs by 50-70%
+- **Dark Mode**: Adapts to GitHub/GitLab themes
 
-1. Clone this repository and build:
-   ```bash
-   git clone https://github.com/sunio00000/review-to-instruction.git
-   cd review-to-instruction
-   npm install
-   npm run build
-   ```
+## 🛠️ Tech Stack
 
-2. Navigate to `chrome://extensions` in Chrome
-3. Enable **"Developer mode"** (top right)
-4. Click **"Load unpacked"**
-5. Select the `dist/` folder
+TypeScript · Vite · Chrome Extension (Manifest V3) · GitHub/GitLab REST API
 
-#### Configure API Tokens
+## 📋 Documentation
 
-1. Click the Extension icon (top right in Chrome)
-2. Enter Personal Access Tokens:
-
-   **GitHub Token Creation:**
-   - GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-   - Click "Generate new token (classic)"
-   - Required scope: `repo` (full repository access)
-   - Copy the token and paste it in Extension settings
-
-   **GitLab Token Creation:**
-   - GitLab Settings → Access Tokens
-   - Click "Add new token"
-   - Required scope: `api` (full API access)
-   - Copy the token and paste it in Extension settings
-
-3. Click **"Test Connection"** to verify authentication
-4. Click **"Save Settings"**
-
-#### (Optional) Configure LLM Analysis
-
-For enhanced instruction quality, you can enable LLM-powered analysis:
-
-1. In the Extension settings popup, find the **"🤖 LLM Analysis (Optional)"** section
-2. Check **"Use LLM to automatically analyze and restructure comments"**
-3. Select your preferred provider:
-   - **Anthropic Claude (Sonnet 4.5)**: Better at understanding code patterns
-   - **OpenAI (GPT-4 Turbo)**: Strong general-purpose analysis
-4. Enter your API key:
-   - **Claude**: Get key from [Anthropic Console](https://console.anthropic.com/settings/keys)
-   - **OpenAI**: Get key from [OpenAI Platform](https://platform.openai.com/api-keys)
-5. Click **"Save Settings"**
-
-**What LLM Does:**
-- ✨ Generates 1-2 sentence summaries of conventions
-- 📝 Restructures and clarifies rule explanations
-- 💡 Adds automatic explanations for each code example
-- 🏷️ Extracts additional relevant keywords
-- 📂 Suggests better category classifications
-
-**Cost Warning:** LLM API calls incur costs (approximately ₩5-20 per comment). The extension will gracefully fall back to rule-based parsing if LLM fails or is disabled.
-
-**Note:** If LLM is disabled or fails, the extension will still work perfectly using rule-based parsing.
-
-### 2️⃣ Using in PR/MR
-
-#### Scenario 1: Create New Instruction
-
-1. Navigate to a GitHub PR or GitLab MR page
-2. Reviewer writes a convention-related comment (example):
-   ```
-   Our team uses PascalCase for component file names.
-
-   Correct example:
-   ```tsx
-   // ✅ UserProfile.tsx
-   export function UserProfile() {
-     return <div>Profile</div>;
-   }
-   ```
-
-   Incorrect example:
-   ```tsx
-   // ❌ userProfile.tsx
-   export function userProfile() {
-     return <div>Profile</div>;
-   }
-   ```
-   ```
-
-3. Click the **"Convert to AI Instruction"** button at the bottom of the comment
-4. Button state: "Processing..." → "Converted!"
-5. Click **"View PR →"** link in the success message
-6. Review and merge the generated PR
-
-**Result:**
-- New branch: `ai-instruction/add-naming-convention`
-- New file: `.claude/instructions/component-naming.md`
-- PR title: "Add AI instruction: Component Naming"
-
-#### Scenario 2: Update Existing Skill
-
-1. When `.claude/skills/code-style.md` file already exists
-2. Write a new style-related comment:
-   ```
-   Functions should not exceed 50 lines.
-   ```
-
-3. Click the **"Convert to AI Instruction"** button
-4. Extension automatically finds and updates the existing file
-
-**Result:**
-- PR title: "Update AI instruction: Code Style"
-- "Additional Cases" section added to existing file
-- `last_updated` date automatically refreshed
-
-#### Scenario 3: Using Priority Levels (P1-P5)
-
-You can mark the importance of conventions using priority levels from P1 (critical) to P5 (optional):
-
-1. Write a comment with priority level:
-   ```
-   P1: All user inputs must be sanitized before database queries to prevent SQL injection.
-
-   This is a critical security rule that must be followed without exception.
-   ```
-
-2. Click the **"Convert to AI Instruction"** button
-3. The P1-P5 keyword will be detected and included in the instruction
-
-**Priority Level Guidelines:**
-- **P1**: Critical (Security vulnerabilities, data loss risks)
-- **P2**: Important (Performance issues, major bugs)
-- **P3**: Recommended (Code quality, maintainability)
-- **P4**: Nice to have (Style preferences, minor improvements)
-- **P5**: Optional (Suggestions for consideration)
-
-**Example with P2:**
-```
-P2: Avoid using `any` type in TypeScript. Use proper types for better type safety.
-```
-
-The priority level will be automatically included as a keyword in the generated instruction file, making it easy to filter and prioritize conventions.
-
-### 3️⃣ Generated File Example
-
-#### Basic Instruction File (Rule-based Parsing)
-
-`.claude/instructions/component-naming.md`:
-
-```markdown
----
-title: "Component Naming"
-keywords: ["naming", "component", "react", "convention"]
-category: "naming"
-created_from: "PR #123, Comment by @reviewer"
-created_at: "2026-01-15"
-last_updated: "2026-01-15"
----
-
-# Component Naming
-
-## Rules
-Our team uses PascalCase for component file names.
-
-## Examples
-
-### Example 1
-
-\```tsx
-// ✅ UserProfile.tsx
-export function UserProfile() {
-  return <div>Profile</div>;
-}
-\```
-
-### Example 2
-
-\```tsx
-// ❌ userProfile.tsx
-export function userProfile() {
-  return <div>Profile</div>;
-}
-\```
-
-## Source
-This convention was established during the review process of [PR #123](https://github.com/owner/repo/pull/123).
-- Author: @reviewer
-- Date: January 15, 2026
-```
-
-#### LLM-Enhanced Instruction File
-
-`.claude/instructions/component-naming.md` (with LLM analysis enabled):
-
-```markdown
----
-title: "Component Naming"
-keywords: ["naming", "component", "react", "convention", "pascalcase", "typescript"]
-category: "naming"
-created_from: "PR #123, Comment by @reviewer"
-created_at: "2026-01-15"
-last_updated: "2026-01-15"
-llm_enhanced: true
----
-
-# Component Naming
-
-## Summary
-React component files should use PascalCase naming convention to match their exported component names and follow TypeScript best practices.
-
-## Rules
-This team follows a strict naming convention where React component files must use PascalCase (UpperCamelCase). The file name should exactly match the primary exported component name. This improves code readability, makes imports more predictable, and aligns with React community standards.
-
-## Examples
-
-### Correct Example
-
-\```tsx
-// UserProfile.tsx
-export function UserProfile() {
-  return <div>Profile</div>;
-}
-\```
-
-**Explanation:** The file name 'UserProfile.tsx' uses PascalCase and matches the component name 'UserProfile', making it easy to locate and import.
-
-### Incorrect Example
-
-\```tsx
-// userProfile.tsx
-export function userProfile() {
-  return <div>Profile</div>;
-}
-\```
-
-**Explanation:** The file name 'userProfile.tsx' uses camelCase instead of PascalCase. This violates the naming convention and creates inconsistency with component naming standards.
-
-## Source
-This convention was established during the review process of [PR #123](https://github.com/owner/repo/pull/123).
-- Author: @reviewer
-- Date: January 15, 2026
-```
-
-**Differences with LLM Enhancement:**
-- ✅ Added concise summary section
-- ✅ Expanded and clarified rule explanation
-- ✅ Each code example includes detailed explanation
-- ✅ Additional relevant keywords extracted (pascalcase, typescript)
-- ✅ Marked with `llm_enhanced: true` flag
-
-## 🚧 Development Phases
-
-- [x] **Phase 1**: Project initialization (TypeScript, Vite, Manifest V3)
-- [x] **Phase 2**: Content Script - GitHub integration (comment detection & button injection)
-- [x] **Phase 3**: Content Script - GitLab integration (comment detection & button injection)
-- [x] **Phase 4**: Settings popup UI (token input & storage)
-- [x] **Phase 5**: Background Service Worker (API clients)
-- [x] **Phase 6**: Comment parsing logic (keyword extraction, category classification)
-- [x] **Phase 7**: File matching logic (.claude/ directory exploration, scoring algorithm)
-- [x] **Phase 8**: Instruction/Skills generation (Claude Code format)
-- [x] **Phase 9**: PR/MR creation logic (branch, commit, PR generation)
-- [x] **Phase 10**: Integration & End-to-End testing
-- [x] **Phase 11**: UI/UX improvements (dark mode, animations, error handling)
-- [x] **Phase 12**: Documentation & deployment preparation
-- [x] **Phase 13**: LLM-powered analysis (Claude/OpenAI integration)
-- [x] **Phase 14**: Multi-tool support (Claude Code, Cursor, Windsurf auto-detection)
-- [x] **Phase 15**: Intelligent LLM response caching (50-70% cost reduction)
-
-## 🔧 Troubleshooting
-
-### Button Not Showing
-
-**Causes:**
-- Button display is disabled in Extension settings
-- Comment is not detected as convention-related content
-
-**Solutions:**
-1. Click Extension icon → Check "Show 'Convert to Instruction' buttons"
-2. Include keywords like "convention", "rule", "pattern" in comment
-3. Refresh the page (F5)
-
-### "API Token Not Configured" Error
-
-**Solution:**
-1. Click Extension icon
-2. Enter GitHub or GitLab Token
-3. Verify authentication with "Test Connection" button
-4. Click "Save Settings"
-
-### "Insufficient Permissions: Repository Write Access Required" Error
-
-**Cause:**
-- Personal Access Token lacks necessary permissions
-
-**Solution:**
-- **GitHub**: Ensure token includes `repo` (full) scope
-- **GitLab**: Ensure token includes `api` scope
-- Generate a new token and update Extension settings
-
-### "Branch Already Exists" Error
-
-**Cause:**
-- Previously created branch has not been merged yet
-
-**Solution:**
-1. Merge or close the existing PR first
-2. Or delete the branch and try again
-
-### Debugging with Chrome DevTools
-
-**View Content Script Logs:**
-1. Press F12 (DevTools) on PR/MR page
-2. Check Console tab for logs with `[Review to Instruction]` prefix
-
-**View Background Service Worker Logs:**
-1. Navigate to `chrome://extensions`
-2. Find "Review to Instruction" extension
-3. Click "service worker" link
-4. Check logs in Console tab
-
-## 🤝 Contributing
-
-This project is open source and welcomes contributions!
-
-### How to Contribute
-
-1. Fork this repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'feat: add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Create a Pull Request
-
-### Commit Message Convention
-
-- `feat:` - Add new feature
-- `fix:` - Fix bug
-- `docs:` - Update documentation
-- `style:` - Code style changes (no functional changes)
-- `refactor:` - Code refactoring
-- `test:` - Add or update tests
-- `chore:` - Build configuration, package manager, etc.
-
-### Bug Reports & Feature Requests
-
-Please submit bug reports or feature requests through GitHub Issues!
-
-## 📚 Related Documentation
-
-- [TESTING.md](./TESTING.md) - Testing guide and scenarios
-- [Claude Code Documentation](https://docs.anthropic.com/claude/docs) - Claude Code plugin format guide
-- [Chrome Extension Development Guide](https://developer.chrome.com/docs/extensions/)
+- **[TESTING.md](./TESTING.md)** - Testing guide and scenarios
+- **[Claude Code Plugin Format](https://docs.anthropic.com/claude/docs)** - Learn about `.claude/` structure
 
 ## ❓ FAQ
 
-### Q1: What comments are detected as "convention-related"?
+**Q: What keywords trigger detection?**
+Comments with `convention`, `rule`, `pattern`, `should`, `must`, or code examples (```)
 
-Comments containing the following keywords are detected:
-- "convention", "rule", "pattern", "guideline", "standard"
-- Korean equivalents: "컨벤션", "규칙", "패턴", "가이드라인"
-- "should", "must", "always", "never"
-- Priority levels: "P1", "P2", "P3", "P4", "P5" (case-insensitive)
-- Or structured explanations with code examples (```)
+**Q: Does it support GitLab self-hosted?**
+Not yet. Only `gitlab.com` currently supported.
 
-### Q2: How are file categories determined?
+**Q: Can I skip LLM analysis?**
+Yes! LLM is completely optional. Extension works perfectly with rule-based parsing alone.
 
-Comment content is analyzed and automatically classified into one of these categories:
-- `naming` - Variable, function, class naming
-- `style` - Code style and formatting
-- `architecture` - System design and structure
-- `testing` - Testing patterns
-- `security` - Security-related rules
-- `performance` - Performance optimization
-- `error-handling` - Error handling patterns
-- `documentation` - Documentation rules
+**Q: Which AI tools are supported?**
+Claude Code (`.claude/`), Cursor (`.cursorrules`), Windsurf (`rules/`)
 
-### Q3: Does it work with GitLab self-hosted instances?
-
-Currently only `gitlab.com` is supported. Self-hosted GitLab support is planned for future releases.
-
-### Q4: Can generated PRs be automatically merged?
-
-For security and quality control, automatic merge functionality is not provided. We recommend having team members review and manually merge generated PRs.
-
-### Q5: Can multiple comments be processed at once?
-
-Currently, each comment requires an individual button click. Batch processing is planned for future releases.
-
-### Q6: Is LLM analysis required?
-
-No, LLM analysis is completely optional. The extension works perfectly with rule-based parsing alone. LLM simply enhances the quality of generated instructions by providing better summaries and explanations.
-
-### Q7: Which LLM provider should I choose?
-
-Both providers work well:
-- **Claude (Sonnet 4.5)**: Generally better at understanding code patterns and conventions (~₩8 per comment)
-- **OpenAI (GPT-4 Turbo)**: Strong general-purpose analysis (~₩18 per comment)
-
-Choose based on your preference and budget. You can also test both to see which produces better results for your use case.
-
-### Q8: What happens if LLM fails or times out?
-
-The extension automatically falls back to rule-based parsing. You'll still get a valid instruction file, just without the enhanced summaries and explanations. This fail-safe design ensures the extension always works reliably.
-
-### Q9: What is multi-tool support and how does it work?
-
-**Multi-tool support** (v1.2+) automatically detects which AI coding tools your project uses and generates instruction files for all of them simultaneously in a single PR:
-
-- **Claude Code**: Detects `.claude/` directory → generates `.claude/instructions/*.md` or `.claude/skills/*.md`
-- **Cursor**: Detects `.cursorrules` file → appends rules to `.cursorrules`
-- **Windsurf**: Detects `rules/` directory → generates `rules/*.md` files
-
-**Example:** If your project has both `.claude/` and `.cursorrules`, clicking "Convert to AI Instruction" will create a PR with files for both tools, allowing team members to use their preferred AI assistant.
-
-### Q10: How does the LLM response cache work?
-
-**LLM caching** (v1.2+) stores analyzed comment results to avoid redundant API calls:
-
-- **How it works**: When you convert the same comment twice, the second request returns instantly from cache (<100ms) instead of calling the API (~2-5s)
-- **Cost savings**: Reduces API costs by 50-70% over time
-- **Cache duration**: 30 days (automatic cleanup)
-- **Management**: View cache statistics and clear cache from the extension popup settings
-- **Fail-safe**: If cache fails, automatically falls back to API calls
-
-The cache uses SHA-256 hashing to identify identical comments and applies LRU (Least Recently Used) eviction when storage limit is reached.
+**Q: Can I batch-process multiple comments?**
+Not yet. Planned for v1.3.
 
 ## 📝 License
 
-MIT License - Free to use, modify, and distribute.
-
-See the [LICENSE](./LICENSE) file for details.
-
-## 🎯 Roadmap
-
-### v1.2 (Current - Just Released!)
-- [x] Multi-tool support (Claude Code, Cursor, Windsurf)
-- [x] Auto-detection of project types
-- [x] Format-specific file generation
-- [x] LLM response caching (50-70% cost reduction)
-- [x] Cache management dashboard
-
-### v1.3 (Planned)
-- [ ] GitLab self-hosted support
-- [ ] Batch processing (process multiple comments at once)
-- [ ] Team-specific custom keyword dictionaries
-- [ ] Statistics dashboard (instruction count, category distribution)
-- [ ] Additional tool support (Aider, Continue, etc.)
-
-### v1.4 (Planned)
-- [ ] Bitbucket support
-- [ ] Azure DevOps support
-- [ ] Comment template features
-- [ ] Automatic PR review analysis
-- [ ] Smart cache warming (preload frequently used patterns)
-
-## 🙏 Acknowledgments
-
-This project was made possible by these open source projects:
-- [Vite](https://vitejs.dev/) - Fast build tool
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [@crxjs/vite-plugin](https://github.com/crxjs/chrome-extension-tools) - Chrome Extension build plugin
-- [Claude Code](https://claude.com/claude-code) - AI agent plugin format
+MIT License - See [LICENSE](./LICENSE) for details.
 
 ## 📧 Contact
 
-For questions or suggestions, please reach out through [GitHub Issues](https://github.com/sunio00000/review-to-instruction/issues)!
+Questions or suggestions? Open an issue on [GitHub](https://github.com/sunio00000/review-to-instruction/issues)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by the Review to Instruction team**
+Made with ❤️ and Claude Sonnet 4.5
 
-⭐ If this project helped you, please star it!
+⭐ **[Star this repo](https://github.com/sunio00000/review-to-instruction)** if it helped you!
 
 </div>
