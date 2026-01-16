@@ -46,24 +46,27 @@ Into AI-ready instruction files automatically:
 
 When you see a convention in PR comments, you need to:
 ```md
-1. 📋  Copy comment text manually   
-2. 🔍  Navigate to .claude/instructions/ folder   
-3. 📝  Create new .md file with appropriate name   
-4. ⚙️   Write YAML frontmatter (title, keywords, category...)   
-5. ✍️   Format content in Markdown   
-6. 🌿  Create new branch   
-7. 💾  Commit the file   
-8. 🔀  Open Pull Request   
-9. 📄  Write PR description   
-10. 🔁  Repeat steps 2-9 for Cursor (.cursorrules)   
-11. 🔁  Repeat steps 2-9 for Windsurf (rules/)   
+1. 💬  Share convention with team via Slack/Email
+2. 🤝  Coordinate who will create the instruction files
+3. 📋  Copy comment text manually
+4. 🔍  Navigate to .claude/instructions/ folder
+5. 📝  Create new .md file with appropriate name
+6. ⚙️   Write YAML frontmatter (title, keywords, category...)
+7. ✍️   Format content in Markdown
+8. 🌿  Create new branch
+9. 💾  Commit the file
+10. 🔀  Open Pull Request
+11. 📄  Write PR description
+12. 👥  Request review from team for consistency
+13. 🔁  Repeat steps 4-12 for Cursor (.cursorrules)
+14. 🔁  Repeat steps 4-12 for Windsurf (rules/)
 ```
 
 <div align="center">
 
 ### ⏱️ **Time Required: 15-20 minutes per convention**
 
-*Plus mental context switching and risk of inconsistent formatting*
+*Plus mental context switching, team coordination overhead, and risk of inconsistent formatting*
 
 </div>
 
@@ -94,15 +97,26 @@ When you see a convention in PR comments, you need to:
 
 ### 🎉 **Save 90%+ of your time!**
 
-*No context switching. No formatting errors. Consistent quality every time.*
+*No context switching. No team coordination. No formatting errors. Consistent quality every time.*
+
+<br/>
+
+<table>
+<tr>
+<td width="50%"><img src="./docs/images/pr-comment.png" alt="PR Comment" width="100%"/></td>
+<td width="50%"><img src="./docs/images/generated-pr.png" alt="Generated PR" width="100%"/></td>
+</tr>
+<tr>
+<td align="center"><em>1. Click button on PR comment</em></td>
+<td align="center"><em>2. Review generated PR</em></td>
+</tr>
+</table>
 
 </div>
 
 ---
 
 </div>
-
-> **Note**: Screenshots will be added soon. To contribute demo materials, see [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## 🏗️ How It Works
 
