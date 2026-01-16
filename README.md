@@ -46,17 +46,17 @@ Into AI-ready instruction files automatically:
 
 When you see a convention in PR comments, you need to:
 ```md
-1. 📋  Copy comment text manually
-2. 🔍  Navigate to .claude/instructions/ folder
-3. 📝  Create new .md file with appropriate name
-4. ⚙️   Write YAML frontmatter (title, keywords, category...)
-5. ✍️   Format content in Markdown
-6. 🌿  Create new branch
-7. 💾  Commit the file
-8. 🔀  Open Pull Request
-9. 📄  Write PR description
-10. 🔁  Repeat steps 2-9 for Cursor (.cursorrules)
-11. 🔁  Repeat steps 2-9 for Windsurf (rules/)
+1. 📋  Copy comment text manually   
+2. 🔍  Navigate to .claude/instructions/ folder   
+3. 📝  Create new .md file with appropriate name   
+4. ⚙️   Write YAML frontmatter (title, keywords, category...)   
+5. ✍️   Format content in Markdown   
+6. 🌿  Create new branch   
+7. 💾  Commit the file   
+8. 🔀  Open Pull Request   
+9. 📄  Write PR description   
+10. 🔁  Repeat steps 2-9 for Cursor (.cursorrules)   
+11. 🔁  Repeat steps 2-9 for Windsurf (rules/)   
 ```
 
 <div align="center">
@@ -71,23 +71,21 @@ When you see a convention in PR comments, you need to:
 
 ### ✅ **With Extension** (One-Click Automation)
 
-![Generated PR](./docs/images/generated-pr.png)
-
 🔥🔥 Simply **click "Convert to AI Instruction"** button, and the extension: 🔥🔥
 
 ✨ Automatically handles everything:
 ```md
-  🤖  Analyzes comment with AI (Claude/OpenAI)
-  📝  Generates professional summaries and explanations
-  🎯  Extracts keywords and categorizes content
-  📁  Creates files for ALL tools simultaneously:
-      • .claude/instructions/xxx.md (Claude Code)
-      • .cursorrules (Cursor)
-      • rules/xxx.md (Windsurf)
-  🌿  Creates branch with unique timestamp
-  💾  Commits all files with detailed messages
-  🔀  Opens Pull Request with preview
-  🎯  Targets the correct branch automatically
+  🤖  Analyzes comment with AI (Claude/OpenAI)     
+  📝  Generates professional summaries and explanations   
+  🎯  Extracts keywords and categorizes content   
+  📁  Creates files for ALL tools simultaneously:   
+      • .claude/instructions/xxx.md (Claude Code)   
+      • .cursorrules (Cursor)   
+      • rules/xxx.md (Windsurf)   
+  🌿  Creates branch with unique timestamp    
+  💾  Commits all files with detailed messages   
+  🔀  Opens Pull Request with preview   
+  🎯  Targets the correct branch automatically   
 ```
 
 <div align="center">
