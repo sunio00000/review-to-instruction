@@ -97,4 +97,63 @@ export class OpenAIClient extends BaseLLMClient {
       suggestedCategory: parsed.suggestedCategory
     };
   }
+
+  /**
+   * 파일명 생성 (AI 기반)
+   */
+  async generateFileName(prompt: string): Promise<string> {
+    try {
+      const response = await this.retry(() =>
+        this.withTimeout(this.callFileNamingAPI(prompt))
+      );
+      return response;
+    } catch (error) {
+      console.error('[OpenAIClient] File naming API failed:', error);
+      throw error;
+    }
+  }
+
+  private async callFileNamingAPI(prompt: string): Promise<string> {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at organizing code conventions and documentation. Generate concise, descriptive filenames following best practices.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1024,
+        temperature: 0.3,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new LLMError(
+        errorData.error?.message || `API error: ${response.status}`,
+        'openai',
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const textContent = data.choices?.[0]?.message?.content;
+
+    if (!textContent) {
+      throw new LLMError('Empty response from OpenAI API', 'openai');
+    }
+
+    return textContent;
+  }
 }

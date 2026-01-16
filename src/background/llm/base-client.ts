@@ -18,6 +18,11 @@ export abstract class BaseLLMClient implements ILLMClient {
   abstract analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse>;
 
   /**
+   * 파일명 생성 (AI 기반)
+   */
+  abstract generateFileName(prompt: string): Promise<string>;
+
+  /**
    * 캐시를 활용한 분석 (Feature 2)
    * - Protected: 하위 클래스에서 analyzeComment()에서 호출
    */

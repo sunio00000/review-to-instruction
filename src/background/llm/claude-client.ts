@@ -93,4 +93,59 @@ export class ClaudeClient extends BaseLLMClient {
       suggestedCategory: parsed.suggestedCategory
     };
   }
+
+  /**
+   * 파일명 생성 (AI 기반)
+   */
+  async generateFileName(prompt: string): Promise<string> {
+    try {
+      const response = await this.retry(() =>
+        this.withTimeout(this.callFileNamingAPI(prompt))
+      );
+      return response;
+    } catch (error) {
+      console.error('[ClaudeClient] File naming API failed:', error);
+      throw error;
+    }
+  }
+
+  private async callFileNamingAPI(prompt: string): Promise<string> {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        system: 'You are an expert at organizing code conventions and documentation. Generate concise, descriptive filenames following best practices.'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new LLMError(
+        errorData.error?.message || `API error: ${response.status}`,
+        'claude',
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const textContent = data.content?.[0]?.text;
+
+    if (!textContent) {
+      throw new LLMError('Empty response from Claude API', 'claude');
+    }
+
+    return textContent;
+  }
 }
