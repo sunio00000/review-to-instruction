@@ -43,14 +43,44 @@ Into AI-ready instruction files automatically:
 <tr>
 <td width="50%">
 
-**GitHub PR Comment**
-![PR Comment](./docs/images/pr-comment.png)
+#### ❌ Before (Manual Process)
+
+When you see a convention in PR comments:
+
+1. 📋 **Copy comment** text manually
+2. 🔍 **Navigate** to `.claude/instructions/` folder
+3. 📝 **Create** new `.md` file with appropriate name
+4. ⚙️ **Write** YAML frontmatter (title, keywords, category...)
+5. ✍️ **Format** content in Markdown
+6. 🌿 **Create** new branch
+7. 💾 **Commit** the file
+8. 🔀 **Open** Pull Request
+9. 📄 **Write** PR description
+10. 🔁 **Repeat** for Cursor (`.cursorrules`)
+11. 🔁 **Repeat** for Windsurf (`rules/`)
+
+**Time: ~15-20 minutes per convention** ⏱️
 
 </td>
 <td width="50%">
 
-**Generated PR**
+#### ✅ After (One-Click Automation)
+
 ![Generated PR](./docs/images/generated-pr.png)
+
+1. 🖱️ **Click** "Convert to AI Instruction" button
+2. ✨ **Done!** Extension automatically:
+   - 🤖 Analyzes comment with AI
+   - 📝 Generates professional summaries
+   - 📁 Creates files for all tools (Claude/Cursor/Windsurf)
+   - 🌿 Creates branch with timestamp
+   - 💾 Commits all files
+   - 🔀 Opens PR with preview
+   - 🎯 Targets correct branch
+
+**Time: 5 seconds** ⚡
+
+**90%+ time saved!**
 
 </td>
 </tr>
