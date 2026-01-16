@@ -334,7 +334,8 @@ export class ApiClient {
     fromBranch: string
   ): Promise<void> {
     try {
-      console.log('[ApiClient] Creating GitHub branch:', {
+      console.log('[ApiClient] ===== Starting GitHub branch creation =====');
+      console.log('[ApiClient] Parameters:', {
         branchName,
         fromBranch,
         repository: `${repository.owner}/${repository.name}`
@@ -344,27 +345,50 @@ export class ApiClient {
       // 브랜치명에 슬래시가 있을 수 있으므로 URL 인코딩
       const encodedFromBranch = encodeURIComponent(fromBranch);
       const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${encodedFromBranch}`;
-      console.log('[ApiClient] Getting ref for base branch:', refUrl);
+      console.log('[ApiClient] Step 1: Getting ref for base branch');
+      console.log('[ApiClient] Ref URL:', refUrl);
+      console.log('[ApiClient] Encoded branch name:', encodedFromBranch);
 
-      const refResponse = await this.fetch(refUrl);
+      let refResponse;
+      try {
+        refResponse = await this.fetch(refUrl);
+      } catch (refError) {
+        console.error('[ApiClient] ❌ Failed to get base branch ref');
+        console.error('[ApiClient] This usually means the branch does not exist');
+        console.error('[ApiClient] Branch we tried:', fromBranch);
+        console.error('[ApiClient] Full error:', refError);
+        throw new Error(`Base branch '${fromBranch}' not found. Please check if this branch exists in the repository.`);
+      }
+
       const sha = refResponse.object.sha;
-      console.log('[ApiClient] Base branch SHA:', sha);
+      console.log('[ApiClient] ✓ Base branch SHA obtained:', sha);
 
       // 2. 새 브랜치 생성
       const createUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs`;
-      console.log('[ApiClient] Creating new branch with ref:', `refs/heads/${branchName}`);
+      console.log('[ApiClient] Step 2: Creating new branch');
+      console.log('[ApiClient] Create URL:', createUrl);
+      console.log('[ApiClient] New branch ref:', `refs/heads/${branchName}`);
 
-      await this.fetch(createUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          ref: `refs/heads/${branchName}`,
-          sha
-        })
-      });
+      try {
+        await this.fetch(createUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            ref: `refs/heads/${branchName}`,
+            sha
+          })
+        });
+      } catch (createError) {
+        console.error('[ApiClient] ❌ Failed to create new branch');
+        console.error('[ApiClient] Branch name:', branchName);
+        console.error('[ApiClient] Full error:', createError);
+        throw createError;
+      }
 
-      console.log('[ApiClient] Branch created successfully:', branchName);
+      console.log('[ApiClient] ✓ Branch created successfully:', branchName);
+      console.log('[ApiClient] ===== Branch creation completed =====');
     } catch (error) {
-      console.error('[ApiClient] Failed to create GitHub branch:', error);
+      console.error('[ApiClient] ===== Branch creation FAILED =====');
+      console.error('[ApiClient] Error details:', error);
       throw error;
     }
   }

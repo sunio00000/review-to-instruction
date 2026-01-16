@@ -103,7 +103,7 @@ export async function createPullRequest(
 }
 
 /**
- * 브랜치명 생성
+ * 브랜치명 생성 (타임스탬프 포함하여 고유성 보장)
  */
 function generateBranchName(parsedComment: ParsedComment): string {
   const keyword = parsedComment.keywords[0] || parsedComment.category;
@@ -112,7 +112,19 @@ function generateBranchName(parsedComment: ParsedComment): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return `ai-instruction/add-${normalizedKeyword}-convention`;
+  // 타임스탬프 추가 (YYYYMMDD-HHMMSS 형식)
+  const now = new Date();
+  const timestamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    '-',
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+
+  return `ai-instruction/add-${normalizedKeyword}-convention-${timestamp}`;
 }
 
 /**
