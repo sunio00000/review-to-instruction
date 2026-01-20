@@ -83,6 +83,7 @@ export interface LLMConfig {
 export interface ApiConfig {
   githubToken?: string;
   gitlabToken?: string;
+  gitlabUrl?: string;          // Self-hosted GitLab URL (선택)
   showButtons?: boolean;
   llm?: LLMConfig;             // LLM 설정 추가
 }

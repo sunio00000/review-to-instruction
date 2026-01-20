@@ -10,7 +10,7 @@
   "host_permissions": [
     "https://github.com/*",
     "https://gitlab.com/*",
-    "https://*/*"
+    "https://git.projectbro.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -21,12 +21,16 @@
       "matches": [
         "https://github.com/*/pull/*",
         "https://gitlab.com/*/-/merge_requests/*",
+        "https://git.projectbro.com/*/-/merge_requests/*",
         "http://localhost:3002/*"
       ],
       "js": [
         "src/content/main.ts"
       ]
     }
+  ],
+  "optional_host_permissions": [
+    "https://*/*/-/merge_requests/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html"
