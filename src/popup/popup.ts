@@ -1,12 +1,21 @@
 /**
  * Review to Instruction - Popup Script
+ *
+ * v2 변경사항:
+ * - API 토큰을 암호화하여 chrome.storage.local에 저장
+ * - Web Crypto API (AES-GCM 256-bit) 사용
+ * - LLM API 보안 경고 표시
  */
 
-import type { ApiConfig } from '../types';
+import { CryptoService } from '../background/services/crypto-service';
+
+// CryptoService 인스턴스
+const crypto = new CryptoService();
 
 // DOM 요소
 const githubTokenInput = document.getElementById('github-token') as HTMLInputElement;
 const gitlabTokenInput = document.getElementById('gitlab-token') as HTMLInputElement;
+const gitlabUrlInput = document.getElementById('gitlab-url') as HTMLInputElement;
 const showButtonsCheckbox = document.getElementById('show-buttons') as HTMLInputElement;
 const saveButton = document.getElementById('save') as HTMLButtonElement;
 const testGithubButton = document.getElementById('test-github') as HTMLButtonElement;
@@ -32,22 +41,70 @@ const refreshCacheStatsButton = document.getElementById('refresh-cache-stats') a
 const clearCacheButton = document.getElementById('clear-cache') as HTMLButtonElement;
 const cacheStatus = document.getElementById('cache-status') as HTMLDivElement;
 
-// 설정 로드
+// 설정 로드 (암호화된 storage.local에서)
 async function loadConfig() {
   try {
-    const result = await chrome.storage.sync.get(['githubToken', 'gitlabToken', 'showButtons', 'llm']);
-    const config = result as ApiConfig;
+    const result = await chrome.storage.local.get([
+      'githubToken_enc',
+      'gitlabToken_enc',
+      'gitlabUrl',
+      'showButtons',
+      'claudeApiKey_enc',
+      'openaiApiKey_enc',
+      'llmProvider',
+      'llmEnabled'
+    ]);
 
-    githubTokenInput.value = config.githubToken || '';
-    gitlabTokenInput.value = config.gitlabToken || '';
-    showButtonsCheckbox.checked = config.showButtons !== false;  // 기본값 true
+    // 토큰 복호화
+    const githubTokenEnc = result.githubToken_enc as string | undefined;
+    const gitlabTokenEnc = result.gitlabToken_enc as string | undefined;
+    const claudeKeyEnc = result.claudeApiKey_enc as string | undefined;
+    const openaiKeyEnc = result.openaiApiKey_enc as string | undefined;
 
-    // LLM 설정 로드
-    const llmConfig = config.llm || { enabled: false, provider: 'none' };
-    llmEnabledCheckbox.checked = llmConfig.enabled || false;
-    llmProviderSelect.value = llmConfig.provider || 'none';
-    claudeApiKeyInput.value = llmConfig.claudeApiKey || '';
-    openaiApiKeyInput.value = llmConfig.openaiApiKey || '';
+    if (githubTokenEnc) {
+      try {
+        githubTokenInput.value = await crypto.decrypt(githubTokenEnc);
+      } catch (error) {
+        console.warn('GitHub token decryption failed:', error);
+        githubTokenInput.value = '';
+      }
+    }
+
+    if (gitlabTokenEnc) {
+      try {
+        gitlabTokenInput.value = await crypto.decrypt(gitlabTokenEnc);
+      } catch (error) {
+        console.warn('GitLab token decryption failed:', error);
+        gitlabTokenInput.value = '';
+      }
+    }
+
+    // GitLab URL (암호화 불필요)
+    gitlabUrlInput.value = (result.gitlabUrl as string | undefined) || 'https://git.projectbro.com';
+    showButtonsCheckbox.checked = (result.showButtons as boolean | undefined) !== false;  // 기본값 true
+
+    // LLM API 키 복호화
+    if (claudeKeyEnc) {
+      try {
+        claudeApiKeyInput.value = await crypto.decrypt(claudeKeyEnc);
+      } catch (error) {
+        console.warn('Claude API key decryption failed:', error);
+        claudeApiKeyInput.value = '';
+      }
+    }
+
+    if (openaiKeyEnc) {
+      try {
+        openaiApiKeyInput.value = await crypto.decrypt(openaiKeyEnc);
+      } catch (error) {
+        console.warn('OpenAI API key decryption failed:', error);
+        openaiApiKeyInput.value = '';
+      }
+    }
+
+    // LLM 설정
+    llmEnabledCheckbox.checked = (result.llmEnabled as boolean | undefined) || false;
+    llmProviderSelect.value = (result.llmProvider as string | undefined) || 'none';
 
     // LLM UI 업데이트
     updateLLMUI();
@@ -56,25 +113,46 @@ async function loadConfig() {
   }
 }
 
-// 설정 저장
+// 설정 저장 (암호화하여 storage.local에)
 async function saveConfig() {
-  const config: ApiConfig = {
-    githubToken: githubTokenInput.value.trim(),
-    gitlabToken: gitlabTokenInput.value.trim(),
-    showButtons: showButtonsCheckbox.checked,
-    llm: {
-      enabled: llmEnabledCheckbox.checked,
-      provider: llmProviderSelect.value as 'claude' | 'openai' | 'none',
-      claudeApiKey: claudeApiKeyInput.value.trim(),
-      openaiApiKey: openaiApiKeyInput.value.trim()
-    }
-  };
-
   try {
-    await chrome.storage.sync.set(config);
-    showStatus(saveStatus, '설정이 저장되었습니다.', 'success');
+    const encryptedData: Record<string, any> = {};
+
+    // 토큰 암호화
+    const githubToken = githubTokenInput.value.trim();
+    const gitlabToken = gitlabTokenInput.value.trim();
+
+    if (githubToken) {
+      encryptedData.githubToken_enc = await crypto.encrypt(githubToken);
+    }
+
+    if (gitlabToken) {
+      encryptedData.gitlabToken_enc = await crypto.encrypt(gitlabToken);
+    }
+
+    // LLM API 키 암호화
+    const claudeApiKey = claudeApiKeyInput.value.trim();
+    const openaiApiKey = openaiApiKeyInput.value.trim();
+
+    if (claudeApiKey) {
+      encryptedData.claudeApiKey_enc = await crypto.encrypt(claudeApiKey);
+    }
+
+    if (openaiApiKey) {
+      encryptedData.openaiApiKey_enc = await crypto.encrypt(openaiApiKey);
+    }
+
+    // 나머지 설정 (암호화 불필요)
+    encryptedData.gitlabUrl = gitlabUrlInput.value.trim();
+    encryptedData.showButtons = showButtonsCheckbox.checked;
+    encryptedData.llmEnabled = llmEnabledCheckbox.checked;
+    encryptedData.llmProvider = llmProviderSelect.value;
+
+    // Local storage에 저장
+    await chrome.storage.local.set(encryptedData);
+    showStatus(saveStatus, '✅ 설정이 암호화되어 저장되었습니다.', 'success');
   } catch (error) {
-    showStatus(saveStatus, `저장 실패: ${error}`, 'error');
+    showStatus(saveStatus, `❌ 저장 실패: ${error}`, 'error');
   }
 }
 
@@ -119,6 +197,7 @@ async function testGithubApi() {
 // GitLab API 테스트
 async function testGitlabApi() {
   const token = gitlabTokenInput.value.trim();
+  const gitlabUrl = gitlabUrlInput.value.trim();
   const statusElement = document.getElementById('gitlab-status')!;
 
   if (!token) {
@@ -136,7 +215,8 @@ async function testGitlabApi() {
       type: 'TEST_API',
       payload: {
         platform: 'gitlab',
-        token
+        token,
+        gitlabUrl
       }
     });
 
