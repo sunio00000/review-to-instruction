@@ -15,19 +15,20 @@ export class CommentDetector {
   private observer: MutationObserver | null = null;
   private processedComments = new Set<string>();
   private callback: CommentCallback;
-  private selector: string;
-  private contentSelector: string;
+  private selectors: string[];
+  private contentSelectors: string[];
   private debounceTimer: number | null = null;
   private pendingMutations: MutationRecord[] = [];
 
   constructor(
     callback: CommentCallback,
-    selector: string,
-    contentSelector: string
+    selector: string | string[],
+    contentSelector: string | string[]
   ) {
     this.callback = callback;
-    this.selector = selector;
-    this.contentSelector = contentSelector;
+    // 배열로 정규화 (단일 문자열도 배열로 변환)
+    this.selectors = Array.isArray(selector) ? selector : [selector];
+    this.contentSelectors = Array.isArray(contentSelector) ? contentSelector : [contentSelector];
   }
 
   /**
@@ -74,13 +75,29 @@ export class CommentDetector {
    * 페이지에 이미 존재하는 코멘트 처리
    */
   private processExistingComments() {
-    const comments = document.querySelectorAll<HTMLElement>(this.selector);
+    let totalComments = 0;
 
-    comments.forEach((comment) => {
-      this.processComment(comment);
-    });
+    // 모든 Fallback 선택자를 순회하며 첫 번째로 발견된 선택자 사용
+    for (const selector of this.selectors) {
+      const comments = document.querySelectorAll<HTMLElement>(selector);
 
-    console.log(`[CommentDetector] Processed ${comments.length} existing comments`);
+      if (comments.length > 0) {
+        console.log(`[CommentDetector] Found ${comments.length} comments with selector: ${selector}`);
+
+        comments.forEach((comment) => {
+          this.processComment(comment);
+        });
+
+        totalComments = comments.length;
+        break;  // 첫 번째 성공한 선택자만 사용
+      }
+    }
+
+    if (totalComments === 0) {
+      console.warn('[CommentDetector] No comments found for any selectors:', this.selectors);
+    } else {
+      console.log(`[CommentDetector] Processed ${totalComments} existing comments`);
+    }
   }
 
   /**
@@ -112,16 +129,24 @@ export class CommentDetector {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as HTMLElement;
 
-            // 추가된 노드가 코멘트인지 확인
-            if (element.matches(this.selector)) {
-              this.processComment(element);
+            // 추가된 노드가 코멘트인지 확인 (모든 선택자 시도)
+            for (const selector of this.selectors) {
+              if (element.matches(selector)) {
+                this.processComment(element);
+                break;  // 하나라도 매치되면 중단
+              }
             }
 
-            // 자식 노드 중에 코멘트가 있는지 확인
-            const childComments = element.querySelectorAll<HTMLElement>(this.selector);
-            childComments.forEach((comment) => {
-              this.processComment(comment);
-            });
+            // 자식 노드 중에 코멘트가 있는지 확인 (모든 선택자 시도)
+            for (const selector of this.selectors) {
+              const childComments = element.querySelectorAll<HTMLElement>(selector);
+              if (childComments.length > 0) {
+                childComments.forEach((comment) => {
+                  this.processComment(comment);
+                });
+                break;  // 하나라도 발견되면 중단
+              }
+            }
           }
         });
       }
@@ -138,9 +163,17 @@ export class CommentDetector {
       return;
     }
 
-    const contentElement = element.querySelector<HTMLElement>(this.contentSelector);
+    // 모든 contentSelector Fallback을 시도
+    let contentElement: HTMLElement | null = null;
+    for (const selector of this.contentSelectors) {
+      contentElement = element.querySelector<HTMLElement>(selector);
+      if (contentElement) {
+        break;  // 첫 번째로 발견된 요소 사용
+      }
+    }
 
     if (!contentElement) {
+      console.warn(`[CommentDetector] Content element not found for comment ${id}, tried selectors:`, this.contentSelectors);
       return;
     }
 

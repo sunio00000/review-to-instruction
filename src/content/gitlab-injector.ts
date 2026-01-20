@@ -15,11 +15,25 @@ export class GitLabInjector {
   constructor() {
     this.uiBuilder = new UIBuilder();
 
-    // GitLab MR 페이지의 코멘트 선택자
+    // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
-      '.note',                   // GitLab 코멘트 선택자
-      '.note-text'               // 코멘트 내용 선택자
+      // 코멘트 컨테이너 선택자 (여러 Fallback 시도)
+      [
+        '.note',                           // 기존 GitLab 선택자
+        '[data-testid="note"]',            // data-testid 속성
+        '.timeline-entry',                 // 타임라인 엔트리
+        '.discussion-note',                // 디스커션 노트
+        'article[data-note-id]'            // article with note id
+      ],
+      // 코멘트 내용 선택자 (여러 Fallback 시도)
+      [
+        '.note-text',                      // 기존 GitLab 선택자
+        '[data-testid="note-text"]',       // data-testid 속성
+        '.timeline-entry-body',            // 타임라인 본문
+        '.note-body',                      // 노트 본문
+        '.js-note-text'                    // JS 타겟 클래스
+      ]
     );
   }
 
@@ -37,9 +51,21 @@ export class GitLabInjector {
         const name = pathParts[1];
         const prNumber = parseInt(pathParts[mrIndex + 1], 10);
 
-        // 현재 브랜치 정보 (MR 페이지에서 추출)
-        const branchElement = document.querySelector('.source-branch-link');
-        const branch = branchElement?.textContent?.trim() || 'main';
+        // 현재 브랜치 정보 (MR 페이지에서 추출) - Fallback 지원
+        let branch = this.extractBranch();
+
+        if (!branch) {
+          console.warn('[GitLabInjector] Failed to extract branch, using default "main"');
+          branch = 'main';
+        }
+
+        console.log('[GitLabInjector] Extracted repository info:', {
+          owner,
+          name,
+          branch,
+          prNumber,
+          url: window.location.href
+        });
 
         return {
           owner,
@@ -51,6 +77,53 @@ export class GitLabInjector {
       }
     } catch (error) {
       console.error('[GitLabInjector] Failed to extract repository info:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * GitLab MR 페이지에서 브랜치 정보 추출 (Fallback 지원)
+   */
+  private extractBranch(): string | null {
+    const BRANCH_SELECTORS = [
+      '.source-branch-link',              // 기존 선택자
+      '[data-testid="source-branch"]',    // data-testid 속성
+      '.merge-request-source-branch',     // MR 소스 브랜치
+      '.issuable-source-branch',          // Issuable 소스 브랜치
+      '.source-branch .ref-name'          // ref-name 클래스
+    ];
+
+    // 1. DOM 선택자로 추출 시도
+    for (const selector of BRANCH_SELECTORS) {
+      const element = document.querySelector(selector);
+      const branch = element?.textContent?.trim();
+
+      if (branch) {
+        console.log(`[GitLabInjector] Branch extracted from selector "${selector}": ${branch}`);
+        return branch;
+      }
+    }
+
+    console.warn('[GitLabInjector] Branch element not found for any selectors:', BRANCH_SELECTORS);
+
+    // 2. URL에서 추출 시도 (Fallback)
+    // GitLab MR URL 패턴: /owner/repo/-/merge_requests/123/diffs?start_sha=xxx&head_sha=yyy
+    const urlParams = new URLSearchParams(window.location.search);
+    const headSha = urlParams.get('head_sha');
+
+    if (headSha) {
+      console.log('[GitLabInjector] Using head_sha from URL as branch identifier:', headSha.substring(0, 8));
+      return headSha.substring(0, 8);  // SHA의 앞 8자리 사용
+    }
+
+    // 3. 페이지 제목에서 추출 시도 (최종 Fallback)
+    // 페이지 제목 예: "Merge Request !123: Add new feature (branch-name → main)"
+    const titleMatch = document.title.match(/\(([^)→]+)\s*→/);
+    if (titleMatch && titleMatch[1]) {
+      const branch = titleMatch[1].trim();
+      console.log('[GitLabInjector] Branch extracted from page title:', branch);
+      return branch;
     }
 
     return null;
@@ -72,13 +145,13 @@ export class GitLabInjector {
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
     if (!this.repository) {
-      console.error('[GitLabInjector] Failed to extract repository info');
-      return;
+      console.warn('[GitLabInjector] Failed to extract repository info, buttons will still be shown but may have limited functionality');
+      // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
+    } else {
+      console.log('[GitLabInjector] Repository:', this.repository);
     }
 
-    console.log('[GitLabInjector] Repository:', this.repository);
-
-    // 코멘트 감지 시작
+    // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
     this.detector.start();
   }
 
@@ -198,7 +271,7 @@ export class GitLabInjector {
   }
 
   /**
-   * 설정 가져오기
+   * 설정 가져오기 (chrome.storage.local에서)
    */
   private async getConfig() {
     try {
@@ -208,7 +281,7 @@ export class GitLabInjector {
         return { showButtons: true };
       }
 
-      const result = await chrome.storage.sync.get(['showButtons']);
+      const result = await chrome.storage.local.get(['showButtons']);
       return {
         showButtons: result.showButtons !== false  // 기본값 true
       };
