@@ -91,6 +91,9 @@ export interface ApiConfig {
 // 프로젝트 타입 관련 (Feature 1)
 export type { ProjectType, ProjectTypeConfig, ProjectTypeDetectionResult, CachedDetectionResult } from './project-types';
 
+// FormManager 타입 관련
+export type { FormState, ValidationRule, FieldSchema } from './form-manager';
+
 // 파일 생성 결과 (Feature 1)
 export interface FileGenerationResult {
   projectType: string;  // ProjectType
