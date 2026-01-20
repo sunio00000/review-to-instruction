@@ -8,6 +8,7 @@ import type { Platform, Repository } from '../types';
 export interface ApiClientOptions {
   token: string;
   platform: Platform;
+  gitlabUrl?: string;  // Self-hosted GitLab URL (선택)
 }
 
 export interface GitHubUser {
@@ -42,9 +43,18 @@ export class ApiClient {
   constructor(options: ApiClientOptions) {
     this.token = options.token;
     this.platform = options.platform;
-    this.baseUrl = this.platform === 'github'
-      ? 'https://api.github.com'
-      : 'https://gitlab.com/api/v4';
+
+    // GitLab의 경우 사용자 지정 URL 또는 기본값 사용
+    if (this.platform === 'github') {
+      this.baseUrl = 'https://api.github.com';
+    } else {
+      const gitlabBaseUrl = options.gitlabUrl || 'https://gitlab.com';
+      // URL 끝의 슬래시 제거
+      const cleanUrl = gitlabBaseUrl.replace(/\/$/, '');
+      this.baseUrl = `${cleanUrl}/api/v4`;
+    }
+
+    console.log('[ApiClient] Initialized with baseUrl:', this.baseUrl);
   }
 
   /**
@@ -247,7 +257,8 @@ export class ApiClient {
 
     const body: any = {
       message,
-      content: btoa(unescape(encodeURIComponent(content))),  // UTF-8 to Base64
+      // UTF-8 to Base64 (unescape는 deprecated, TextEncoder 사용)
+      content: btoa(String.fromCharCode(...new TextEncoder().encode(content))),
       branch
     };
 

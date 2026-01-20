@@ -34,6 +34,18 @@
       <section class="settings-section">
         <h2>GitLab 설정</h2>
         <div class="input-group">
+          <label for="gitlab-url">GitLab URL (선택):</label>
+          <input
+            type="text"
+            id="gitlab-url"
+            placeholder="https://git.projectbro.com"
+            autocomplete="off"
+          />
+          <small class="help-text">
+            Self-hosted GitLab의 경우 URL을 입력하세요. 기본값: https://gitlab.com
+          </small>
+        </div>
+        <div class="input-group">
           <label for="gitlab-token">Personal Access Token:</label>
           <input
             type="password"
