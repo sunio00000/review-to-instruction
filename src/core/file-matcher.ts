@@ -251,9 +251,10 @@ function calculateMatchScore(
  */
 function decodeBase64(base64: string): string {
   try {
-    // Base64 디코딩 (UTF-8 지원)
+    // Base64 디코딩 (UTF-8 지원, escape는 deprecated, TextDecoder 사용)
     const decoded = atob(base64);
-    return decodeURIComponent(escape(decoded));
+    const bytes = new Uint8Array([...decoded].map(c => c.charCodeAt(0)));
+    return new TextDecoder().decode(bytes);
   } catch (error) {
     console.error('[FileMatcher] Failed to decode base64:', error);
     return '';

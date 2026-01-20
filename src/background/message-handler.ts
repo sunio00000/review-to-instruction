@@ -87,13 +87,14 @@ async function handleSaveConfig(
  * API 연결 테스트
  */
 async function handleTestApi(
-  payload: { platform: Platform; token: string },
+  payload: { platform: Platform; token: string; gitlabUrl?: string },
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
     const client = new ApiClient({
       token: payload.token,
-      platform: payload.platform
+      platform: payload.platform,
+      gitlabUrl: payload.gitlabUrl
     });
 
     const result = await client.testConnection();

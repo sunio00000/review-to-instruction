@@ -265,7 +265,7 @@ export class GitHubInjector {
   }
 
   /**
-   * 설정 가져오기
+   * 설정 가져오기 (chrome.storage.local에서)
    */
   private async getConfig() {
     try {
@@ -275,7 +275,7 @@ export class GitHubInjector {
         return { showButtons: true };
       }
 
-      const result = await chrome.storage.sync.get(['showButtons']);
+      const result = await chrome.storage.local.get(['showButtons']);
       return {
         showButtons: result.showButtons !== false  // 기본값 true
       };

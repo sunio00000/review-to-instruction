@@ -46,7 +46,8 @@ export class ConversionOrchestrator {
     // 2. API 클라이언트 생성
     const client = new ApiClient({
       token: config.token,
-      platform: repository.platform
+      platform: repository.platform,
+      gitlabUrl: config.gitlabUrl
     });
 
     // 3. 코멘트 검증 및 강화

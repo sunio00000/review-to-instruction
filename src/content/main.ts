@@ -11,7 +11,7 @@ import { GitLabInjector } from './gitlab-injector';
 let injector: GitHubInjector | GitLabInjector | null = null;
 
 // 현재 플랫폼 감지
-function detectPlatform(): Platform | null {
+async function detectPlatform(): Promise<Platform | null> {
   const hostname = window.location.hostname;
 
   if (hostname.includes('github.com') || hostname === 'localhost') {
@@ -20,6 +20,36 @@ function detectPlatform(): Platform | null {
     return 'gitlab';
   }
 
+  // Self-hosted GitLab 체크 (chrome.storage.local에서 읽기)
+  try {
+    console.log('[Review to Instruction] Checking self-hosted GitLab for hostname:', hostname);
+    const storage = await chrome.storage.local.get(['gitlabUrl']);
+    const gitlabUrl = storage.gitlabUrl as string | undefined;
+
+    console.log('[Review to Instruction] GitLab URL from storage:', gitlabUrl);
+
+    if (gitlabUrl) {
+      // gitlabUrl에서 hostname 추출
+      const url = new URL(gitlabUrl);
+      console.log('[Review to Instruction] Parsed hostname:', url.hostname);
+
+      if (url.hostname === hostname) {
+        console.log('[Review to Instruction] ✅ Detected self-hosted GitLab:', hostname);
+        return 'gitlab';
+      } else {
+        console.log('[Review to Instruction] Hostname mismatch:', {
+          expected: url.hostname,
+          actual: hostname
+        });
+      }
+    } else {
+      console.log('[Review to Instruction] No gitlabUrl found in storage');
+    }
+  } catch (error) {
+    console.error('[Review to Instruction] Failed to check GitLab URL:', error);
+  }
+
+  console.log('[Review to Instruction] Platform not detected for hostname:', hostname);
   return null;
 }
 
@@ -31,7 +61,7 @@ async function init() {
     return;
   }
 
-  const platform = detectPlatform();
+  const platform = await detectPlatform();
 
   if (!platform) {
     console.log('[Review to Instruction] Not on supported platform');
