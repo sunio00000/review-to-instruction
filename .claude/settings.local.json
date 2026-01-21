@@ -6,7 +6,17 @@
       "Bash(git push:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(node:*)",
+      "Skill(ultrawork:overview-exploration)",
+      "Bash(bun:*)",
+      "Bash(echo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git reset:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test)",
+      "Bash(npm run test:coverage:*)"
     ]
   }
 }
