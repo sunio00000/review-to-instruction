@@ -103,9 +103,9 @@ This extension requests the following Chrome permissions:
 - **Hosts**:
   - `https://github.com/*`
   - `https://gitlab.com/*`
-  - `https://git.projectbro.com/*` (example self-hosted GitLab)
 - **Purpose**: Inject content script and make API calls
 - **Data sent**: API tokens (encrypted) for authentication only
+- **Note**: For self-hosted GitLab instances, you can configure the URL in the extension settings
 
 ## Data Security
 

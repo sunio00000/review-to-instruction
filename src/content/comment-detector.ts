@@ -197,11 +197,20 @@ export class CommentDetector {
 
     // id 속성이 있으면 사용
     const id = element.getAttribute('id');
-    if (id) return id;
+    if (id) {
+      // id를 data-comment-id에도 저장 (일관성 유지)
+      element.setAttribute('data-comment-id', id);
+      return id;
+    }
 
-    // 없으면 엘리먼트를 기반으로 고유 ID 생성
+    // 없으면 엘리먼트를 기반으로 고유 ID 생성 후 저장
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
-    return `comment-${timestamp}-${random}`;
+    const generatedId = `comment-${timestamp}-${random}`;
+
+    // 생성된 ID를 element에 저장 (다음 호출 시 재사용)
+    element.setAttribute('data-comment-id', generatedId);
+
+    return generatedId;
   }
 }

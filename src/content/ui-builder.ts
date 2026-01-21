@@ -84,20 +84,30 @@ export class UIBuilder {
    * 버튼을 코멘트에 삽입
    */
   private insertButton(contentElement: HTMLElement, button: HTMLButtonElement) {
+    // 코멘트 엘리먼트의 부모를 찾기
+    const parent = contentElement.parentElement;
+    if (!parent) {
+      console.warn('[UIBuilder] Cannot insert button: parent element not found');
+      return;
+    }
+
+    // 이미 버튼 컨테이너가 있는지 확인 (중복 방지)
+    const existingContainer = parent.querySelector('.review-to-instruction-button-container');
+    if (existingContainer) {
+      console.log('[UIBuilder] Button container already exists, skipping insertion');
+      return;
+    }
+
     // 코멘트 본문 다음에 버튼 삽입
     const container = document.createElement('div');
     container.className = 'review-to-instruction-button-container';
     container.appendChild(button);
 
-    // 코멘트 엘리먼트의 부모를 찾아서 삽입
-    const parent = contentElement.parentElement;
-    if (parent) {
-      const nextSibling = contentElement.nextSibling;
-      if (nextSibling) {
-        parent.insertBefore(container, nextSibling);
-      } else {
-        parent.appendChild(container);
-      }
+    const nextSibling = contentElement.nextSibling;
+    if (nextSibling) {
+      parent.insertBefore(container, nextSibling);
+    } else {
+      parent.appendChild(container);
     }
   }
 
