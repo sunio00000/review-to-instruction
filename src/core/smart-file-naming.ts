@@ -1,12 +1,14 @@
 /**
  * Smart File Naming
- * AI를 활용한 지능적 파일명 생성
+ * AI를 활용한 지능적 파일명 생성 + 디렉토리 제안
  */
 
 import type { ParsedComment, EnhancedComment, LLMConfig } from '../types';
 import type { AnalysisResult } from './instruction-analyzer';
 import { ClaudeClient } from '../background/llm/claude-client';
 import { OpenAIClient } from '../background/llm/openai-client';
+import { DirectorySuggester } from './directory-suggester';
+import { DirectoryRules } from './directory-rules';
 
 export interface FileNamingOptions {
   parsedComment: ParsedComment | EnhancedComment;
@@ -24,22 +26,56 @@ export interface FileNamingResult {
 
 export class SmartFileNaming {
   /**
-   * AI 기반 파일명 생성
+   * AI 기반 파일명 + 디렉토리 생성
    */
   async generateFileName(options: FileNamingOptions): Promise<FileNamingResult> {
     const { parsedComment, analysisResult, llmConfig } = options;
 
-    // LLM이 활성화되어 있으면 AI 기반 생성
+    // 1. 디렉토리 제안 (규칙 기반 + LLM 선택적)
+    const llmClient = this.createLLMClient(llmConfig);
+    const directorySuggester = new DirectorySuggester(new DirectoryRules(), llmClient);
+
+    const suggestedDir = await directorySuggester.suggestDirectory(
+      parsedComment,
+      analysisResult,
+      llmConfig
+    );
+
+    console.log('[SmartFileNaming] Suggested directory:', suggestedDir);
+
+    // 2. 파일명 생성 (LLM 또는 규칙 기반)
+    let fileResult: FileNamingResult;
+
     if (llmConfig?.enabled && llmConfig.provider !== 'none') {
       try {
-        return await this.generateWithAI(parsedComment, analysisResult, llmConfig);
+        fileResult = await this.generateWithAI(parsedComment, analysisResult, llmConfig);
       } catch (error) {
         console.warn('[SmartFileNaming] AI generation failed, falling back to rule-based:', error);
+        fileResult = this.generateWithRules(parsedComment, analysisResult);
       }
+    } else {
+      fileResult = this.generateWithRules(parsedComment, analysisResult);
     }
 
-    // LLM이 없거나 실패하면 규칙 기반 생성
-    return this.generateWithRules(parsedComment, analysisResult);
+    // 3. 제안된 디렉토리로 교체
+    return {
+      ...fileResult,
+      directory: suggestedDir,
+      fullPath: `${suggestedDir}/${fileResult.filename}`
+    };
+  }
+
+  /**
+   * LLM 클라이언트 생성
+   */
+  private createLLMClient(llmConfig?: LLMConfig): ClaudeClient | OpenAIClient | undefined {
+    if (!llmConfig?.enabled || llmConfig.provider === 'none') {
+      return undefined;
+    }
+
+    return llmConfig.provider === 'claude'
+      ? new ClaudeClient(llmConfig.claudeApiKey!)
+      : new OpenAIClient(llmConfig.openaiApiKey!);
   }
 
   /**

@@ -31,6 +31,18 @@ export interface AnalysisResult {
   existingFiles: ClaudeFile[];
   suggestedLocation: string;
   confidence: number;  // 0-100
+  directoryHierarchy?: DirectoryHierarchy;  // 디렉토리 계층 구조
+}
+
+export interface DirectoryHierarchy {
+  allPaths: string[];  // 모든 디렉토리 경로 배열
+  tree: DirectoryNode; // 계층 구조
+}
+
+export interface DirectoryNode {
+  name: string;
+  path: string;
+  children: DirectoryNode[];
 }
 
 export class InstructionAnalyzer {
@@ -58,11 +70,15 @@ export class InstructionAnalyzer {
       // 패턴 분석
       const pattern = this.extractPattern(files);
 
+      // 디렉토리 계층 구조 추출
+      const directoryHierarchy = this.extractDirectoryHierarchy(files);
+
       return {
         pattern,
         existingFiles: files,
         suggestedLocation: this.suggestLocation(pattern),
-        confidence: this.calculateConfidence(files)
+        confidence: this.calculateConfidence(files),
+        directoryHierarchy
       };
     } catch (error) {
       console.error('[InstructionAnalyzer] Analysis failed:', error);
@@ -71,7 +87,7 @@ export class InstructionAnalyzer {
   }
 
   /**
-   * GitHub/GitLab에서 instruction 파일들 가져오기
+   * GitHub/GitLab에서 instruction 파일들 가져오기 (재귀 탐색)
    */
   private async fetchInstructionFiles(
     client: ApiClient,
@@ -81,35 +97,63 @@ export class InstructionAnalyzer {
     const files: ClaudeFile[] = [];
 
     try {
-      const contents = await client.getDirectoryContents(
-        repository,
-        instructionsPath
-      );
-
-      for (const item of contents) {
-        if (item.type === 'file' && item.name.endsWith('.md')) {
-          try {
-            const fileContent = await client.getFileContent(
-              repository,
-              item.path
-            );
-
-            if (fileContent && fileContent.content) {
-              // Base64 디코딩
-              const decodedContent = atob(fileContent.content);
-              files.push(this.parseInstructionFile(item.path, decodedContent));
-            }
-          } catch (error) {
-            console.warn(`Failed to fetch ${item.path}:`, error);
-          }
-        }
-      }
+      // 재귀적으로 모든 하위 디렉토리 탐색
+      await this.fetchFilesRecursively(client, repository, instructionsPath, files);
     } catch (error) {
       // 디렉토리가 없으면 빈 배열 반환
       console.log('[InstructionAnalyzer] No existing instructions directory');
     }
 
     return files;
+  }
+
+  /**
+   * 재귀적으로 디렉토리 탐색
+   */
+  private async fetchFilesRecursively(
+    client: ApiClient,
+    repository: Repository,
+    dirPath: string,
+    accumulator: ClaudeFile[],
+    depth: number = 0
+  ): Promise<void> {
+    // 최대 depth 제한 (성능 보호)
+    if (depth > 5) {
+      console.warn(`[InstructionAnalyzer] Max depth (5) reached at ${dirPath}`);
+      return;
+    }
+
+    try {
+      const contents = await client.getDirectoryContents(repository, dirPath);
+
+      for (const item of contents) {
+        if (item.type === 'file' && item.name.endsWith('.md')) {
+          // Markdown 파일 처리
+          try {
+            const fileContent = await client.getFileContent(repository, item.path);
+
+            if (fileContent && fileContent.content) {
+              // Base64 디코딩
+              const decodedContent = atob(fileContent.content);
+              accumulator.push(this.parseInstructionFile(item.path, decodedContent));
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch ${item.path}:`, error);
+          }
+        } else if (item.type === 'dir') {
+          // 하위 디렉토리 재귀 탐색
+          await this.fetchFilesRecursively(
+            client,
+            repository,
+            item.path,
+            accumulator,
+            depth + 1
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`[InstructionAnalyzer] Failed to read directory ${dirPath}:`, error);
+    }
   }
 
   /**
@@ -220,6 +264,78 @@ export class InstructionAnalyzer {
       commonKeywords,
       frontmatterFields
     };
+  }
+
+  /**
+   * 디렉토리 계층 구조 추출
+   */
+  private extractDirectoryHierarchy(files: ClaudeFile[]): DirectoryHierarchy {
+    const dirSet = new Set<string>();
+
+    // 모든 파일 경로에서 디렉토리 경로 추출
+    files.forEach(f => {
+      const parts = f.path.split('/');
+      parts.pop(); // 파일명 제거
+
+      // 경로의 모든 depth에 대해 디렉토리 추가
+      for (let i = 1; i <= parts.length; i++) {
+        dirSet.add(parts.slice(0, i).join('/'));
+      }
+    });
+
+    const allPaths = Array.from(dirSet).sort();
+
+    // 트리 구조 생성
+    const tree = this.buildDirectoryTree(allPaths);
+
+    return {
+      allPaths,
+      tree
+    };
+  }
+
+  /**
+   * 디렉토리 경로 배열에서 트리 구조 생성
+   */
+  private buildDirectoryTree(paths: string[]): DirectoryNode {
+    // 루트 노드 생성
+    const root: DirectoryNode = {
+      name: '.claude/instructions',
+      path: '.claude/instructions',
+      children: []
+    };
+
+    // 경로별로 트리에 추가
+    paths.forEach(path => {
+      if (path === '.claude/instructions') return; // 루트는 스킵
+
+      const parts = path.split('/');
+      let currentNode = root;
+
+      // .claude/instructions 이후 경로만 처리
+      const relevantParts = parts.slice(2); // ['.claude', 'instructions', ...] 에서 마지막 부분들
+
+      relevantParts.forEach((part, index) => {
+        const fullPath = parts.slice(0, 3 + index).join('/'); // .claude/instructions/...
+
+        // 기존 자식 노드 찾기
+        let childNode = currentNode.children.find(child => child.name === part);
+
+        if (!childNode) {
+          // 새 노드 생성
+          childNode = {
+            name: part,
+            path: fullPath,
+            children: []
+          };
+          currentNode.children.push(childNode);
+        }
+
+        currentNode = childNode;
+      });
+    });
+
+    return root;
   }
 
   /**

@@ -38,11 +38,8 @@ export const popupFormSchema: FieldSchema[] = [
     id: 'gitlab-token',
     storageKey: 'gitlabToken_enc',
     type: 'password',
-    encrypted: true,
-    validation: {
-      pattern: /^glpat-[a-zA-Z0-9_-]{20,}$/,
-      message: 'GitLab 토큰은 "glpat-"로 시작해야 합니다.'
-    }
+    encrypted: true
+    // 검증 제거: 다양한 GitLab 토큰 형식 지원
   },
 
   // 3. GitLab URL

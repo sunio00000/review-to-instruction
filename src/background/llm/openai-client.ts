@@ -156,4 +156,70 @@ export class OpenAIClient extends BaseLLMClient {
 
     return textContent;
   }
+
+  /**
+   * 범용 텍스트 생성
+   */
+  async generateText(prompt: string, options?: {
+    max_tokens?: number;
+    temperature?: number;
+    system?: string;
+  }): Promise<string> {
+    try {
+      const response = await this.retry(() =>
+        this.withTimeout(this.callTextGenerationAPI(prompt, options))
+      );
+      return response;
+    } catch (error) {
+      console.error('[OpenAIClient] Text generation API failed:', error);
+      throw error;
+    }
+  }
+
+  private async callTextGenerationAPI(prompt: string, options?: {
+    max_tokens?: number;
+    temperature?: number;
+    system?: string;
+  }): Promise<string> {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: options?.system || 'You are a helpful assistant.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: options?.max_tokens || 1024,
+        temperature: options?.temperature ?? 1.0
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new LLMError(
+        errorData.error?.message || `API error: ${response.status}`,
+        'openai',
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const textContent = data.choices?.[0]?.message?.content;
+
+    if (!textContent) {
+      throw new LLMError('Empty response from OpenAI API', 'openai');
+    }
+
+    return textContent;
+  }
 }

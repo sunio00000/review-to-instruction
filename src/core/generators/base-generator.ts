@@ -11,6 +11,7 @@ export interface GeneratorOptions {
   originalComment: Comment;
   repository: Repository;
   existingContent?: string;
+  suggestedPath?: string;  // SmartFileNaming에서 제안된 전체 경로 (선택적)
 }
 
 // 파일 생성 결과

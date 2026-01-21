@@ -192,18 +192,18 @@ export class FileGenerationServiceImpl implements FileGenerationService {
       projectType as ProjectType
     );
 
-    // 3. Generator로 파일 생성
+    // 3. Generator로 파일 생성 (AI 제안 경로 전달)
     const generationResult = generator.generate({
       parsedComment: enhancedComment,
       originalComment: originalComment,
       repository,
-      existingContent: matchResult.existingContent
+      existingContent: matchResult.existingContent,
+      suggestedPath: smartFilePath || undefined  // SmartFileNaming 결과 전달
     });
 
-    // 4. 파일 경로 결정 (우선순위: AI > Generator > Matcher)
-    const finalFilePath = smartFilePath
-      || generationResult.filePath
-      || matchResult.filePath;
+    // 4. 파일 경로 결정 (우선순위: Generator > Matcher)
+    // Generator가 이미 smartFilePath를 사용했으므로 그 결과 사용
+    const finalFilePath = generationResult.filePath || matchResult.filePath;
 
     console.log('[FileGenerationService] Final file path:', finalFilePath);
 

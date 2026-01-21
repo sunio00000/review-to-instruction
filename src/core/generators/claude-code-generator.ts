@@ -24,7 +24,7 @@ export class ClaudeCodeGenerator extends BaseGenerator {
    * 파일 생성
    */
   generate(options: GeneratorOptions): GenerationResult {
-    const { parsedComment, originalComment } = options;
+    const { parsedComment, originalComment, suggestedPath } = options;
 
     // 코멘트 내용 분석하여 instruction vs skill 결정
     this.fileType = this.determineFileType(originalComment.content, parsedComment.keywords);
@@ -35,7 +35,9 @@ export class ClaudeCodeGenerator extends BaseGenerator {
       : generateSkill(options);
 
     // 파일 경로 생성
-    const filePath = this.generateFilePath(parsedComment.suggestedFileName);
+    // 1. suggestedPath가 있으면 사용 (SmartFileNaming에서 제안된 경로)
+    // 2. 없으면 기존 로직 사용
+    const filePath = suggestedPath || this.generateFilePath(parsedComment.suggestedFileName);
 
     return {
       content,

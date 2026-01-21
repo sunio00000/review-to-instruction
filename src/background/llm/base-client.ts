@@ -23,6 +23,16 @@ export abstract class BaseLLMClient implements ILLMClient {
   abstract generateFileName(prompt: string): Promise<string>;
 
   /**
+   * 범용 텍스트 생성 (AI 기반)
+   * - 디렉토리 제안, 코드 설명 등 다양한 용도로 사용
+   */
+  abstract generateText(prompt: string, options?: {
+    max_tokens?: number;
+    temperature?: number;
+    system?: string;
+  }): Promise<string>;
+
+  /**
    * 캐시를 활용한 분석 (Feature 2)
    * - Protected: 하위 클래스에서 analyzeComment()에서 호출
    */
