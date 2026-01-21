@@ -241,6 +241,19 @@ main {
   text-decoration: underline;
 }
 
+/* 에러 텍스트 */
+.error-text {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d73a49;
+  font-weight: 500;
+}
+
+.error-text.visible {
+  display: block;
+}
+
 /* 푸터 */
 footer {
   padding: 16px 20px;
@@ -364,6 +377,10 @@ footer a:hover {
 
   footer a {
     color: #58a6ff;
+  }
+
+  .error-text {
+    color: #f85149;
   }
 }
 

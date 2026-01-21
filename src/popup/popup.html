@@ -25,6 +25,7 @@
             placeholder="ghp_..."
             autocomplete="off"
           />
+          <small class="error-text" data-error-for="github-token"></small>
         </div>
         <button id="test-github" class="btn btn-secondary">연결 테스트</button>
         <div id="github-status" class="status"></div>
@@ -41,6 +42,7 @@
             placeholder="https://git.projectbro.com"
             autocomplete="off"
           />
+          <small class="error-text" data-error-for="gitlab-url"></small>
           <small class="help-text">
             Self-hosted GitLab의 경우 URL을 입력하세요. 기본값: https://gitlab.com
           </small>
@@ -53,6 +55,7 @@
             placeholder="glpat-..."
             autocomplete="off"
           />
+          <small class="error-text" data-error-for="gitlab-token"></small>
         </div>
         <button id="test-gitlab" class="btn btn-secondary">연결 테스트</button>
         <div id="gitlab-status" class="status"></div>
@@ -86,6 +89,7 @@
               <option value="claude">Anthropic Claude (Sonnet 4.5)</option>
               <option value="openai">OpenAI (GPT-4 Turbo)</option>
             </select>
+            <small class="error-text" data-error-for="llm-provider"></small>
           </div>
 
           <div id="claude-api-key-group" class="input-group api-key-group" style="display: none;">
@@ -96,6 +100,7 @@
               placeholder="sk-ant-..."
               autocomplete="off"
             />
+            <small class="error-text" data-error-for="claude-api-key"></small>
             <small class="help-text">
               <a href="https://console.anthropic.com/settings/keys" target="_blank">API 키 발급받기</a>
             </small>
@@ -109,6 +114,7 @@
               placeholder="sk-..."
               autocomplete="off"
             />
+            <small class="error-text" data-error-for="openai-api-key"></small>
             <small class="help-text">
               <a href="https://platform.openai.com/api-keys" target="_blank">API 키 발급받기</a>
             </small>
