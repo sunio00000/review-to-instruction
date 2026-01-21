@@ -13,43 +13,22 @@ let injector: GitHubInjector | GitLabInjector | null = null;
 // 현재 플랫폼 감지
 async function detectPlatform(): Promise<Platform | null> {
   const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
 
+  // GitHub 감지
   if (hostname.includes('github.com') || hostname === 'localhost') {
+    console.log('[Review to Instruction] ✅ Detected GitHub:', hostname);
     return 'github';
-  } else if (hostname.includes('gitlab.com')) {
+  }
+
+  // GitLab 감지 (gitlab.com 또는 MR URL 패턴)
+  // GitLab의 MR URL 패턴: /-/merge_requests/
+  if (hostname.includes('gitlab.com') || pathname.includes('/-/merge_requests/')) {
+    console.log('[Review to Instruction] ✅ Detected GitLab:', hostname);
     return 'gitlab';
   }
 
-  // Self-hosted GitLab 체크 (chrome.storage.local에서 읽기)
-  try {
-    console.log('[Review to Instruction] Checking self-hosted GitLab for hostname:', hostname);
-    const storage = await chrome.storage.local.get(['gitlabUrl']);
-    const gitlabUrl = storage.gitlabUrl as string | undefined;
-
-    console.log('[Review to Instruction] GitLab URL from storage:', gitlabUrl);
-
-    if (gitlabUrl) {
-      // gitlabUrl에서 hostname 추출
-      const url = new URL(gitlabUrl);
-      console.log('[Review to Instruction] Parsed hostname:', url.hostname);
-
-      if (url.hostname === hostname) {
-        console.log('[Review to Instruction] ✅ Detected self-hosted GitLab:', hostname);
-        return 'gitlab';
-      } else {
-        console.log('[Review to Instruction] Hostname mismatch:', {
-          expected: url.hostname,
-          actual: hostname
-        });
-      }
-    } else {
-      console.log('[Review to Instruction] No gitlabUrl found in storage');
-    }
-  } catch (error) {
-    console.error('[Review to Instruction] Failed to check GitLab URL:', error);
-  }
-
-  console.log('[Review to Instruction] Platform not detected for hostname:', hostname);
+  console.log('[Review to Instruction] Platform not detected for:', { hostname, pathname });
   return null;
 }
 
