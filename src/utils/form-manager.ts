@@ -250,9 +250,13 @@ export class FormManager {
       // visible 함수 실행
       const shouldShow = field.visible(this.currentState);
 
-      // 부모 요소(그룹)의 가시성 조절 - 일반적으로 form-group
-      const parentGroup = element.closest('.form-group') as HTMLElement;
-      const targetElement = parentGroup || element;
+      // 부모 요소(그룹)의 가시성 조절
+      // 1. .input-group 클래스 찾기
+      // 2. .form-group 클래스 찾기
+      // 3. 없으면 요소 자체
+      const inputGroup = element.closest('.input-group') as HTMLElement;
+      const formGroup = element.closest('.form-group') as HTMLElement;
+      const targetElement = inputGroup || formGroup || element;
 
       if (shouldShow) {
         targetElement.style.display = '';

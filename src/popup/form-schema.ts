@@ -103,7 +103,7 @@ export const popupFormSchema: FieldSchema[] = [
       pattern: /^sk-ant-[a-zA-Z0-9_-]{95,}$/,
       message: 'Claude API 키는 "sk-ant-"로 시작해야 합니다.'
     },
-    visible: (state: FormState) => state.llmProvider === 'claude'
+    visible: (state: FormState) => state['llm-provider'] === 'claude'
   },
 
   // 8. OpenAI API Key (llmProvider=openai일 때만 표시)
@@ -116,6 +116,6 @@ export const popupFormSchema: FieldSchema[] = [
       pattern: /^sk-[a-zA-Z0-9]{32,}$/,
       message: 'OpenAI API 키는 "sk-"로 시작해야 합니다.'
     },
-    visible: (state: FormState) => state.llmProvider === 'openai'
+    visible: (state: FormState) => state['llm-provider'] === 'openai'
   }
 ];
