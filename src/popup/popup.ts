@@ -255,6 +255,343 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
+// ==================== 마스터 비밀번호 관리 ====================
+
+// 마스터 비밀번호 설정 여부 확인
+async function checkMasterPasswordSetup(): Promise<boolean> {
+  const result = await chrome.storage.local.get(['masterPasswordHash']);
+  return !!result.masterPasswordHash;
+}
+
+// 마스터 비밀번호 검증용 해시 생성
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// 비밀번호 강도 체크
+function checkPasswordStrength(password: string): { score: number; text: string; className: string } {
+  let score = 0;
+
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+  if (score <= 2) {
+    return { score, text: '약함', className: 'weak' };
+  } else if (score <= 4) {
+    return { score, text: '보통', className: 'medium' };
+  } else {
+    return { score, text: '강함', className: 'strong' };
+  }
+}
+
+// 비밀번호 강도 업데이트
+function updatePasswordStrength() {
+  const passwordInput = document.getElementById('master-password') as HTMLInputElement;
+  const strengthBar = document.getElementById('strength-bar') as HTMLDivElement;
+  const strengthText = document.getElementById('strength-text') as HTMLSpanElement;
+
+  const password = passwordInput.value;
+  const strength = checkPasswordStrength(password);
+
+  // 바 업데이트
+  strengthBar.className = `strength-bar ${strength.className}`;
+
+  // 텍스트 업데이트
+  strengthText.textContent = strength.text;
+  strengthText.className = `strength-text ${strength.className}`;
+}
+
+// 마스터 비밀번호 설정
+async function setupMasterPassword(): Promise<void> {
+  const passwordInput = document.getElementById('master-password') as HTMLInputElement;
+  const confirmInput = document.getElementById('master-password-confirm') as HTMLInputElement;
+  const errorDiv = document.getElementById('master-password-error') as HTMLDivElement;
+  const setButton = document.getElementById('set-master-password-btn') as HTMLButtonElement;
+
+  const password = passwordInput.value;
+  const confirm = confirmInput.value;
+
+  // 비밀번호 확인
+  if (!password || !confirm) {
+    errorDiv.textContent = '비밀번호를 입력하세요.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  if (password !== confirm) {
+    errorDiv.textContent = '비밀번호가 일치하지 않습니다.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  const strength = checkPasswordStrength(password);
+  if (strength.score < 3) {
+    errorDiv.textContent = '비밀번호가 너무 약합니다. 영문, 숫자, 특수문자를 조합하여 8자 이상 입력하세요.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  // 버튼 로딩 상태
+  setButton.disabled = true;
+  setButton.classList.add('loading');
+
+  try {
+    // 비밀번호 해시 저장 (검증용)
+    const passwordHash = await hashPassword(password);
+    await chrome.storage.local.set({ masterPasswordHash: passwordHash });
+
+    // CryptoService에 비밀번호 설정
+    crypto.setMasterPassword(password);
+
+    // 모달 닫기
+    const modal = document.getElementById('master-password-modal')!;
+    modal.style.display = 'none';
+
+    // 기존 암호화된 데이터 마이그레이션 (있다면)
+    await migrateEncryptedData();
+
+    // FormManager 초기화 및 설정 로드
+    formManager.bindElements();
+    formManager.bindVisibilityUpdates();
+    await loadConfig();
+    await loadCacheStats();
+
+    showStatus(saveStatus, '✅ 마스터 비밀번호가 설정되었습니다.', 'success');
+  } catch (error) {
+    console.error('Failed to setup master password:', error);
+    errorDiv.textContent = `설정 실패: ${error}`;
+    errorDiv.style.display = 'block';
+  } finally {
+    setButton.disabled = false;
+    setButton.classList.remove('loading');
+  }
+}
+
+// 마스터 비밀번호로 잠금 해제
+async function unlockWithPassword(): Promise<boolean> {
+  const passwordInput = document.getElementById('unlock-password') as HTMLInputElement;
+  const errorDiv = document.getElementById('unlock-error') as HTMLDivElement;
+  const unlockButton = document.getElementById('unlock-btn') as HTMLButtonElement;
+
+  const password = passwordInput.value;
+
+  if (!password) {
+    errorDiv.textContent = '비밀번호를 입력하세요.';
+    errorDiv.style.display = 'block';
+    return false;
+  }
+
+  // 버튼 로딩 상태
+  unlockButton.disabled = true;
+  unlockButton.classList.add('loading');
+
+  try {
+    const passwordHash = await hashPassword(password);
+    const result = await chrome.storage.local.get(['masterPasswordHash']);
+
+    if (result.masterPasswordHash !== passwordHash) {
+      errorDiv.textContent = '비밀번호가 일치하지 않습니다.';
+      errorDiv.style.display = 'block';
+      return false;
+    }
+
+    // CryptoService에 비밀번호 설정
+    crypto.setMasterPassword(password);
+
+    // 모달 닫기
+    const modal = document.getElementById('unlock-modal')!;
+    modal.style.display = 'none';
+
+    // FormManager 초기화 및 설정 로드
+    formManager.bindElements();
+    formManager.bindVisibilityUpdates();
+    await loadConfig();
+    await loadCacheStats();
+
+    return true;
+  } catch (error) {
+    console.error('Failed to unlock:', error);
+    errorDiv.textContent = `잠금 해제 실패: ${error}`;
+    errorDiv.style.display = 'block';
+    return false;
+  } finally {
+    unlockButton.disabled = false;
+    unlockButton.classList.remove('loading');
+  }
+}
+
+// 비밀번호 재설정
+async function resetMasterPassword(): Promise<void> {
+  if (!confirm('비밀번호를 재설정하시겠습니까?\n\n⚠️ 경고: 기존에 저장된 모든 API 키가 삭제됩니다.')) {
+    return;
+  }
+
+  try {
+    // 모든 암호화된 데이터 삭제
+    await chrome.storage.local.remove([
+      'masterPasswordHash',
+      'githubToken_enc',
+      'gitlabToken_enc',
+      'claudeApiKey_enc',
+      'openaiApiKey_enc'
+    ]);
+
+    // 현재 모달 닫고 설정 모달 열기
+    const unlockModal = document.getElementById('unlock-modal')!;
+    const setupModal = document.getElementById('master-password-modal')!;
+
+    unlockModal.style.display = 'none';
+    setupModal.style.display = 'flex';
+
+    // 입력 필드 초기화
+    (document.getElementById('master-password') as HTMLInputElement).value = '';
+    (document.getElementById('master-password-confirm') as HTMLInputElement).value = '';
+  } catch (error) {
+    console.error('Failed to reset password:', error);
+    alert(`비밀번호 재설정 실패: ${error}`);
+  }
+}
+
+// 기존 암호화 데이터 마이그레이션 (Extension ID → 마스터 비밀번호)
+async function migrateEncryptedData(): Promise<void> {
+  console.log('[Popup] Checking for data migration...');
+
+  try {
+    const storage = await chrome.storage.local.get([
+      'githubToken_enc',
+      'gitlabToken_enc',
+      'claudeApiKey_enc',
+      'openaiApiKey_enc'
+    ]);
+
+    const keysToMigrate = Object.keys(storage).filter(key => key.endsWith('_enc'));
+
+    if (keysToMigrate.length === 0) {
+      console.log('[Popup] No encrypted data to migrate');
+      return;
+    }
+
+    console.log(`[Popup] Migrating ${keysToMigrate.length} encrypted keys...`);
+
+    // 각 키에 대해 Legacy 방식으로 복호화 후 마스터 비밀번호 방식으로 재암호화
+    const migratedData: Record<string, string> = {};
+
+    for (const key of keysToMigrate) {
+      const encryptedValue = storage[key] as string;
+      if (!encryptedValue || typeof encryptedValue !== 'string') continue;
+
+      try {
+        // Legacy 방식으로 복호화 시도
+        const tempPassword = crypto.getMasterPassword();
+        crypto.clearMasterPassword(); // 임시로 마스터 비밀번호 제거
+
+        const decryptedValue = await crypto.decrypt(encryptedValue);
+
+        // 마스터 비밀번호 복원
+        if (tempPassword) {
+          crypto.setMasterPassword(tempPassword);
+        }
+
+        // 마스터 비밀번호로 재암호화
+        const reencryptedValue = await crypto.encrypt(decryptedValue);
+        migratedData[key] = reencryptedValue;
+
+        console.log(`[Popup] Migrated ${key}`);
+      } catch (error) {
+        console.warn(`[Popup] Failed to migrate ${key}:`, error);
+        // 실패한 키는 건너뛰기 (이미 마스터 비밀번호로 암호화되어 있을 수 있음)
+      }
+    }
+
+    // 마이그레이션된 데이터 저장
+    if (Object.keys(migratedData).length > 0) {
+      await chrome.storage.local.set(migratedData);
+      console.log(`[Popup] Migration complete: ${Object.keys(migratedData).length} keys migrated`);
+    }
+  } catch (error) {
+    console.error('[Popup] Migration error:', error);
+    // 마이그레이션 실패해도 계속 진행 (사용자가 수동으로 재입력 가능)
+  }
+}
+
+// 비밀번호 표시/숨김 토글
+function setupPasswordToggles(): void {
+  document.querySelectorAll('.toggle-password').forEach(button => {
+    button.addEventListener('click', (e) => {
+      const target = (e.currentTarget as HTMLElement).getAttribute('data-target');
+      if (!target) return;
+
+      const input = document.getElementById(target) as HTMLInputElement;
+      const showIcon = (e.currentTarget as HTMLElement).querySelector('.show-icon') as HTMLElement;
+      const hideIcon = (e.currentTarget as HTMLElement).querySelector('.hide-icon') as HTMLElement;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        showIcon.style.display = 'none';
+        hideIcon.style.display = 'inline';
+      } else {
+        input.type = 'password';
+        showIcon.style.display = 'inline';
+        hideIcon.style.display = 'none';
+      }
+    });
+  });
+}
+
+// 초기화 함수
+async function init() {
+  const hasPassword = await checkMasterPasswordSetup();
+
+  if (!hasPassword) {
+    // 첫 실행: 마스터 비밀번호 설정
+    const setupModal = document.getElementById('master-password-modal')!;
+    setupModal.style.display = 'flex';
+
+    // 비밀번호 강도 체크 이벤트 리스너
+    const passwordInput = document.getElementById('master-password') as HTMLInputElement;
+    passwordInput.addEventListener('input', updatePasswordStrength);
+
+    // 비밀번호 설정 버튼
+    const setButton = document.getElementById('set-master-password-btn')!;
+    setButton.addEventListener('click', setupMasterPassword);
+
+    // 비밀번호 표시/숨김 토글
+    setupPasswordToggles();
+  } else {
+    // 기존 사용자: 잠금 해제
+    const unlockModal = document.getElementById('unlock-modal')!;
+    unlockModal.style.display = 'flex';
+
+    // Enter 키로 잠금 해제
+    const unlockPassword = document.getElementById('unlock-password') as HTMLInputElement;
+    unlockPassword.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        unlockWithPassword();
+      }
+    });
+
+    // 잠금 해제 버튼
+    const unlockButton = document.getElementById('unlock-btn')!;
+    unlockButton.addEventListener('click', unlockWithPassword);
+
+    // 비밀번호 재설정 버튼
+    const resetButton = document.getElementById('reset-password-btn')!;
+    resetButton.addEventListener('click', resetMasterPassword);
+
+    // 비밀번호 표시/숨김 토글
+    setupPasswordToggles();
+  }
+}
+
 // 이벤트 리스너
 saveButton.addEventListener('click', saveConfig);
 testGithubButton.addEventListener('click', testGithubApi);
@@ -268,8 +605,5 @@ llmProviderSelect.addEventListener('change', updateLLMUI);
 refreshCacheStatsButton.addEventListener('click', loadCacheStats);
 clearCacheButton.addEventListener('click', clearCache);
 
-// FormManager 초기화 및 설정 로드
-formManager.bindElements();
-formManager.bindVisibilityUpdates();
-loadConfig();
-loadCacheStats();
+// 마스터 비밀번호 초기화
+init();

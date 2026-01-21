@@ -13,7 +13,7 @@ export type CommentCallback = (comment: CommentElement) => void;
 
 export class CommentDetector {
   private observer: MutationObserver | null = null;
-  private processedComments = new Set<string>();
+  private processedComments = new WeakSet<HTMLElement>();
   private callback: CommentCallback;
   private selectors: string[];
   private contentSelectors: string[];
@@ -66,7 +66,7 @@ export class CommentDetector {
       this.debounceTimer = null;
     }
 
-    this.processedComments.clear();
+    // WeakSet은 자동으로 가비지 컬렉션되므로 clear() 불필요
     this.pendingMutations = [];
     console.log('[CommentDetector] Stopped observing');
   }
@@ -157,9 +157,8 @@ export class CommentDetector {
    * 개별 코멘트 처리
    */
   private processComment(element: HTMLElement) {
-    const id = this.getCommentId(element);
-
-    if (!id || this.processedComments.has(id)) {
+    // DOM 요소 자체로 중복 체크 (ID와 무관)
+    if (this.processedComments.has(element)) {
       return;
     }
 
@@ -172,12 +171,14 @@ export class CommentDetector {
       }
     }
 
+    const id = this.getCommentId(element);
     if (!contentElement) {
       console.warn(`[CommentDetector] Content element not found for comment ${id}, tried selectors:`, this.contentSelectors);
       return;
     }
 
-    this.processedComments.add(id);
+    // DOM 요소를 처리됨으로 표시
+    this.processedComments.add(element);
 
     this.callback({
       element,

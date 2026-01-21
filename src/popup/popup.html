@@ -185,6 +185,85 @@
     </footer>
   </div>
 
+  <!-- 마스터 비밀번호 설정 모달 (첫 실행 시) -->
+  <div id="master-password-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>🔐 마스터 비밀번호 설정</h2>
+      <p>API 키를 암호화하기 위한 마스터 비밀번호를 설정하세요.</p>
+
+      <div class="form-group">
+        <label for="master-password">마스터 비밀번호</label>
+        <div class="password-input-wrapper">
+          <input type="password" id="master-password" required minlength="8" autocomplete="new-password" />
+          <button type="button" class="toggle-password" data-target="master-password">
+            <span class="show-icon">👁️</span>
+            <span class="hide-icon" style="display: none;">🙈</span>
+          </button>
+        </div>
+        <small class="help-text">최소 8자 이상, 영문/숫자/특수문자 조합 권장</small>
+      </div>
+
+      <div class="form-group">
+        <label for="master-password-confirm">비밀번호 확인</label>
+        <div class="password-input-wrapper">
+          <input type="password" id="master-password-confirm" required autocomplete="new-password" />
+          <button type="button" class="toggle-password" data-target="master-password-confirm">
+            <span class="show-icon">👁️</span>
+            <span class="hide-icon" style="display: none;">🙈</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="password-strength">
+        <div id="strength-bar" class="strength-bar"></div>
+        <span id="strength-text" class="strength-text">약함</span>
+      </div>
+
+      <div class="warning-box">
+        ⚠️ <strong>주의사항</strong>
+        <ul>
+          <li>마스터 비밀번호를 분실하면 저장된 API 키를 복구할 수 없습니다.</li>
+          <li>비밀번호는 안전한 곳에 보관하세요.</li>
+          <li>이 비밀번호는 로컬 기기에만 저장되며 외부로 전송되지 않습니다.</li>
+        </ul>
+      </div>
+
+      <div id="master-password-error" class="error-message" style="display: none;"></div>
+
+      <button id="set-master-password-btn" class="btn btn-primary">설정 완료</button>
+    </div>
+  </div>
+
+  <!-- 마스터 비밀번호 입력 모달 (사용 시) -->
+  <div id="unlock-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>🔓 마스터 비밀번호 입력</h2>
+      <p>API 키에 접근하려면 마스터 비밀번호를 입력하세요.</p>
+
+      <div class="form-group">
+        <label for="unlock-password">마스터 비밀번호</label>
+        <div class="password-input-wrapper">
+          <input type="password" id="unlock-password" required autocomplete="current-password" />
+          <button type="button" class="toggle-password" data-target="unlock-password">
+            <span class="show-icon">👁️</span>
+            <span class="hide-icon" style="display: none;">🙈</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="unlock-error" class="error-message" style="display: none;"></div>
+
+      <div class="modal-actions">
+        <button id="unlock-btn" class="btn btn-primary">잠금 해제</button>
+        <button id="reset-password-btn" class="btn btn-danger">비밀번호 재설정</button>
+      </div>
+
+      <small class="help-text warning">
+        ⚠️ 비밀번호 재설정 시 기존에 저장된 모든 API 키가 삭제됩니다.
+      </small>
+    </div>
+  </div>
+
   <script type="module" src="./popup.ts"></script>
 </body>
 </html>

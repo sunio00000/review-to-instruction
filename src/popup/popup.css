@@ -497,3 +497,271 @@ footer a:hover {
   border-color: #d0d7de;
   cursor: not-allowed;
 }
+
+/* ==================== 마스터 비밀번호 모달 스타일 ==================== */
+
+/* 모달 오버레이 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 모달 콘텐츠 */
+.modal-content {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 12px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #24292f;
+}
+
+.modal-content p {
+  font-size: 14px;
+  color: #57606a;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* 폼 그룹 */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+/* 비밀번호 입력 wrapper */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.password-input-wrapper input:focus {
+  border-color: #0969da;
+}
+
+/* 비밀번호 표시/숨김 토글 버튼 */
+.toggle-password {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.toggle-password:hover {
+  opacity: 1;
+}
+
+/* 비밀번호 강도 바 */
+.password-strength {
+  margin-top: 12px;
+  margin-bottom: 20px;
+}
+
+.strength-bar {
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-bottom: 6px;
+  transition: all 0.3s;
+  width: 0%;
+}
+
+.strength-bar.weak {
+  width: 33%;
+  background: linear-gradient(90deg, #f44336 0%, #e91e63 100%);
+}
+
+.strength-bar.medium {
+  width: 66%;
+  background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
+}
+
+.strength-bar.strong {
+  width: 100%;
+  background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+}
+
+.strength-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #57606a;
+}
+
+.strength-text.weak {
+  color: #f44336;
+}
+
+.strength-text.medium {
+  color: #ff9800;
+}
+
+.strength-text.strong {
+  color: #4caf50;
+}
+
+/* 경고 박스 */
+.warning-box {
+  background: #fff3cd;
+  border: 1px solid #ffcc00;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+}
+
+.warning-box strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #856404;
+  font-size: 14px;
+}
+
+.warning-box ul {
+  margin: 8px 0 0 20px;
+  padding: 0;
+  color: #856404;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.warning-box li {
+  margin-bottom: 4px;
+}
+
+/* 에러 메시지 */
+.error-message {
+  background: #ffebe9;
+  border: 1px solid #ff818266;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 16px 0;
+  color: #cf222e;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 모달 액션 버튼 */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* 다크 모드 - 모달 */
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .modal-content {
+    background: #161b22;
+  }
+
+  .modal-content h2 {
+    color: #c9d1d9;
+  }
+
+  .modal-content p {
+    color: #8b949e;
+  }
+
+  .form-group label {
+    color: #c9d1d9;
+  }
+
+  .password-input-wrapper input {
+    background-color: #0d1117;
+    color: #c9d1d9;
+    border-color: #30363d;
+  }
+
+  .password-input-wrapper input:focus {
+    border-color: #58a6ff;
+  }
+
+  .strength-text {
+    color: #8b949e;
+  }
+
+  .warning-box {
+    background: rgba(255, 243, 205, 0.1);
+    border-color: rgba(255, 204, 0, 0.4);
+  }
+
+  .warning-box strong {
+    color: #f9c513;
+  }
+
+  .warning-box ul {
+    color: #f9c513;
+  }
+
+  .error-message {
+    background: rgba(248, 81, 73, 0.15);
+    border-color: rgba(248, 81, 73, 0.4);
+    color: #f85149;
+  }
+}

@@ -15,18 +15,96 @@ export class CryptoService {
   private static readonly ALGORITHM = 'AES-GCM';
   private static readonly KEY_LENGTH = 256;
   private static readonly IV_LENGTH = 12;  // 12 bytes for AES-GCM
-  private static readonly PBKDF2_ITERATIONS = 100000;
+  private static readonly PBKDF2_ITERATIONS_LEGACY = 100000;  // Legacy Extension ID 방식
+  private static readonly PBKDF2_ITERATIONS = 500000;  // 마스터 비밀번호 방식
   private static readonly SALT = 'review-to-instruction-salt-v1';
 
+  // 마스터 비밀번호 저장 (메모리에만, 세션 유지)
+  private masterPassword: string | null = null;
+
   /**
-   * Chrome Extension ID를 기반으로 암호화 키 생성
+   * 마스터 비밀번호 설정
+   *
+   * @param password 사용자가 설정한 마스터 비밀번호
+   */
+  setMasterPassword(password: string): void {
+    this.masterPassword = password;
+  }
+
+  /**
+   * 마스터 비밀번호 가져오기
+   *
+   * @returns 현재 설정된 마스터 비밀번호 (없으면 null)
+   */
+  getMasterPassword(): string | null {
+    return this.masterPassword;
+  }
+
+  /**
+   * 마스터 비밀번호 초기화
+   */
+  clearMasterPassword(): void {
+    this.masterPassword = null;
+  }
+
+  /**
+   * 마스터 비밀번호를 기반으로 암호화 키 생성
+   *
+   * PBKDF2를 사용하여 사용자 비밀번호에서 암호화 키를 유도합니다.
+   * 사용자별로 고유한 비밀번호를 사용하므로 Extension ID 방식보다 보안이 강화됩니다.
+   *
+   * @param password 마스터 비밀번호
+   * @returns CryptoKey 객체
+   */
+  private async deriveKeyFromPassword(password: string): Promise<CryptoKey> {
+    if (!password) {
+      throw new Error('[CryptoService] 마스터 비밀번호가 필요합니다.');
+    }
+
+    const encoder = new TextEncoder();
+
+    // 사용자 비밀번호로 키 소스 생성
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    // Extension ID를 SALT에 포함하여 설치마다 다른 키 생성
+    const extensionId = chrome.runtime.id || 'default-extension-id';
+    const dynamicSalt = `${CryptoService.SALT}|${extensionId}`;
+
+    // PBKDF2로 키 유도 (500K iterations로 보안 강화)
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: encoder.encode(dynamicSalt),
+        iterations: CryptoService.PBKDF2_ITERATIONS,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      {
+        name: CryptoService.ALGORITHM,
+        length: CryptoService.KEY_LENGTH
+      },
+      false,  // extractable = false (보안 강화)
+      ['encrypt', 'decrypt']
+    );
+
+    return key;
+  }
+
+  /**
+   * Chrome Extension ID를 기반으로 암호화 키 생성 (Legacy)
    *
    * PBKDF2를 사용하여 Extension ID에서 암호화 키를 유도합니다.
-   * 각 Extension 설치마다 고유한 ID를 가지므로, 재설치 시 새로운 키가 생성됩니다.
+   * 기존 데이터 마이그레이션을 위해 유지됩니다.
    *
    * @returns CryptoKey 객체
    */
-  private async deriveKey(): Promise<CryptoKey> {
+  private async deriveKeyLegacy(): Promise<CryptoKey> {
     // Chrome Extension ID 가져오기
     const extensionId = chrome.runtime.id;
     if (!extensionId) {
@@ -44,12 +122,12 @@ export class CryptoService {
       ['deriveKey']
     );
 
-    // PBKDF2로 키 유도
+    // PBKDF2로 키 유도 (Legacy 100K iterations)
     const key = await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt: encoder.encode(CryptoService.SALT),
-        iterations: CryptoService.PBKDF2_ITERATIONS,
+        iterations: CryptoService.PBKDF2_ITERATIONS_LEGACY,
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -62,6 +140,22 @@ export class CryptoService {
     );
 
     return key;
+  }
+
+  /**
+   * 현재 사용할 암호화 키 생성
+   *
+   * 마스터 비밀번호가 설정되어 있으면 비밀번호 기반, 없으면 Extension ID 기반
+   *
+   * @returns CryptoKey 객체
+   */
+  private async deriveKey(): Promise<CryptoKey> {
+    if (this.masterPassword) {
+      return await this.deriveKeyFromPassword(this.masterPassword);
+    } else {
+      // Fallback to legacy Extension ID 방식
+      return await this.deriveKeyLegacy();
+    }
   }
 
   /**
@@ -109,6 +203,9 @@ export class CryptoService {
   /**
    * 토큰 복호화
    *
+   * 마스터 비밀번호가 설정된 경우 비밀번호 기반 복호화를 시도하고,
+   * 실패하면 Legacy Extension ID 기반 복호화를 시도합니다.
+   *
    * @param ciphertext Base64로 인코딩된 암호문
    * @returns 복호화된 평문 문자열
    */
@@ -141,6 +238,34 @@ export class CryptoService {
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
     } catch (error) {
+      // 마스터 비밀번호 방식으로 실패한 경우, Legacy 방식 시도
+      if (this.masterPassword) {
+        console.log('[CryptoService] 마스터 비밀번호 복호화 실패, Legacy 방식 시도...');
+        try {
+          const legacyKey = await this.deriveKeyLegacy();
+          const combined = this.base64ToArrayBuffer(ciphertext);
+          const iv = combined.slice(0, CryptoService.IV_LENGTH);
+          const encrypted = combined.slice(CryptoService.IV_LENGTH);
+
+          const decrypted = await crypto.subtle.decrypt(
+            {
+              name: CryptoService.ALGORITHM,
+              iv: iv
+            },
+            legacyKey,
+            encrypted
+          );
+
+          const decoder = new TextDecoder();
+          const plaintext = decoder.decode(decrypted);
+
+          console.log('[CryptoService] Legacy 방식으로 복호화 성공');
+          return plaintext;
+        } catch (legacyError) {
+          console.error('[CryptoService] Legacy 복호화도 실패:', legacyError);
+        }
+      }
+
       console.error('[CryptoService] Decryption failed:', error);
       throw new Error('복호화 중 오류가 발생했습니다. 토큰을 다시 입력해주세요.');
     }
