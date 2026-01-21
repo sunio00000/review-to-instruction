@@ -255,6 +255,7 @@ Done! Your AI agents now understand this convention.
 
 - **[TESTING.md](./TESTING.md)** - Testing guide and E2E scenarios
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Service layer and design patterns
+- **[FormManager Guide](./docs/form-manager.md)** - Declarative form management system
 - **[Claude Code Plugin Format](https://docs.anthropic.com/claude/docs)** - Learn about `.claude/` structure
 
 ## ❓ FAQ
