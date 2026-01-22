@@ -16,11 +16,13 @@ export class GitLabInjector {
     this.uiBuilder = new UIBuilder();
 
     // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
+    // MR discussion notes와 답글을 모두 포함
+    // 시스템 노트와 커밋 히스토리는 shouldExcludeComment에서 필터링
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
       // 코멘트 컨테이너 선택자 (여러 Fallback 시도)
       [
-        '.note',                           // 기존 GitLab 선택자
+        '.note',                           // 모든 GitLab 노트 (답글 포함)
         '[data-testid="note"]',            // data-testid 속성
         '.timeline-entry',                 // 타임라인 엔트리
         '.discussion-note',                // 디스커션 노트
@@ -57,13 +59,6 @@ export class GitLabInjector {
         if (!branch) {
           branch = 'main';
         }
-
-          owner,
-          name,
-          branch,
-          prNumber,
-          url: window.location.href
-        });
 
         return {
           owner,
@@ -135,10 +130,7 @@ export class GitLabInjector {
 
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
-    if (!this.repository) {
-      // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
-    } else {
-    }
+    // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
 
     // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
     this.detector.start();

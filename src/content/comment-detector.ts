@@ -157,6 +157,11 @@ export class CommentDetector {
       return;
     }
 
+    // 시스템 노트나 커밋 히스토리 제외 (GitLab)
+    if (this.shouldExcludeComment(element)) {
+      return;
+    }
+
     // 모든 contentSelector Fallback을 시도
     let contentElement: HTMLElement | null = null;
     for (const selector of this.contentSelectors) {
@@ -179,6 +184,51 @@ export class CommentDetector {
       id,
       contentElement
     });
+  }
+
+  /**
+   * 제외해야 할 코멘트인지 확인
+   */
+  private shouldExcludeComment(element: HTMLElement): boolean {
+    // GitLab 시스템 노트 제외 (커밋, 상태 변경, 라벨 변경 등)
+    if (element.classList.contains('system-note')) {
+      return true;
+    }
+
+    // GitLab 커밋 관련 요소 제외
+    if (element.classList.contains('commit') ||
+        element.classList.contains('commit-row') ||
+        element.classList.contains('commit-row-message') ||
+        element.classList.contains('commit-content')) {
+      return true;
+    }
+
+    // 커밋 ID 속성이 있는 경우 제외
+    if (element.hasAttribute('data-commit-id')) {
+      return true;
+    }
+
+    // 부모 컨테이너가 커밋 관련인 경우 제외
+    const commitParent = element.closest('.commit, .commit-row, .commits-list, .commit-discussion-notes');
+    if (commitParent) {
+      return true;
+    }
+
+    // 타임라인의 커밋 이벤트 제외
+    if (element.hasAttribute('data-note-type')) {
+      const noteType = element.getAttribute('data-note-type');
+      if (noteType === 'CommitNote') {
+        return true;
+      }
+    }
+
+    // GitLab의 활동 피드나 커밋 히스토리 섹션 제외
+    const activityParent = element.closest('.commit-activity, .commits-tab-content, .commits-container');
+    if (activityParent) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
