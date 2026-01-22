@@ -16,7 +16,7 @@ Transform GitHub/GitLab review comments into structured instruction files for Cl
 </tr>
 <tr>
 <td align="center"><em>1. Click button on PR comment</em></td>
-<td align="center"><em>2. Review generated PR</em></td>
+<td align="center"><em>2. Review generated PR for AI agent's instructions</em></td>
 </tr>
 </table>
 
