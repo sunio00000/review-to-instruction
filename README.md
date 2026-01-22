@@ -9,6 +9,17 @@
 
 Transform GitHub/GitLab review comments into structured instruction files for Claude Code, Cursor, and Windsurf
 
+<table>
+<tr>
+<td width="50%"><img src="./docs/images/pr-comment.png" alt="PR Comment" width="100%"/></td>
+<td width="50%"><img src="./docs/images/generated-pr.png" alt="Generated PR" width="100%"/></td>
+</tr>
+<tr>
+<td align="center"><em>1. Click button on PR comment</em></td>
+<td align="center"><em>2. Review generated PR</em></td>
+</tr>
+</table>
+
 </div>
 
 ---
@@ -98,17 +109,6 @@ When you see a convention comment during PR review, you need to:
 *No context switching. No formatting errors. Consistent quality every time.*
 
 <br/>
-
-<table>
-<tr>
-<td width="50%"><img src="./docs/images/pr-comment.png" alt="PR Comment" width="100%"/></td>
-<td width="50%"><img src="./docs/images/generated-pr.png" alt="Generated PR" width="100%"/></td>
-</tr>
-<tr>
-<td align="center"><em>1. Click button on PR comment</em></td>
-<td align="center"><em>2. Review generated PR</em></td>
-</tr>
-</table>
 
 </div>
 
