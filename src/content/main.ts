@@ -17,18 +17,15 @@ async function detectPlatform(): Promise<Platform | null> {
 
   // GitHub 감지
   if (hostname.includes('github.com') || hostname === 'localhost') {
-    console.log('[Review to Instruction] ✅ Detected GitHub:', hostname);
     return 'github';
   }
 
   // GitLab 감지 (gitlab.com 또는 MR URL 패턴)
   // GitLab의 MR URL 패턴: /-/merge_requests/
   if (hostname.includes('gitlab.com') || pathname.includes('/-/merge_requests/')) {
-    console.log('[Review to Instruction] ✅ Detected GitLab:', hostname);
     return 'gitlab';
   }
 
-  console.log('[Review to Instruction] Platform not detected for:', { hostname, pathname });
   return null;
 }
 
@@ -36,18 +33,15 @@ async function detectPlatform(): Promise<Platform | null> {
 async function init() {
   // Chrome Extension API 존재 여부 확인
   if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
-    console.warn('[Review to Instruction] Chrome Extension API not available');
     return;
   }
 
   const platform = await detectPlatform();
 
   if (!platform) {
-    console.log('[Review to Instruction] Not on supported platform');
     return;
   }
 
-  console.log(`[Review to Instruction] Initialized on ${platform}`);
 
   try {
     // 플랫폼별 injector 시작
@@ -59,7 +53,6 @@ async function init() {
       await injector.start();
     }
   } catch (error) {
-    console.error('[Review to Instruction] Failed to initialize injector:', error);
   }
 }
 

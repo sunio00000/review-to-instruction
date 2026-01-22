@@ -49,7 +49,6 @@ async function loadConfig() {
     await formManager.load();
     updateLLMUI();
   } catch (error) {
-    console.error('Failed to load config:', error);
     showStatus(saveStatus, '❌ 설정 로드 실패', 'error');
   }
 }
@@ -202,11 +201,9 @@ async function loadCacheStats() {
       cacheSizeSpan.textContent = formatBytes(stats.cacheSize);
 
     } else {
-      console.error('Failed to load cache stats:', response.error);
       showStatus(cacheStatus, '캐시 통계를 불러올 수 없습니다.', 'error');
     }
   } catch (error) {
-    console.error('Error loading cache stats:', error);
     showStatus(cacheStatus, `에러: ${error}`, 'error');
   }
 }
@@ -367,7 +364,6 @@ async function setupMasterPassword(): Promise<void> {
 
     showStatus(saveStatus, '✅ 마스터 비밀번호가 설정되었습니다.', 'success');
   } catch (error) {
-    console.error('Failed to setup master password:', error);
     errorDiv.textContent = `설정 실패: ${error}`;
     errorDiv.style.display = 'block';
   } finally {
@@ -419,7 +415,6 @@ async function unlockWithPassword(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Failed to unlock:', error);
     errorDiv.textContent = `잠금 해제 실패: ${error}`;
     errorDiv.style.display = 'block';
     return false;
@@ -456,15 +451,12 @@ async function resetMasterPassword(): Promise<void> {
     (document.getElementById('master-password') as HTMLInputElement).value = '';
     (document.getElementById('master-password-confirm') as HTMLInputElement).value = '';
   } catch (error) {
-    console.error('Failed to reset password:', error);
     alert(`비밀번호 재설정 실패: ${error}`);
   }
 }
 
 // 기존 암호화 데이터 마이그레이션 (Extension ID → 마스터 비밀번호)
 async function migrateEncryptedData(): Promise<void> {
-  console.log('[Popup] Checking for data migration...');
-
   try {
     const storage = await chrome.storage.local.get([
       'githubToken_enc',
@@ -476,11 +468,8 @@ async function migrateEncryptedData(): Promise<void> {
     const keysToMigrate = Object.keys(storage).filter(key => key.endsWith('_enc'));
 
     if (keysToMigrate.length === 0) {
-      console.log('[Popup] No encrypted data to migrate');
       return;
     }
-
-    console.log(`[Popup] Migrating ${keysToMigrate.length} encrypted keys...`);
 
     // 각 키에 대해 Legacy 방식으로 복호화 후 마스터 비밀번호 방식으로 재암호화
     const migratedData: Record<string, string> = {};
@@ -504,10 +493,7 @@ async function migrateEncryptedData(): Promise<void> {
         // 마스터 비밀번호로 재암호화
         const reencryptedValue = await crypto.encrypt(decryptedValue);
         migratedData[key] = reencryptedValue;
-
-        console.log(`[Popup] Migrated ${key}`);
       } catch (error) {
-        console.warn(`[Popup] Failed to migrate ${key}:`, error);
         // 실패한 키는 건너뛰기 (이미 마스터 비밀번호로 암호화되어 있을 수 있음)
       }
     }
@@ -515,10 +501,8 @@ async function migrateEncryptedData(): Promise<void> {
     // 마이그레이션된 데이터 저장
     if (Object.keys(migratedData).length > 0) {
       await chrome.storage.local.set(migratedData);
-      console.log(`[Popup] Migration complete: ${Object.keys(migratedData).length} keys migrated`);
     }
   } catch (error) {
-    console.error('[Popup] Migration error:', error);
     // 마이그레이션 실패해도 계속 진행 (사용자가 수동으로 재입력 가능)
   }
 }

@@ -32,11 +32,9 @@ export class ProjectTypeDetector {
     const cached = this.cache.get(cacheKey);
 
     if (cached && !this.isCacheExpired(cached)) {
-      console.log('[ProjectDetector] Cache HIT:', cacheKey);
       return cached.result;
     }
 
-    console.log('[ProjectDetector] Cache MISS, detecting project types...');
 
     // 병렬로 모든 타입 감지
     const detectionPromises = [
@@ -55,11 +53,9 @@ export class ProjectTypeDetector {
       if (result.detected) {
         detectedTypes.push(result.type);
         configs.set(result.type, result.config);
-        console.log(`[ProjectDetector] Detected: ${result.type} (${result.config.detectionPath})`);
       }
     });
 
-    console.log('[ProjectDetector] Total detected types:', detectedTypes.length);
 
     // 결과 생성 및 캐시 저장
     const detectionResult: ProjectTypeDetectionResult = {
@@ -94,7 +90,6 @@ export class ProjectTypeDetector {
         }
       };
     } catch (error) {
-      console.log('[ProjectDetector] Claude Code not detected:', error);
       return {
         detected: false,
         type: 'claude-code',
@@ -126,7 +121,6 @@ export class ProjectTypeDetector {
         }
       };
     } catch (error) {
-      console.log('[ProjectDetector] Cursor not detected:', error);
       return {
         detected: false,
         type: 'cursor',
@@ -158,7 +152,6 @@ export class ProjectTypeDetector {
         }
       };
     } catch (error) {
-      console.log('[ProjectDetector] Windsurf not detected:', error);
       return {
         detected: false,
         type: 'windsurf',
@@ -190,6 +183,5 @@ export class ProjectTypeDetector {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('[ProjectDetector] Cache cleared');
   }
 }

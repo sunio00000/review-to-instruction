@@ -48,14 +48,11 @@ export class GitHubInjector {
 
         // 3. API를 통해 PR 정보 가져오기 (fallback)
         if (!branch) {
-          console.warn('[GitHubInjector] Could not detect head branch from DOM, will try API later');
           // API fallback은 updateDefaultBranch에서 처리
           branch = 'main';  // 임시값
         }
 
-        console.log('[GitHubInjector] Extracted head branch (PR source):', branch);
 
-        console.log('[GitHubInjector] Extracted repository info:', {
           owner,
           name,
           branch,
@@ -71,7 +68,6 @@ export class GitHubInjector {
         };
       }
     } catch (error) {
-      console.error('[GitHubInjector] Failed to extract repository info:', error);
     }
 
     return null;
@@ -81,33 +77,27 @@ export class GitHubInjector {
    * 시작
    */
   async start() {
-    console.log('[GitHubInjector] Starting...');
 
     // 설정 확인
     const config = await this.getConfig();
     if (!config.showButtons) {
-      console.log('[GitHubInjector] Buttons are disabled in settings');
       return;
     }
 
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
     if (!this.repository) {
-      console.error('[GitHubInjector] Failed to extract repository info');
       return;
     }
 
-    console.log('[GitHubInjector] Initial repository info:', this.repository);
 
     // API를 통해 기본 브랜치 확인 및 업데이트
     try {
       await this.updateDefaultBranch();
     } catch (error) {
-      console.warn('[GitHubInjector] Failed to update default branch from API:', error);
       // API 호출 실패해도 계속 진행 (추출한 branch 사용)
     }
 
-    console.log('[GitHubInjector] Final repository info:', this.repository);
 
     // 코멘트 감지 시작
     this.detector.start();
@@ -136,12 +126,10 @@ export class GitHubInjector {
       });
 
       if (response.success && response.data.head_branch) {
-        console.log('[GitHubInjector] Updated head branch from API:', response.data.head_branch);
         this.repository.branch = response.data.head_branch;
       }
     } catch (error) {
       // API 호출 실패는 무시 (DOM에서 추출한 branch 사용)
-      console.warn('[GitHubInjector] API call for PR head branch failed:', error);
     }
   }
 
@@ -151,14 +139,12 @@ export class GitHubInjector {
   stop() {
     this.detector.stop();
     this.uiBuilder.removeAllButtons();
-    console.log('[GitHubInjector] Stopped');
   }
 
   /**
    * 코멘트 감지 콜백
    */
   private onCommentDetected(commentElement: CommentElement) {
-    console.log('[GitHubInjector] Comment detected:', commentElement.id);
 
     // 코멘트 정보 추출
     const comment = this.extractCommentInfo(commentElement);
@@ -210,7 +196,6 @@ export class GitHubInjector {
         platform: 'github'
       };
     } catch (error) {
-      console.error('[GitHubInjector] Failed to extract comment info:', error);
       return null;
     }
   }
@@ -219,8 +204,6 @@ export class GitHubInjector {
    * 버튼 클릭 핸들러
    */
   private async onButtonClick(comment: Comment) {
-    console.log('[GitHubInjector] Button clicked for comment:', comment.id);
-    console.log('[GitHubInjector] Sending to background:', {
       repository: this.repository,
       commentLength: comment.content.length
     });
@@ -244,7 +227,6 @@ export class GitHubInjector {
       });
 
       if (response.success) {
-        console.log('[GitHubInjector] Comment converted successfully:', response.data);
 
         // 성공 메시지 표시 (PR URL 링크 포함)
         this.uiBuilder.showSuccessMessage(
@@ -256,7 +238,6 @@ export class GitHubInjector {
         throw new Error(response.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('[GitHubInjector] Failed to convert comment:', error);
 
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -271,7 +252,6 @@ export class GitHubInjector {
     try {
       // Chrome API 존재 여부 확인
       if (typeof chrome === 'undefined' || !chrome.storage) {
-        console.warn('[GitHubInjector] Chrome storage API not available');
         return { showButtons: true };
       }
 
@@ -280,7 +260,6 @@ export class GitHubInjector {
         showButtons: result.showButtons !== false  // 기본값 true
       };
     } catch (error) {
-      console.error('[GitHubInjector] Failed to get config:', error);
       return { showButtons: true };
     }
   }

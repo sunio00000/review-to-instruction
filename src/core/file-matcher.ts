@@ -19,7 +19,6 @@ export async function findMatchingFile(
     // 1. .claude/ 디렉토리 존재 확인
     const claudeDir = await client.getDirectoryContents(repository, '.claude');
     if (!claudeDir || claudeDir.length === 0) {
-      console.log('[FileMatcher] .claude/ directory not found');
       return { file: null, score: 0, isMatch: false };
     }
 
@@ -33,16 +32,13 @@ export async function findMatchingFile(
 
     // 매칭 스코어가 70 이상이면 skills 파일 업데이트
     if (skillsMatch.isMatch) {
-      console.log('[FileMatcher] Found matching skill:', skillsMatch.file?.path);
       return skillsMatch;
     }
 
     // 3. 매칭되지 않으면 instructions/ 디렉토리에 새 파일 생성
-    console.log('[FileMatcher] No matching file found, will create new instruction');
     return { file: null, score: 0, isMatch: false };
 
   } catch (error) {
-    console.error('[FileMatcher] Error finding matching file:', error);
     return { file: null, score: 0, isMatch: false };
   }
 }
@@ -118,7 +114,6 @@ async function findInDirectory(
     return matchResults[0];
 
   } catch (error) {
-    console.error(`[FileMatcher] Error in directory ${dirPath}:`, error);
     return { file: null, score: 0, isMatch: false };
   }
 }
@@ -256,7 +251,6 @@ function decodeBase64(base64: string): string {
     const bytes = new Uint8Array([...decoded].map(c => c.charCodeAt(0)));
     return new TextDecoder().decode(bytes);
   } catch (error) {
-    console.error('[FileMatcher] Failed to decode base64:', error);
     return '';
   }
 }
@@ -281,7 +275,6 @@ export async function ensureUniqueFileName(
   repository: Repository,
   basePath: string
 ): Promise<string> {
-  console.log('[FileMatcher] Checking file uniqueness:', basePath);
   let path = basePath;
   let counter = 1;
 
@@ -290,12 +283,10 @@ export async function ensureUniqueFileName(
       const existingFile = await client.getFileContent(repository, path);
       if (!existingFile) {
         // 파일이 존재하지 않으면 사용 가능
-        console.log('[FileMatcher] File path available:', path);
         return path;
       }
 
       // 파일이 존재하면 중복되므로 숫자 추가
-      console.log('[FileMatcher] File exists, trying alternative name');
       const pathWithoutExt = basePath.replace('.md', '');
       path = `${pathWithoutExt}-${counter}.md`;
       counter++;
@@ -306,7 +297,6 @@ export async function ensureUniqueFileName(
       }
     } catch (error) {
       // 에러 발생 시 (404 등) 파일이 없다고 간주
-      console.log('[FileMatcher] Error checking file, assuming it does not exist:', error);
       return path;
     }
   }
@@ -331,7 +321,6 @@ export async function findMatchingFileForProjectType(
   parsedComment: ParsedComment,
   projectType: ProjectType
 ): Promise<ProjectTypeMatchResult> {
-  console.log(`[FileMatcher] Finding matching file for ${projectType}`);
 
   switch (projectType) {
     case 'claude-code':
@@ -389,7 +378,6 @@ async function findMatchingFileForCursor(
       };
     }
   } catch (error) {
-    console.log('[FileMatcher] .cursorrules not found, will create new');
   }
 
   // 새 파일 생성
@@ -423,7 +411,6 @@ async function findMatchingFileForWindsurf(
       };
     }
   } catch (error) {
-    console.log('[FileMatcher] Error finding Windsurf file:', error);
   }
 
   // 새 파일 생성 (파일 경로는 Generator가 결정)

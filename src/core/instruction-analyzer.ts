@@ -81,7 +81,6 @@ export class InstructionAnalyzer {
         directoryHierarchy
       };
     } catch (error) {
-      console.error('[InstructionAnalyzer] Analysis failed:', error);
       return null;
     }
   }
@@ -101,7 +100,6 @@ export class InstructionAnalyzer {
       await this.fetchFilesRecursively(client, repository, instructionsPath, files);
     } catch (error) {
       // 디렉토리가 없으면 빈 배열 반환
-      console.log('[InstructionAnalyzer] No existing instructions directory');
     }
 
     return files;
@@ -119,7 +117,6 @@ export class InstructionAnalyzer {
   ): Promise<void> {
     // 최대 depth 제한 (성능 보호)
     if (depth > 5) {
-      console.warn(`[InstructionAnalyzer] Max depth (5) reached at ${dirPath}`);
       return;
     }
 
@@ -138,7 +135,6 @@ export class InstructionAnalyzer {
               accumulator.push(this.parseInstructionFile(item.path, decodedContent));
             }
           } catch (error) {
-            console.warn(`Failed to fetch ${item.path}:`, error);
           }
         } else if (item.type === 'dir') {
           // 하위 디렉토리 재귀 탐색
@@ -152,7 +148,6 @@ export class InstructionAnalyzer {
         }
       }
     } catch (error) {
-      console.warn(`[InstructionAnalyzer] Failed to read directory ${dirPath}:`, error);
     }
   }
 

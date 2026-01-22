@@ -35,7 +35,6 @@ export class ConversionOrchestrator {
   async convertComment(payload: ConversionPayload): Promise<ConversionResult> {
     const { comment, repository } = payload;
 
-    console.log('[ConversionOrchestrator] Starting conversion:', {
       commentId: comment.id,
       repository: `${repository.owner}/${repository.name}`
     });
@@ -74,7 +73,6 @@ export class ConversionOrchestrator {
       files
     );
 
-    console.log('[ConversionOrchestrator] Conversion completed successfully');
 
     // 6. 결과 반환
     return {

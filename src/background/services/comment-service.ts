@@ -24,7 +24,6 @@ export class CommentServiceImpl implements CommentService {
     }
 
     // 2. 코멘트 파싱 (규칙 기반)
-    console.log('[CommentService] Parsing comment...');
     const parsedComment = parseComment(comment.content);
 
     // 3. 키워드 검증
@@ -32,23 +31,19 @@ export class CommentServiceImpl implements CommentService {
       throw new Error('키워드를 추출할 수 없습니다. 더 명확한 컨벤션 설명이 필요합니다.');
     }
 
-    console.log('[CommentService] Parsed comment:', {
       keywords: parsedComment.keywords,
       category: parsedComment.category
     });
 
     // 4. LLM 강화
-    console.log('[CommentService] Enhancing with LLM...');
     const enhancedComment = await enhanceWithLLM(parsedComment, llmConfig);
 
     // 5. 결과 로깅
     if (enhancedComment.llmEnhanced) {
-      console.log('[CommentService] LLM enhancement successful:', {
         provider: llmConfig.provider,
         addedKeywords: enhancedComment.additionalKeywords?.length || 0
       });
     } else {
-      console.log('[CommentService] Using original parsed comment (LLM disabled or failed)');
     }
 
     return enhancedComment;

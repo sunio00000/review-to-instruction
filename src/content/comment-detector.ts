@@ -48,7 +48,6 @@ export class CommentDetector {
       subtree: true
     });
 
-    console.log('[CommentDetector] Started observing comments');
   }
 
   /**
@@ -68,7 +67,6 @@ export class CommentDetector {
 
     // WeakSet은 자동으로 가비지 컬렉션되므로 clear() 불필요
     this.pendingMutations = [];
-    console.log('[CommentDetector] Stopped observing');
   }
 
   /**
@@ -82,7 +80,6 @@ export class CommentDetector {
       const comments = document.querySelectorAll<HTMLElement>(selector);
 
       if (comments.length > 0) {
-        console.log(`[CommentDetector] Found ${comments.length} comments with selector: ${selector}`);
 
         comments.forEach((comment) => {
           this.processComment(comment);
@@ -94,9 +91,7 @@ export class CommentDetector {
     }
 
     if (totalComments === 0) {
-      console.warn('[CommentDetector] No comments found for any selectors:', this.selectors);
     } else {
-      console.log(`[CommentDetector] Processed ${totalComments} existing comments`);
     }
   }
 
@@ -173,7 +168,6 @@ export class CommentDetector {
 
     const id = this.getCommentId(element);
     if (!contentElement) {
-      console.warn(`[CommentDetector] Content element not found for comment ${id}, tried selectors:`, this.contentSelectors);
       return;
     }
 

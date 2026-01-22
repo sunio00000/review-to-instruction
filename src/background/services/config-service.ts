@@ -31,7 +31,6 @@ export class ConfigServiceImpl implements ConfigService {
    * 플랫폼에 맞는 설정을 Chrome Storage에서 로드
    */
   async loadConfig(platform: Platform): Promise<ConfigServiceResult> {
-    console.log('[ConfigService] Loading config for platform:', platform);
 
     // 0. 자동 마이그레이션 (sync → local, 한 번만 실행)
     if (!this.migrationComplete) {
@@ -53,7 +52,6 @@ export class ConfigServiceImpl implements ConfigService {
       'llmEnabled'
     ]);
 
-    console.log('[ConfigService] Encrypted storage data loaded (keys only):', {
       hasEncryptedToken: !!storage[encryptedTokenKey],
       gitlabUrl: storage.gitlabUrl,
       hasClaudeKey: !!storage.claudeApiKey_enc,
@@ -70,7 +68,6 @@ export class ConfigServiceImpl implements ConfigService {
     try {
       token = await this.crypto.decrypt(encryptedToken);
     } catch (error) {
-      console.error('[ConfigService] Token decryption failed:', error);
       throw new Error(`${platform} token 복호화에 실패했습니다. 토큰을 다시 입력해주세요.`);
     }
 
@@ -85,7 +82,6 @@ export class ConfigServiceImpl implements ConfigService {
       try {
         claudeApiKey = await this.crypto.decrypt(storage.claudeApiKey_enc as string);
       } catch (error) {
-        console.warn('[ConfigService] Claude API key decryption failed, will skip:', error);
       }
     }
 
@@ -93,7 +89,6 @@ export class ConfigServiceImpl implements ConfigService {
       try {
         openaiApiKey = await this.crypto.decrypt(storage.openaiApiKey_enc as string);
       } catch (error) {
-        console.warn('[ConfigService] OpenAI API key decryption failed, will skip:', error);
       }
     }
 
@@ -105,7 +100,6 @@ export class ConfigServiceImpl implements ConfigService {
       openaiApiKey
     };
 
-    console.log('[ConfigService] Final LLM config (masked):', {
       enabled: llmConfig.enabled,
       provider: llmConfig.provider,
       hasClaudeKey: !!llmConfig.claudeApiKey,
@@ -126,11 +120,9 @@ export class ConfigServiceImpl implements ConfigService {
       // 1. 마이그레이션 완료 플래그 확인
       const migrated = await chrome.storage.local.get('migration_v2_complete');
       if (migrated.migration_v2_complete) {
-        console.log('[ConfigService] Migration already completed');
         return;
       }
 
-      console.log('[ConfigService] Starting migration from sync to encrypted local storage...');
 
       // 2. 기존 sync 데이터 읽기
       const syncData = await chrome.storage.sync.get([
@@ -143,12 +135,10 @@ export class ConfigServiceImpl implements ConfigService {
       // 3. 마이그레이션 필요 여부 확인
       const hasOldData = !!(syncData.githubToken || syncData.gitlabToken || syncData.llm);
       if (!hasOldData) {
-        console.log('[ConfigService] No old data found, marking migration complete');
         await chrome.storage.local.set({ migration_v2_complete: true });
         return;
       }
 
-      console.log('[ConfigService] Old data found, migrating...', {
         hasGitHubToken: !!syncData.githubToken,
         hasGitLabToken: !!syncData.gitlabToken,
         hasLLM: !!syncData.llm
@@ -163,22 +153,18 @@ export class ConfigServiceImpl implements ConfigService {
 
       if (githubToken) {
         encryptedData.githubToken_enc = await this.crypto.encrypt(githubToken);
-        console.log('[ConfigService] GitHub token encrypted');
       }
 
       if (gitlabToken) {
         encryptedData.gitlabToken_enc = await this.crypto.encrypt(gitlabToken);
-        console.log('[ConfigService] GitLab token encrypted');
       }
 
       if (llmData?.claudeApiKey) {
         encryptedData.claudeApiKey_enc = await this.crypto.encrypt(llmData.claudeApiKey);
-        console.log('[ConfigService] Claude API key encrypted');
       }
 
       if (llmData?.openaiApiKey) {
         encryptedData.openaiApiKey_enc = await this.crypto.encrypt(llmData.openaiApiKey);
-        console.log('[ConfigService] OpenAI API key encrypted');
       }
 
       // LLM 설정 (provider, enabled)
@@ -194,18 +180,14 @@ export class ConfigServiceImpl implements ConfigService {
 
       // 5. local에 저장
       await chrome.storage.local.set(encryptedData);
-      console.log('[ConfigService] Encrypted data saved to local storage');
 
       // 6. sync에서 민감 정보 삭제
       await chrome.storage.sync.remove(['githubToken', 'gitlabToken', 'llm']);
-      console.log('[ConfigService] Sensitive data removed from sync storage');
 
       // 7. 마이그레이션 완료 플래그
       await chrome.storage.local.set({ migration_v2_complete: true });
 
-      console.log('[ConfigService] Migration completed successfully');
     } catch (error) {
-      console.error('[ConfigService] Migration failed:', error);
       // 마이그레이션 실패해도 계속 진행 (기존 동작 유지)
     }
   }

@@ -16,7 +16,6 @@ export async function handleMessage(
   message: Message,
   sendResponse: (response: MessageResponse) => void
 ): Promise<void> {
-  console.log('[MessageHandler] Processing message:', message.type);
 
   switch (message.type) {
     case 'GET_CONFIG':
@@ -135,7 +134,6 @@ async function handleConvertComment(
     const result = await orchestrator.convertComment(payload);
     sendResponse({ success: true, data: result });
   } catch (error) {
-    console.error('[MessageHandler] Failed to convert comment:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -150,7 +148,6 @@ async function handleGetCacheStats(
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
-    console.log('[MessageHandler] Getting cache stats...');
 
     const stats = await llmCache.getStats();
 
@@ -160,7 +157,6 @@ async function handleGetCacheStats(
     });
 
   } catch (error) {
-    console.error('[MessageHandler] Failed to get cache stats:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -175,11 +171,9 @@ async function handleClearCache(
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
-    console.log('[MessageHandler] Clearing cache...');
 
     await llmCache.clear();
 
-    console.log('[MessageHandler] Cache cleared successfully');
 
     sendResponse({
       success: true,
@@ -187,7 +181,6 @@ async function handleClearCache(
     });
 
   } catch (error) {
-    console.error('[MessageHandler] Failed to clear cache:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -203,7 +196,6 @@ async function handleGetRepositoryInfo(
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
-    console.log('[MessageHandler] Getting repository info:', payload);
 
     // GitHub token 가져오기
     const storage = await chrome.storage.sync.get(['githubToken']);
@@ -228,7 +220,6 @@ async function handleGetRepositoryInfo(
 
     const repoData = await response.json();
 
-    console.log('[MessageHandler] Repository default branch:', repoData.default_branch);
 
     sendResponse({
       success: true,
@@ -239,7 +230,6 @@ async function handleGetRepositoryInfo(
     });
 
   } catch (error) {
-    console.error('[MessageHandler] Failed to get repository info:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -255,7 +245,6 @@ async function handleGetPRInfo(
   sendResponse: (response: MessageResponse) => void
 ) {
   try {
-    console.log('[MessageHandler] Getting PR info:', payload);
 
     // GitHub token 가져오기
     const storage = await chrome.storage.sync.get(['githubToken']);
@@ -284,7 +273,6 @@ async function handleGetPRInfo(
     const headBranch = prData.head.ref;
     const baseBranch = prData.base.ref;
 
-    console.log('[MessageHandler] PR branches:', {
       head: headBranch,
       base: baseBranch
     });
@@ -300,7 +288,6 @@ async function handleGetPRInfo(
     });
 
   } catch (error) {
-    console.error('[MessageHandler] Failed to get PR info:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)

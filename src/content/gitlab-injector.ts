@@ -55,11 +55,9 @@ export class GitLabInjector {
         let branch = this.extractBranch();
 
         if (!branch) {
-          console.warn('[GitLabInjector] Failed to extract branch, using default "main"');
           branch = 'main';
         }
 
-        console.log('[GitLabInjector] Extracted repository info:', {
           owner,
           name,
           branch,
@@ -76,7 +74,6 @@ export class GitLabInjector {
         };
       }
     } catch (error) {
-      console.error('[GitLabInjector] Failed to extract repository info:', error);
     }
 
     return null;
@@ -100,12 +97,10 @@ export class GitLabInjector {
       const branch = element?.textContent?.trim();
 
       if (branch) {
-        console.log(`[GitLabInjector] Branch extracted from selector "${selector}": ${branch}`);
         return branch;
       }
     }
 
-    console.warn('[GitLabInjector] Branch element not found for any selectors:', BRANCH_SELECTORS);
 
     // 2. URL에서 추출 시도 (Fallback)
     // GitLab MR URL 패턴: /owner/repo/-/merge_requests/123/diffs?start_sha=xxx&head_sha=yyy
@@ -113,7 +108,6 @@ export class GitLabInjector {
     const headSha = urlParams.get('head_sha');
 
     if (headSha) {
-      console.log('[GitLabInjector] Using head_sha from URL as branch identifier:', headSha.substring(0, 8));
       return headSha.substring(0, 8);  // SHA의 앞 8자리 사용
     }
 
@@ -122,7 +116,6 @@ export class GitLabInjector {
     const titleMatch = document.title.match(/\(([^)→]+)\s*→/);
     if (titleMatch && titleMatch[1]) {
       const branch = titleMatch[1].trim();
-      console.log('[GitLabInjector] Branch extracted from page title:', branch);
       return branch;
     }
 
@@ -133,22 +126,18 @@ export class GitLabInjector {
    * 시작
    */
   async start() {
-    console.log('[GitLabInjector] Starting...');
 
     // 설정 확인
     const config = await this.getConfig();
     if (!config.showButtons) {
-      console.log('[GitLabInjector] Buttons are disabled in settings');
       return;
     }
 
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
     if (!this.repository) {
-      console.warn('[GitLabInjector] Failed to extract repository info, buttons will still be shown but may have limited functionality');
       // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
     } else {
-      console.log('[GitLabInjector] Repository:', this.repository);
     }
 
     // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
@@ -161,14 +150,12 @@ export class GitLabInjector {
   stop() {
     this.detector.stop();
     this.uiBuilder.removeAllButtons();
-    console.log('[GitLabInjector] Stopped');
   }
 
   /**
    * 코멘트 감지 콜백
    */
   private onCommentDetected(commentElement: CommentElement) {
-    console.log('[GitLabInjector] Comment detected:', commentElement.id);
 
     // 코멘트 정보 추출
     const comment = this.extractCommentInfo(commentElement);
@@ -220,7 +207,6 @@ export class GitLabInjector {
         platform: 'gitlab'
       };
     } catch (error) {
-      console.error('[GitLabInjector] Failed to extract comment info:', error);
       return null;
     }
   }
@@ -229,7 +215,6 @@ export class GitLabInjector {
    * 버튼 클릭 핸들러
    */
   private async onButtonClick(comment: Comment) {
-    console.log('[GitLabInjector] Button clicked for comment:', comment.id);
 
     const button = this.uiBuilder.getButton(comment.id);
     if (!button) return;
@@ -250,7 +235,6 @@ export class GitLabInjector {
       });
 
       if (response.success) {
-        console.log('[GitLabInjector] Comment converted successfully:', response.data);
 
         // 성공 메시지 표시 (PR URL 링크 포함)
         this.uiBuilder.showSuccessMessage(
@@ -262,7 +246,6 @@ export class GitLabInjector {
         throw new Error(response.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('[GitLabInjector] Failed to convert comment:', error);
 
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -277,7 +260,6 @@ export class GitLabInjector {
     try {
       // Chrome API 존재 여부 확인
       if (typeof chrome === 'undefined' || !chrome.storage) {
-        console.warn('[GitLabInjector] Chrome storage API not available');
         return { showButtons: true };
       }
 
@@ -286,7 +268,6 @@ export class GitLabInjector {
         showButtons: result.showButtons !== false  // 기본값 true
       };
     } catch (error) {
-      console.error('[GitLabInjector] Failed to get config:', error);
       return { showButtons: true };
     }
   }

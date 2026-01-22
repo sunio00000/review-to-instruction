@@ -83,14 +83,12 @@ export class LLMCache {
       const entry = cache[key];
 
       if (!entry) {
-        console.log('[LLMCache] Cache MISS:', key.substring(0, 16));
         this.missCount++;
         return null;
       }
 
       // 버전 확인
       if (entry.metadata.version !== CACHE_VERSION) {
-        console.log('[LLMCache] Cache version mismatch, deleting entry');
         await this.delete(key);
         this.missCount++;
         return null;
@@ -101,7 +99,6 @@ export class LLMCache {
       const age = now - entry.metadata.timestamp;
 
       if (age > entry.metadata.ttl) {
-        console.log('[LLMCache] Cache entry expired, deleting');
         await this.delete(key);
         this.missCount++;
         return null;
@@ -114,7 +111,6 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-      console.log('[LLMCache] Cache HIT:', key.substring(0, 16), {
         provider: entry.metadata.provider,
         age: Math.round(age / 1000 / 60 / 60), // hours
         accessCount: entry.metadata.accessCount
@@ -124,7 +120,6 @@ export class LLMCache {
       return entry.data;
 
     } catch (error) {
-      console.error('[LLMCache] Error getting cache:', error);
       this.missCount++;
       return null;
     }
@@ -145,7 +140,6 @@ export class LLMCache {
       // 캐시 크기 확인 및 LRU 정책 적용
       const currentSize = Object.keys(cache).length;
       if (currentSize >= MAX_CACHE_ENTRIES) {
-        console.log('[LLMCache] Cache full, applying LRU eviction');
         await this.evictOldestEntries(cache);
       }
 
@@ -167,13 +161,11 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-      console.log('[LLMCache] Cache SET:', key.substring(0, 16), {
         provider,
         cacheSize: Object.keys(cache).length
       });
 
     } catch (error) {
-      console.error('[LLMCache] Error setting cache:', error);
       // 캐시 저장 실패해도 에러를 throw하지 않음 (Fail-safe)
     }
   }
@@ -190,10 +182,8 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-      console.log('[LLMCache] Cache DELETE:', key.substring(0, 16));
 
     } catch (error) {
-      console.error('[LLMCache] Error deleting cache:', error);
     }
   }
 
@@ -206,10 +196,8 @@ export class LLMCache {
       this.hitCount = 0;
       this.missCount = 0;
 
-      console.log('[LLMCache] Cache cleared');
 
     } catch (error) {
-      console.error('[LLMCache] Error clearing cache:', error);
       throw error;
     }
   }
@@ -248,7 +236,6 @@ export class LLMCache {
       };
 
     } catch (error) {
-      console.error('[LLMCache] Error getting stats:', error);
       return {
         totalEntries: 0,
         hitCount: this.hitCount,
@@ -271,7 +258,6 @@ export class LLMCache {
     const evictCount = Math.ceil(MAX_CACHE_ENTRIES * 0.1);
     const toEvict = entries.slice(0, evictCount);
 
-    console.log(`[LLMCache] Evicting ${evictCount} oldest entries`);
 
     for (const [key] of toEvict) {
       delete cache[key];

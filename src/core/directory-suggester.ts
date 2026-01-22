@@ -67,7 +67,6 @@ export class DirectorySuggester {
         const selectedPath = await this.selectBestWithLLM(candidates, comment, analysisResult);
         return selectedPath;
       } catch (error) {
-        console.warn('[DirectorySuggester] LLM selection failed, using rule-based:', error);
         // LLM 실패 시 1순위 후보 사용
         return candidates[0].path;
       }
@@ -321,15 +320,12 @@ export class DirectorySuggester {
 
       // 선택된 인덱스 검증
       if (parsed.selected < 0 || parsed.selected >= candidates.length) {
-        console.warn('[DirectorySuggester] Invalid selection index:', parsed.selected);
         return candidates[0].path;
       }
 
-      console.log(`[DirectorySuggester] LLM selected candidate ${parsed.selected}: ${parsed.reasoning}`);
       return candidates[parsed.selected].path;
 
     } catch (error) {
-      console.error('[DirectorySuggester] LLM selection error:', error);
       throw error;
     }
   }
@@ -402,7 +398,6 @@ JSON만 반환하고 다른 텍스트는 포함하지 마세요.`;
       return parsed;
 
     } catch (error) {
-      console.error('[DirectorySuggester] Failed to parse LLM response:', error);
       // 기본값: 0번 후보 선택
       return {
         selected: 0,

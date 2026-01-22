@@ -13,24 +13,20 @@ export class ClaudeClient extends BaseLLMClient {
   private readonly model = 'claude-sonnet-4-5-20250929'; // 최신 모델
 
   async analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse> {
-    console.log('[ClaudeClient] Analyzing comment (with cache)...');
     // Feature 2: 캐시를 활용한 분석
     return this.analyzeWithCache(content, codeExamples);
   }
 
   protected async callAnalysisAPI(content: string, codeExamples: string[]): Promise<LLMResponse> {
     try {
-      console.log('[ClaudeClient] Calling Claude API...');
 
       const result = await this.retry(() =>
         this.withTimeout(this.callAPIInternal(content, codeExamples))
       );
 
-      console.log('[ClaudeClient] API call complete');
       return { success: true, data: result };
 
     } catch (error) {
-      console.error('[ClaudeClient] API call failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -105,7 +101,6 @@ export class ClaudeClient extends BaseLLMClient {
       );
       return response;
     } catch (error) {
-      console.error('[ClaudeClient] File naming API failed:', error);
       throw error;
     }
   }
@@ -165,7 +160,6 @@ export class ClaudeClient extends BaseLLMClient {
       );
       return response;
     } catch (error) {
-      console.error('[ClaudeClient] Text generation API failed:', error);
       throw error;
     }
   }

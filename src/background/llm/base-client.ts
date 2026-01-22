@@ -49,7 +49,6 @@ export abstract class BaseLLMClient implements ILLMClient {
 
       if (cachedData) {
         // 캐시 HIT - LLMResponse 형식으로 반환
-        console.log('[BaseLLMClient] Cache HIT, returning cached result');
         return {
           success: true,
           data: cachedData
@@ -57,20 +56,17 @@ export abstract class BaseLLMClient implements ILLMClient {
       }
 
       // 3. 캐시 MISS - API 호출
-      console.log('[BaseLLMClient] Cache MISS, calling API');
       const response = await this.callAnalysisAPI(content, codeExamples);
 
       // 4. 응답 캐싱 (성공한 경우만)
       if (response.success && response.data) {
         await llmCache.set(cacheKey, response.data, this.provider);
-        console.log('[BaseLLMClient] Response cached');
       }
 
       // 5. 반환
       return response;
 
     } catch (error) {
-      console.error('[BaseLLMClient] Error in analyzeWithCache:', error);
       // 캐시 실패 시 API 직접 호출 (Fail-safe)
       return this.callAnalysisAPI(content, codeExamples);
     }
@@ -112,7 +108,6 @@ export abstract class BaseLLMClient implements ILLMClient {
         return await fn();
       } catch (error) {
         lastError = error as Error;
-        console.warn(`[LLM] Attempt ${attempt + 1} failed:`, error);
 
         // 마지막 시도면 에러 던지기
         if (attempt === maxRetries) {
@@ -144,7 +139,6 @@ export abstract class BaseLLMClient implements ILLMClient {
     try {
       return JSON.parse(cleaned);
     } catch (error) {
-      console.error('[LLM] JSON parse error:', error);
       throw new Error('Failed to parse LLM response as JSON');
     }
   }

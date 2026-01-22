@@ -34,7 +34,6 @@ export class PullRequestServiceImpl implements PullRequestService {
     originalComment: Comment,
     files: FileGenerationResult[]
   ): Promise<PullRequestResult> {
-    console.log('[PullRequestService] Creating PR/MR with multiple files...');
 
     const prResult = await createPullRequestWithMultipleFiles({
       client,
@@ -45,11 +44,9 @@ export class PullRequestServiceImpl implements PullRequestService {
     });
 
     if (!prResult.success) {
-      console.error('[PullRequestService] PR/MR creation failed:', prResult.error);
       throw new Error(prResult.error || 'PR/MR 생성에 실패했습니다.');
     }
 
-    console.log('[PullRequestService] PR/MR created successfully:', prResult.prUrl);
 
     return {
       prUrl: prResult.prUrl!

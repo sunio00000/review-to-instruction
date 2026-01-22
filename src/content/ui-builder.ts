@@ -87,14 +87,12 @@ export class UIBuilder {
     // 코멘트 엘리먼트의 부모를 찾기
     const parent = contentElement.parentElement;
     if (!parent) {
-      console.warn('[UIBuilder] Cannot insert button: parent element not found');
       return;
     }
 
     // 이미 버튼 컨테이너가 있는지 확인 (중복 방지)
     const existingContainer = parent.querySelector('.review-to-instruction-button-container');
     if (existingContainer) {
-      console.log('[UIBuilder] Button container already exists, skipping insertion');
       return;
     }
 
@@ -122,7 +120,6 @@ export class UIBuilder {
     try {
       options.onClick(options.comment);
     } catch (error) {
-      console.error('[UIBuilder] Button click error:', error);
       this.setButtonState(button, 'error');
 
       // 3초 후 원래 상태로 복귀

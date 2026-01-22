@@ -53,8 +53,6 @@ export class ApiClient {
       const cleanUrl = gitlabBaseUrl.replace(/\/$/, '');
       this.baseUrl = `${cleanUrl}/api/v4`;
     }
-
-    console.log('[ApiClient] Initialized with baseUrl:', this.baseUrl);
   }
 
   /**
@@ -127,7 +125,6 @@ export class ApiClient {
     } catch (error) {
       // 404 (디렉토리가 없음)는 정상 - 빈 배열 반환
       if (error instanceof Error && error.message.includes('404')) {
-        console.log(`[ApiClient] Directory not found: ${path} (this is normal for new repos)`);
         return [];
       }
       // 다른 에러는 재발생
@@ -156,7 +153,6 @@ export class ApiClient {
     } catch (error) {
       // 404 (디렉토리가 없음)는 정상 - 빈 배열 반환
       if (error instanceof Error && error.message.includes('404')) {
-        console.log(`[ApiClient] Directory not found: ${path} (this is normal for new repos)`);
         return [];
       }
       // 다른 에러는 재발생
@@ -178,7 +174,6 @@ export class ApiClient {
         return this.getGitLabFileContent(repository, path);
       }
     } catch (error) {
-      console.error(`[ApiClient] Failed to get file content for ${path}:`, error);
       return null;
     }
   }
@@ -237,7 +232,6 @@ export class ApiClient {
       }
       return true;
     } catch (error) {
-      console.error('[ApiClient] Failed to create/update file:', error);
       return false;
     }
   }
@@ -313,13 +307,6 @@ export class ApiClient {
     fromBranch: string
   ): Promise<boolean> {
     try {
-      console.log('[ApiClient] createBranch called with:', {
-        repository: `${repository.owner}/${repository.name}`,
-        branchName,
-        fromBranch,
-        platform: this.platform
-      });
-
       if (this.platform === 'github') {
         await this.createGitHubBranch(repository, branchName, fromBranch);
       } else {
@@ -327,11 +314,6 @@ export class ApiClient {
       }
       return true;
     } catch (error) {
-      console.error('[ApiClient] Failed to create branch:', error);
-      if (error instanceof Error) {
-        console.error('[ApiClient] Error message:', error.message);
-        console.error('[ApiClient] Error stack:', error.stack);
-      }
       return false;
     }
   }
@@ -344,64 +326,30 @@ export class ApiClient {
     branchName: string,
     fromBranch: string
   ): Promise<void> {
+    // 1. 기준 브랜치의 SHA 가져오기
+    // 브랜치명에 슬래시가 있을 수 있으므로 URL 인코딩
+    const encodedFromBranch = encodeURIComponent(fromBranch);
+    const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${encodedFromBranch}`;
+
+    let refResponse;
     try {
-      console.log('[ApiClient] ===== Starting GitHub branch creation =====');
-      console.log('[ApiClient] Parameters:', {
-        branchName,
-        fromBranch,
-        repository: `${repository.owner}/${repository.name}`
-      });
-
-      // 1. 기준 브랜치의 SHA 가져오기
-      // 브랜치명에 슬래시가 있을 수 있으므로 URL 인코딩
-      const encodedFromBranch = encodeURIComponent(fromBranch);
-      const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${encodedFromBranch}`;
-      console.log('[ApiClient] Step 1: Getting ref for base branch');
-      console.log('[ApiClient] Ref URL:', refUrl);
-      console.log('[ApiClient] Encoded branch name:', encodedFromBranch);
-
-      let refResponse;
-      try {
-        refResponse = await this.fetch(refUrl);
-      } catch (refError) {
-        console.error('[ApiClient] ❌ Failed to get base branch ref');
-        console.error('[ApiClient] This usually means the branch does not exist');
-        console.error('[ApiClient] Branch we tried:', fromBranch);
-        console.error('[ApiClient] Full error:', refError);
-        throw new Error(`Base branch '${fromBranch}' not found. Please check if this branch exists in the repository.`);
-      }
-
-      const sha = refResponse.object.sha;
-      console.log('[ApiClient] ✓ Base branch SHA obtained:', sha);
-
-      // 2. 새 브랜치 생성
-      const createUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs`;
-      console.log('[ApiClient] Step 2: Creating new branch');
-      console.log('[ApiClient] Create URL:', createUrl);
-      console.log('[ApiClient] New branch ref:', `refs/heads/${branchName}`);
-
-      try {
-        await this.fetch(createUrl, {
-          method: 'POST',
-          body: JSON.stringify({
-            ref: `refs/heads/${branchName}`,
-            sha
-          })
-        });
-      } catch (createError) {
-        console.error('[ApiClient] ❌ Failed to create new branch');
-        console.error('[ApiClient] Branch name:', branchName);
-        console.error('[ApiClient] Full error:', createError);
-        throw createError;
-      }
-
-      console.log('[ApiClient] ✓ Branch created successfully:', branchName);
-      console.log('[ApiClient] ===== Branch creation completed =====');
-    } catch (error) {
-      console.error('[ApiClient] ===== Branch creation FAILED =====');
-      console.error('[ApiClient] Error details:', error);
-      throw error;
+      refResponse = await this.fetch(refUrl);
+    } catch (refError) {
+      throw new Error(`Base branch '${fromBranch}' not found. Please check if this branch exists in the repository.`);
     }
+
+    const sha = refResponse.object.sha;
+
+    // 2. 새 브랜치 생성
+    const createUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs`;
+
+    await this.fetch(createUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        ref: `refs/heads/${branchName}`,
+        sha
+      })
+    });
   }
 
   /**
@@ -503,9 +451,6 @@ export class ApiClient {
    * HTTP fetch 래퍼
    */
   private async fetch(url: string, options: RequestInit = {}): Promise<any> {
-    // API 호출 로깅 (디버깅용)
-    console.log(`[ApiClient] ${options.method || 'GET'} ${url}`);
-
     const headers: HeadersInit = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -525,11 +470,9 @@ export class ApiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[ApiClient] API request failed: ${options.method || 'GET'} ${url} -> ${response.status}`);
       throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    console.log(`[ApiClient] ${options.method || 'GET'} ${url} -> ${response.status} OK`);
     return response.json();
   }
 }

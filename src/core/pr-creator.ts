@@ -34,11 +34,8 @@ export async function createPullRequest(
   try {
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
-    console.log('[PrCreator] Branch name:', branchName);
-    console.log('[PrCreator] Base branch:', repository.branch);
 
     // 2. 브랜치 생성
-    console.log('[PrCreator] Creating branch...');
     const branchCreated = await client.createBranch(
       repository,
       branchName,
@@ -49,12 +46,9 @@ export async function createPullRequest(
       throw new Error('Failed to create branch');
     }
 
-    console.log('[PrCreator] Branch created successfully');
 
     // 3. 파일 커밋
-    console.log('[PrCreator] Preparing to commit file:', filePath);
     const commitMessage = generateCommitMessage(parsedComment, originalComment, repository, isUpdate);
-    console.log('[PrCreator] Commit message:', commitMessage.split('\n')[0]);
 
     const commitSuccess = await client.createOrUpdateFile(
       repository,
@@ -68,7 +62,6 @@ export async function createPullRequest(
       throw new Error('Failed to commit file');
     }
 
-    console.log('[PrCreator] File committed successfully to branch:', branchName);
 
     // 4. PR/MR 생성
     const prTitle = generatePrTitle(parsedComment, isUpdate);
@@ -86,7 +79,6 @@ export async function createPullRequest(
       throw new Error(prResult.error || 'Failed to create PR/MR');
     }
 
-    console.log('[PrCreator] PR/MR created successfully:', prResult.url);
 
     return {
       success: true,
@@ -94,7 +86,6 @@ export async function createPullRequest(
     };
 
   } catch (error) {
-    console.error('[PrCreator] Failed to create PR/MR:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error)
@@ -256,14 +247,11 @@ export async function createPullRequestWithMultipleFiles(
   const { client, repository, parsedComment, originalComment, files } = options;
 
   try {
-    console.log(`[PrCreator] Creating PR with ${files.length} files`);
 
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
-    console.log('[PrCreator] Branch name:', branchName);
 
     // 2. 브랜치 생성
-    console.log('[PrCreator] Creating branch...');
     const branchCreated = await client.createBranch(
       repository,
       branchName,
@@ -274,12 +262,10 @@ export async function createPullRequestWithMultipleFiles(
       throw new Error('Failed to create branch');
     }
 
-    console.log('[PrCreator] Branch created successfully');
 
     // 3. 각 파일 순차적으로 커밋
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`[PrCreator] Committing file ${i + 1}/${files.length}: ${file.filePath}`);
 
       const commitMessage = generateMultiFileCommitMessage(
         parsedComment,
@@ -300,7 +286,6 @@ export async function createPullRequestWithMultipleFiles(
         throw new Error(`Failed to commit file: ${file.filePath}`);
       }
 
-      console.log(`[PrCreator] File ${i + 1}/${files.length} committed successfully`);
     }
 
     // 4. PR/MR 생성
@@ -324,7 +309,6 @@ export async function createPullRequestWithMultipleFiles(
       throw new Error(prResult.error || 'Failed to create PR/MR');
     }
 
-    console.log('[PrCreator] Multi-file PR/MR created successfully:', prResult.url);
 
     return {
       success: true,
@@ -332,7 +316,6 @@ export async function createPullRequestWithMultipleFiles(
     };
 
   } catch (error) {
-    console.error('[PrCreator] Failed to create multi-file PR/MR:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error)

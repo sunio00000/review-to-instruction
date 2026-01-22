@@ -42,7 +42,6 @@ export class GeneratorFactory {
       case 'windsurf':
         return new WindsurfGenerator();
       default:
-        console.error(`[GeneratorFactory] Unknown project type: ${type}`);
         return null;
     }
   }

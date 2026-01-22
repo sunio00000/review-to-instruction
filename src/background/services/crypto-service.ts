@@ -195,7 +195,6 @@ export class CryptoService {
       // Base64로 인코딩
       return this.arrayBufferToBase64(combined);
     } catch (error) {
-      console.error('[CryptoService] Encryption failed:', error);
       throw new Error('암호화 중 오류가 발생했습니다.');
     }
   }
@@ -240,7 +239,6 @@ export class CryptoService {
     } catch (error) {
       // 마스터 비밀번호 방식으로 실패한 경우, Legacy 방식 시도
       if (this.masterPassword) {
-        console.log('[CryptoService] 마스터 비밀번호 복호화 실패, Legacy 방식 시도...');
         try {
           const legacyKey = await this.deriveKeyLegacy();
           const combined = this.base64ToArrayBuffer(ciphertext);
@@ -259,14 +257,11 @@ export class CryptoService {
           const decoder = new TextDecoder();
           const plaintext = decoder.decode(decrypted);
 
-          console.log('[CryptoService] Legacy 방식으로 복호화 성공');
           return plaintext;
         } catch (legacyError) {
-          console.error('[CryptoService] Legacy 복호화도 실패:', legacyError);
         }
       }
 
-      console.error('[CryptoService] Decryption failed:', error);
       throw new Error('복호화 중 오류가 발생했습니다. 토큰을 다시 입력해주세요.');
     }
   }

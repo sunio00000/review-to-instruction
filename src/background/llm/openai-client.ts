@@ -13,24 +13,20 @@ export class OpenAIClient extends BaseLLMClient {
   private readonly model = 'gpt-4-turbo-preview'; // 또는 'gpt-4o'
 
   async analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse> {
-    console.log('[OpenAIClient] Analyzing comment (with cache)...');
     // Feature 2: 캐시를 활용한 분석
     return this.analyzeWithCache(content, codeExamples);
   }
 
   protected async callAnalysisAPI(content: string, codeExamples: string[]): Promise<LLMResponse> {
     try {
-      console.log('[OpenAIClient] Calling OpenAI API...');
 
       const result = await this.retry(() =>
         this.withTimeout(this.callAPIInternal(content, codeExamples))
       );
 
-      console.log('[OpenAIClient] API call complete');
       return { success: true, data: result };
 
     } catch (error) {
-      console.error('[OpenAIClient] API call failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -108,7 +104,6 @@ export class OpenAIClient extends BaseLLMClient {
       );
       return response;
     } catch (error) {
-      console.error('[OpenAIClient] File naming API failed:', error);
       throw error;
     }
   }
@@ -171,7 +166,6 @@ export class OpenAIClient extends BaseLLMClient {
       );
       return response;
     } catch (error) {
-      console.error('[OpenAIClient] Text generation API failed:', error);
       throw error;
     }
   }
