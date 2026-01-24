@@ -154,7 +154,7 @@ export class GitHubInjector {
   }
 
   /**
-   * 코멘트 정보 추출
+   * 코멘트 정보 추출 (스레드 답글 포함)
    */
   private extractCommentInfo(commentElement: CommentElement): Comment | null {
     try {
@@ -175,6 +175,9 @@ export class GitHubInjector {
       // 코멘트 URL
       const url = window.location.href;
 
+      // 스레드 답글 추출 (Feature 2)
+      const replies = this.extractCommentReplies(element);
+
       return {
         id: commentElement.id,
         author,
@@ -182,11 +185,53 @@ export class GitHubInjector {
         htmlContent,
         url,
         createdAt,
-        platform: 'github'
+        platform: 'github',
+        replies: replies.length > 0 ? replies : undefined
       };
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * 코멘트 스레드의 답글 추출
+   */
+  private extractCommentReplies(commentElement: Element): Array<{ id: string; author: string; content: string; createdAt: string; }> {
+    const replies: Array<{ id: string; author: string; content: string; createdAt: string; }> = [];
+
+    try {
+      // GitHub에서 답글은 같은 timeline-comment-group 내에 있거나
+      // review-thread-reply 클래스를 가진 요소들에 있음
+      const parentGroup = commentElement.closest('.timeline-comment-group, .review-thread');
+      if (!parentGroup) return replies;
+
+      // 모든 코멘트 요소 찾기 (첫 번째는 원본 코멘트, 나머지는 답글)
+      const allComments = Array.from(parentGroup.querySelectorAll('.timeline-comment, .review-comment'));
+
+      // 첫 번째 요소(원본 코멘트) 제외하고 답글만 추출
+      for (let i = 1; i < allComments.length; i++) {
+        const replyElement = allComments[i];
+
+        const replyAuthor = replyElement.querySelector('.author')?.textContent?.trim() || 'Unknown';
+        const replyBody = replyElement.querySelector('.comment-body');
+        const replyContent = replyBody?.textContent?.trim() || '';
+        const replyTime = replyElement.querySelector('relative-time')?.getAttribute('datetime') || '';
+        const replyId = replyElement.id || `reply-${i}`;
+
+        if (replyContent) {
+          replies.push({
+            id: replyId,
+            author: replyAuthor,
+            content: replyContent,
+            createdAt: replyTime
+          });
+        }
+      }
+    } catch (error) {
+      // 답글 추출 실패는 무시하고 빈 배열 반환
+    }
+
+    return replies;
   }
 
   /**
@@ -212,11 +257,12 @@ export class GitHubInjector {
       });
 
       if (response.success) {
-        // 성공 메시지 표시 (PR URL 링크 포함)
+        // 성공 메시지 표시 (PR URL 링크 + 토큰 사용량 포함)
         this.uiBuilder.showSuccessMessage(
           button,
           response.data.prUrl,
-          response.data.isUpdate
+          response.data.isUpdate,
+          response.data.tokenUsage
         );
       } else {
         throw new Error(response.error || 'Unknown error');

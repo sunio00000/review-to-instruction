@@ -12,6 +12,7 @@ export interface LLMResponse {
   success: boolean;
   data?: LLMAnalysisResult;
   error?: string;
+  tokenUsage?: TokenUsage;  // 토큰 사용량 추가
 }
 
 // LLM 분석 결과
@@ -23,10 +24,21 @@ export interface LLMAnalysisResult {
   suggestedCategory?: string;          // 제안 카테고리
 }
 
+// 토큰 사용량
+export interface TokenUsage {
+  inputTokens: number;    // 입력 토큰 수
+  outputTokens: number;   // 출력 토큰 수
+  totalTokens: number;    // 총 토큰 수
+}
+
 // LLM 클라이언트 인터페이스
 export interface ILLMClient {
   provider: LLMProvider;
-  analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse>;
+  analyzeComment(
+    content: string,
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
+  ): Promise<LLMResponse>;
   generateText(prompt: string, options?: {
     max_tokens?: number;
     temperature?: number;

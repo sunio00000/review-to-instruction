@@ -227,7 +227,7 @@ function generatePrBody(
 // ==================== LLM 요약 기능 ====================
 
 /**
- * LLM을 사용하여 코멘트를 한 줄로 요약
+ * LLM을 사용하여 코멘트를 한 줄로 요약 (영어로 생성)
  * PR 타이틀과 커밋 메시지에 사용
  */
 async function summarizeCommentForPR(
@@ -235,26 +235,26 @@ async function summarizeCommentForPR(
   parsedComment: ParsedComment
 ): Promise<string | null> {
   try {
-    const prompt = `다음 코드 리뷰 코멘트의 핵심 내용을 한 줄(최대 80자)로 요약해주세요.
+    const prompt = `Summarize the following code review comment in one concise line (max 80 characters) IN ENGLISH.
 
-코멘트 내용:
+Comment content:
 ${parsedComment.content.slice(0, 500)}
 
-카테고리: ${parsedComment.category}
-키워드: ${parsedComment.keywords.join(', ')}
+Category: ${parsedComment.category}
+Keywords: ${parsedComment.keywords.join(', ')}
 
-요구사항:
-- 한 줄로 요약 (최대 80자)
-- "Add", "Update" 같은 동사 제외
-- 핵심 규칙/컨벤션만 명시
-- 한글 또는 영어로 작성
+Requirements:
+- One-line summary (max 80 characters)
+- Exclude action verbs like "Add", "Update"
+- Focus only on the core rule/convention
+- MUST be written in ENGLISH
 
-예시:
-- "error 처리 시 구체적인 에러 메시지 포함"
-- "useState hooks 선언 시 초기값 명시"
-- "API 호출 후 에러 핸들링 추가"
+Examples:
+- "Include specific error messages in error handling"
+- "Specify initial values when declaring useState hooks"
+- "Add error handling after API calls"
 
-요약:`;
+Summary:`;
 
     const summary = await llmClient.generateText(prompt, {
       max_tokens: 100,
@@ -383,7 +383,7 @@ export async function createPullRequestWithMultipleFiles(
 }
 
 /**
- * 다중 파일 커밋 메시지 생성
+ * 다중 파일 커밋 메시지 생성 (영어로)
  */
 function generateMultiFileCommitMessage(
   parsedComment: ParsedComment,
@@ -407,12 +407,12 @@ function generateMultiFileCommitMessage(
       })();
 
   const purpose = file.isUpdate
-    ? `PR #${repository.prNumber} 리뷰에서 확인된 추가 사례를 ${projectType} 컨벤션에 반영`
-    : `PR #${repository.prNumber} 리뷰에서 확립된 규칙을 ${projectType}용으로 추가`;
+    ? `Reflects additional cases identified in PR #${repository.prNumber} review to ${projectType} conventions`
+    : `Adds rules established in PR #${repository.prNumber} review for ${projectType}`;
 
-  const source = `\n\n출처: PR #${repository.prNumber}, ${originalComment.author}의 코멘트`;
+  const source = `\n\nSource: PR #${repository.prNumber}, comment by ${originalComment.author}`;
 
-  return `${title}\n\n목적: ${purpose}${source}`;
+  return `${title}\n\nPurpose: ${purpose}${source}`;
 }
 
 /**
@@ -458,7 +458,7 @@ function generateMultiFilePrTitle(
 }
 
 /**
- * 다중 파일 PR 본문 생성
+ * 다중 파일 PR 본문 생성 (영어로)
  */
 function generateMultiFilePrBody(
   parsedComment: ParsedComment,
@@ -467,19 +467,19 @@ function generateMultiFilePrBody(
   files: FileGenerationResult[]
 ): string {
   const hasUpdates = files.some(f => f.isUpdate);
-  const action = hasUpdates ? '업데이트' : '추가';
+  const action = hasUpdates ? 'updated' : 'added';
 
   const sections = [
-    '## 개요',
-    `PR #${repository.prNumber}의 리뷰 과정에서 확립된 컨벤션을 여러 AI 도구용 instruction으로 ${action}했습니다.`,
+    '## Overview',
+    `Conventions established during PR #${repository.prNumber} review have been ${action} as instructions for multiple AI tools.`,
     '',
-    '## 변경 사항',
+    '## Changes',
     '',
-    '### 공통 정보',
-    `- 카테고리: ${parsedComment.category}`,
-    `- 키워드: ${parsedComment.keywords.join(', ')}`,
+    '### Common Information',
+    `- Category: ${parsedComment.category}`,
+    `- Keywords: ${parsedComment.keywords.join(', ')}`,
     '',
-    '### 생성된 파일',
+    '### Generated Files',
   ];
 
   // 각 파일 정보
@@ -490,21 +490,21 @@ function generateMultiFilePrBody(
       'windsurf': 'Windsurf'
     };
     const typeName = typeMap[file.projectType] || file.projectType;
-    const updateStatus = file.isUpdate ? '(업데이트)' : '(신규)';
+    const updateStatus = file.isUpdate ? '(Updated)' : '(New)';
 
     sections.push(`${index + 1}. **${typeName}** ${updateStatus}`);
-    sections.push(`   - 파일: \`${file.filePath}\``);
+    sections.push(`   - File: \`${file.filePath}\``);
   });
 
   sections.push('');
-  sections.push('## 출처');
-  sections.push(`- 원본 PR: #${repository.prNumber}`);
-  sections.push(`- 코멘트 작성자: @${originalComment.author}`);
-  sections.push(`- 코멘트 링크: ${originalComment.url}`);
+  sections.push('## Source');
+  sections.push(`- Original PR: #${repository.prNumber}`);
+  sections.push(`- Comment Author: @${originalComment.author}`);
+  sections.push(`- Comment Link: ${originalComment.url}`);
   sections.push('');
 
   // 각 파일 미리보기
-  sections.push('## 생성된 파일 미리보기');
+  sections.push('## File Previews');
   sections.push('');
 
   files.forEach((file, index) => {
@@ -533,7 +533,7 @@ function generateMultiFilePrBody(
 
   sections.push('---');
   sections.push('');
-  sections.push('🤖 이 PR은 [Review to Instruction](https://github.com/sunio00000/review-to-instruction)에 의해 자동 생성되었습니다.');
+  sections.push('🤖 This PR was automatically generated by [Review to Instruction](https://github.com/sunio00000/review-to-instruction).');
 
   return sections.join('\n');
 }

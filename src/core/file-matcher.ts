@@ -7,8 +7,13 @@
 import type { ApiClient } from '../background/api-client';
 import type { Repository, ClaudeFile, MatchResult, ParsedComment, ProjectType } from '../types';
 
+// 매칭 임계값 (60점 이상이면 기존 파일에 병합)
+const MATCH_THRESHOLD = 60;
+
 /**
  * .claude/ 디렉토리에서 매칭되는 파일 찾기
+ *
+ * 개선: instructions 디렉토리도 검색하여 카테고리가 비슷한 파일 찾기
  */
 export async function findMatchingFile(
   client: ApiClient,
@@ -30,12 +35,25 @@ export async function findMatchingFile(
       parsedComment
     );
 
-    // 매칭 스코어가 70 이상이면 skills 파일 업데이트
-    if (skillsMatch.isMatch) {
-      return skillsMatch;
+    // 3. instructions/ 디렉토리에서도 매칭 파일 찾기
+    const instructionsMatch = await findInDirectory(
+      client,
+      repository,
+      '.claude/instructions',
+      parsedComment
+    );
+
+    // 4. 더 높은 스코어의 매칭 선택
+    const bestMatch = skillsMatch.score > instructionsMatch.score
+      ? skillsMatch
+      : instructionsMatch;
+
+    // 매칭 스코어가 임계값 이상이면 기존 파일 업데이트
+    if (bestMatch.isMatch) {
+      return bestMatch;
     }
 
-    // 3. 매칭되지 않으면 instructions/ 디렉토리에 새 파일 생성
+    // 5. 매칭되지 않으면 새 파일 생성
     return { file: null, score: 0, isMatch: false };
 
   } catch (error) {
@@ -101,7 +119,7 @@ async function findInDirectory(
       matchResults.push({
         file: claudeFile,
         score,
-        isMatch: score >= 70
+        isMatch: score >= MATCH_THRESHOLD
       });
     }
 
@@ -186,10 +204,21 @@ function calculateMatchScore(
   if (frontmatter.category === parsedComment.category) {
     score += 30;
   } else if (frontmatter.category && parsedComment.category) {
-    // 부분 매칭 (예: error-handling vs error)
-    if (frontmatter.category.includes(parsedComment.category) ||
-        parsedComment.category.includes(frontmatter.category)) {
-      score += 15;
+    // 부분 매칭 (예: error-handling vs error) - 가중치 증가
+    const fcLower = frontmatter.category.toLowerCase();
+    const pcLower = parsedComment.category.toLowerCase();
+
+    if (fcLower.includes(pcLower) || pcLower.includes(fcLower)) {
+      score += 22;  // 15 → 22로 증가 (더 관대하게)
+    }
+
+    // 단어 기반 부분 매칭 (예: error-handling vs handling-error)
+    const fcWords = fcLower.split(/[-_\s]+/);
+    const pcWords = pcLower.split(/[-_\s]+/);
+    const commonWords = fcWords.filter((w: string) => pcWords.includes(w));
+
+    if (commonWords.length > 0) {
+      score += commonWords.length * 5;  // 공통 단어당 5점 추가
     }
   }
 

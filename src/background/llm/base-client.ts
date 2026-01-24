@@ -15,7 +15,11 @@ export abstract class BaseLLMClient implements ILLMClient {
     this.apiKey = apiKey;
   }
 
-  abstract analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse>;
+  abstract analyzeComment(
+    content: string,
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
+  ): Promise<LLMResponse>;
 
   /**
    * 파일명 생성 (AI 기반)
@@ -33,16 +37,21 @@ export abstract class BaseLLMClient implements ILLMClient {
   }): Promise<string>;
 
   /**
-   * 캐시를 활용한 분석 (Feature 2)
+   * 캐시를 활용한 분석 (Feature 2: 답글 포함)
    * - Protected: 하위 클래스에서 analyzeComment()에서 호출
    */
   protected async analyzeWithCache(
     content: string,
-    codeExamples: string[]
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
   ): Promise<LLMResponse> {
     try {
-      // 1. 캐시 키 생성
-      const cacheKey = await llmCache.generateCacheKey(content, codeExamples, this.provider);
+      // 1. 캐시 키 생성 (replies 포함)
+      const cacheKey = await llmCache.generateCacheKey(
+        content + (replies ? JSON.stringify(replies) : ''),
+        codeExamples,
+        this.provider
+      );
 
       // 2. 캐시 조회
       const cachedData = await llmCache.get(cacheKey);
@@ -56,7 +65,7 @@ export abstract class BaseLLMClient implements ILLMClient {
       }
 
       // 3. 캐시 MISS - API 호출
-      const response = await this.callAnalysisAPI(content, codeExamples);
+      const response = await this.callAnalysisAPI(content, codeExamples, replies);
 
       // 4. 응답 캐싱 (성공한 경우만)
       if (response.success && response.data) {
@@ -68,7 +77,7 @@ export abstract class BaseLLMClient implements ILLMClient {
 
     } catch (error) {
       // 캐시 실패 시 API 직접 호출 (Fail-safe)
-      return this.callAnalysisAPI(content, codeExamples);
+      return this.callAnalysisAPI(content, codeExamples, replies);
     }
   }
 
@@ -79,7 +88,8 @@ export abstract class BaseLLMClient implements ILLMClient {
    */
   protected abstract callAnalysisAPI(
     content: string,
-    codeExamples: string[]
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
   ): Promise<LLMResponse>;
 
   /**

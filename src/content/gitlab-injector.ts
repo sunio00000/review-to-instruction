@@ -168,7 +168,7 @@ export class GitLabInjector {
   }
 
   /**
-   * 코멘트 정보 추출
+   * 코멘트 정보 추출 (디스커션 답글 포함)
    */
   private extractCommentInfo(commentElement: CommentElement): Comment | null {
     try {
@@ -189,6 +189,9 @@ export class GitLabInjector {
       // 코멘트 URL
       const url = window.location.href;
 
+      // 디스커션 답글 추출 (Feature 2)
+      const replies = this.extractDiscussionReplies(element);
+
       return {
         id: commentElement.id,
         author,
@@ -196,11 +199,52 @@ export class GitLabInjector {
         htmlContent,
         url,
         createdAt,
-        platform: 'gitlab'
+        platform: 'gitlab',
+        replies: replies.length > 0 ? replies : undefined
       };
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * 디스커션 스레드의 답글 추출
+   */
+  private extractDiscussionReplies(noteElement: Element): Array<{ id: string; author: string; content: string; createdAt: string; }> {
+    const replies: Array<{ id: string; author: string; content: string; createdAt: string; }> = [];
+
+    try {
+      // GitLab에서 답글은 discussion 컨테이너 내의 다른 note 요소들
+      const discussionContainer = noteElement.closest('.discussion-notes, .notes, [data-discussion-id]');
+      if (!discussionContainer) return replies;
+
+      // 모든 note 요소 찾기
+      const allNotes = Array.from(discussionContainer.querySelectorAll('.note'));
+
+      // 첫 번째 요소(원본 노트) 제외하고 답글만 추출
+      for (let i = 1; i < allNotes.length; i++) {
+        const replyElement = allNotes[i];
+
+        const replyAuthor = replyElement.querySelector('.note-header-author-name')?.textContent?.trim() || 'Unknown';
+        const replyBody = replyElement.querySelector('.note-text, [data-testid="note-text"]');
+        const replyContent = replyBody?.textContent?.trim() || '';
+        const replyTime = replyElement.querySelector('time')?.getAttribute('datetime') || '';
+        const replyId = replyElement.id || `reply-${i}`;
+
+        if (replyContent) {
+          replies.push({
+            id: replyId,
+            author: replyAuthor,
+            content: replyContent,
+            createdAt: replyTime
+          });
+        }
+      }
+    } catch (error) {
+      // 답글 추출 실패는 무시하고 빈 배열 반환
+    }
+
+    return replies;
   }
 
   /**
@@ -228,11 +272,12 @@ export class GitLabInjector {
 
       if (response.success) {
 
-        // 성공 메시지 표시 (PR URL 링크 포함)
+        // 성공 메시지 표시 (PR URL 링크 + 토큰 사용량 포함)
         this.uiBuilder.showSuccessMessage(
           button,
           response.data.prUrl,
-          response.data.isUpdate
+          response.data.isUpdate,
+          response.data.tokenUsage
         );
       } else {
         throw new Error(response.error || 'Unknown error');

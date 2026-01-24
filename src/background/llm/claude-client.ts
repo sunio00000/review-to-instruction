@@ -3,7 +3,7 @@
  */
 
 import { BaseLLMClient } from './base-client';
-import type { LLMProvider, LLMResponse, LLMAnalysisResult } from './types';
+import type { LLMProvider, LLMResponse, LLMAnalysisResult, TokenUsage } from './types';
 import { LLMError } from './types';
 import { buildAnalysisPrompt, SYSTEM_PROMPT } from './prompts';
 
@@ -12,19 +12,27 @@ export class ClaudeClient extends BaseLLMClient {
   private readonly apiUrl = 'https://api.anthropic.com/v1/messages';
   private readonly model = 'claude-sonnet-4-5-20250929'; // 최신 모델
 
-  async analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse> {
-    // Feature 2: 캐시를 활용한 분석
-    return this.analyzeWithCache(content, codeExamples);
+  async analyzeComment(
+    content: string,
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
+  ): Promise<LLMResponse> {
+    // Feature 2: 캐시를 활용한 분석 (replies 포함)
+    return this.analyzeWithCache(content, codeExamples, replies);
   }
 
-  protected async callAnalysisAPI(content: string, codeExamples: string[]): Promise<LLMResponse> {
+  protected async callAnalysisAPI(
+    content: string,
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
+  ): Promise<LLMResponse> {
     try {
 
-      const result = await this.retry(() =>
-        this.withTimeout(this.callAPIInternal(content, codeExamples))
+      const { result, tokenUsage } = await this.retry(() =>
+        this.withTimeout(this.callAPIInternal(content, codeExamples, replies))
       );
 
-      return { success: true, data: result };
+      return { success: true, data: result, tokenUsage };
 
     } catch (error) {
       return {
@@ -34,8 +42,12 @@ export class ClaudeClient extends BaseLLMClient {
     }
   }
 
-  private async callAPIInternal(content: string, codeExamples: string[]): Promise<LLMAnalysisResult> {
-    const prompt = buildAnalysisPrompt(content, codeExamples);
+  private async callAPIInternal(
+    content: string,
+    codeExamples: string[],
+    replies?: Array<{ author: string; content: string; createdAt: string; }>
+  ): Promise<{ result: LLMAnalysisResult; tokenUsage: TokenUsage }> {
+    const prompt = buildAnalysisPrompt(content, codeExamples, replies);
 
     const response = await fetch(this.apiUrl, {
       method: 'POST',
@@ -74,6 +86,13 @@ export class ClaudeClient extends BaseLLMClient {
       throw new LLMError('Empty response from Claude API', 'claude');
     }
 
+    // 토큰 사용량 추출 (Claude API response format)
+    const tokenUsage: TokenUsage = {
+      inputTokens: data.usage?.input_tokens || 0,
+      outputTokens: data.usage?.output_tokens || 0,
+      totalTokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0)
+    };
+
     // JSON 파싱
     const parsed = this.parseJSON(textContent);
 
@@ -82,13 +101,15 @@ export class ClaudeClient extends BaseLLMClient {
       throw new LLMError('Invalid response format from Claude API', 'claude');
     }
 
-    return {
+    const result: LLMAnalysisResult = {
       summary: parsed.summary,
       detailedExplanation: parsed.detailedExplanation,
       codeExplanations: parsed.codeExplanations || [],
       additionalKeywords: parsed.additionalKeywords || [],
       suggestedCategory: parsed.suggestedCategory
     };
+
+    return { result, tokenUsage };
   }
 
   /**

@@ -14,6 +14,15 @@ export interface Comment {
   url: string;
   createdAt: string;
   platform: Platform;
+  replies?: CommentReply[];  // 스레드의 답글들 (optional)
+}
+
+// 코멘트 답글
+export interface CommentReply {
+  id: string;
+  author: string;
+  content: string;
+  createdAt: string;
 }
 
 // 파싱된 코멘트

@@ -21,6 +21,11 @@ export interface ConversionResult {
   category: string;
   keywords: string[];
   llmEnhanced: boolean;
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -30,7 +35,7 @@ export class ConversionOrchestrator {
   constructor(private container: ServiceContainer) {}
 
   /**
-   * 코멘트를 instruction/skill 파일로 변환하고 PR 생성
+   * 코멘트를 instruction/skill 파일로 변환하고 PR 생성 (Feature 2: 토큰 사용량 추적)
    */
   async convertComment(payload: ConversionPayload): Promise<ConversionResult> {
     const { comment, repository } = payload;
@@ -45,8 +50,8 @@ export class ConversionOrchestrator {
       gitlabUrl: config.gitlabUrl
     });
 
-    // 3. 코멘트 검증 및 강화
-    const enhancedComment = await this.container.commentService.validateAndEnhance(
+    // 3. 코멘트 검증 및 강화 (답글 포함, 토큰 사용량 추적)
+    const { enhancedComment, tokenUsage } = await this.container.commentService.validateAndEnhance(
       comment,
       config.llmConfig
     );
@@ -70,7 +75,7 @@ export class ConversionOrchestrator {
       config.llmConfig  // LLM으로 PR 타이틀/커밋 메시지 요약
     );
 
-    // 6. 결과 반환
+    // 6. 결과 반환 (토큰 사용량 포함)
     return {
       prUrl: prResult.prUrl,
       files: files.map(f => ({
@@ -80,7 +85,8 @@ export class ConversionOrchestrator {
       })),
       category: enhancedComment.category,
       keywords: enhancedComment.keywords,
-      llmEnhanced: enhancedComment.llmEnhanced
+      llmEnhanced: enhancedComment.llmEnhanced,
+      tokenUsage
     };
   }
 }

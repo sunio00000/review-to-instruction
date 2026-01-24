@@ -172,9 +172,14 @@ export class UIBuilder {
   }
 
   /**
-   * 성공 메시지를 표시 (PR URL 링크 포함)
+   * 성공 메시지를 표시 (PR URL 링크 + 토큰 사용량 포함)
    */
-  showSuccessMessage(button: HTMLButtonElement, prUrl: string, isUpdate: boolean) {
+  showSuccessMessage(
+    button: HTMLButtonElement,
+    prUrl: string,
+    isUpdate: boolean,
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; }
+  ) {
     this.setButtonState(button, 'success', 'Converted!');
 
     // 결과 메시지 생성
@@ -192,11 +197,17 @@ export class UIBuilder {
     resultDiv.className = 'review-to-instruction-result success';
 
     const actionText = isUpdate ? '업데이트' : '생성';
+
+    // 토큰 사용량 텍스트 (작게 표시)
+    const tokenText = tokenUsage
+      ? `<span class="token-usage" style="font-size: 0.85em; opacity: 0.8; margin-left: 8px;">(${tokenUsage.totalTokens} tokens)</span>`
+      : '';
+
     resultDiv.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
       </svg>
-      <span>Instruction ${actionText}됨! <a href="${prUrl}" target="_blank" rel="noopener noreferrer">PR 보기 →</a></span>
+      <span>Instruction ${actionText}됨! <a href="${prUrl}" target="_blank" rel="noopener noreferrer">PR 보기 →</a>${tokenText}</span>
     `;
 
     container.appendChild(resultDiv);
