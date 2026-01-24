@@ -346,15 +346,9 @@ async function setupMasterPassword(): Promise<void> {
     const passwordHash = await hashPassword(password);
     await chrome.storage.local.set({ masterPasswordHash: passwordHash });
 
-    // CryptoService에 비밀번호 설정
-    crypto.setMasterPassword(password);
-
     // 모달 닫기
     const modal = document.getElementById('master-password-modal')!;
     modal.style.display = 'none';
-
-    // 기존 암호화된 데이터 마이그레이션 (있다면)
-    await migrateEncryptedData();
 
     // FormManager 초기화 및 설정 로드
     formManager.bindElements();
@@ -399,9 +393,6 @@ async function unlockWithPassword(): Promise<boolean> {
       errorDiv.style.display = 'block';
       return false;
     }
-
-    // CryptoService에 비밀번호 설정
-    crypto.setMasterPassword(password);
 
     // 모달 닫기
     const modal = document.getElementById('unlock-modal')!;
@@ -452,58 +443,6 @@ async function resetMasterPassword(): Promise<void> {
     (document.getElementById('master-password-confirm') as HTMLInputElement).value = '';
   } catch (error) {
     alert(`비밀번호 재설정 실패: ${error}`);
-  }
-}
-
-// 기존 암호화 데이터 마이그레이션 (Extension ID → 마스터 비밀번호)
-async function migrateEncryptedData(): Promise<void> {
-  try {
-    const storage = await chrome.storage.local.get([
-      'githubToken_enc',
-      'gitlabToken_enc',
-      'claudeApiKey_enc',
-      'openaiApiKey_enc'
-    ]);
-
-    const keysToMigrate = Object.keys(storage).filter(key => key.endsWith('_enc'));
-
-    if (keysToMigrate.length === 0) {
-      return;
-    }
-
-    // 각 키에 대해 Legacy 방식으로 복호화 후 마스터 비밀번호 방식으로 재암호화
-    const migratedData: Record<string, string> = {};
-
-    for (const key of keysToMigrate) {
-      const encryptedValue = storage[key] as string;
-      if (!encryptedValue || typeof encryptedValue !== 'string') continue;
-
-      try {
-        // Legacy 방식으로 복호화 시도
-        const tempPassword = crypto.getMasterPassword();
-        crypto.clearMasterPassword(); // 임시로 마스터 비밀번호 제거
-
-        const decryptedValue = await crypto.decrypt(encryptedValue);
-
-        // 마스터 비밀번호 복원
-        if (tempPassword) {
-          crypto.setMasterPassword(tempPassword);
-        }
-
-        // 마스터 비밀번호로 재암호화
-        const reencryptedValue = await crypto.encrypt(decryptedValue);
-        migratedData[key] = reencryptedValue;
-      } catch (error) {
-        // 실패한 키는 건너뛰기 (이미 마스터 비밀번호로 암호화되어 있을 수 있음)
-      }
-    }
-
-    // 마이그레이션된 데이터 저장
-    if (Object.keys(migratedData).length > 0) {
-      await chrome.storage.local.set(migratedData);
-    }
-  } catch (error) {
-    // 마이그레이션 실패해도 계속 진행 (사용자가 수동으로 재입력 가능)
   }
 }
 
