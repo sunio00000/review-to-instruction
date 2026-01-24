@@ -37,22 +37,11 @@ export async function enhanceWithLLM(
       parsedComment.codeExamples
     );
 
-      success: response.success,
-      hasData: !!response.data,
-      error: response.error
-    });
-
     if (!response.success || !response.data) {
       return { ...parsedComment, llmEnhanced: false };
     }
 
     const { data } = response;
-
-      hasSummary: !!data.summary,
-      hasExplanation: !!data.detailedExplanation,
-      additionalKeywords: data.additionalKeywords?.length || 0,
-      suggestedCategory: data.suggestedCategory
-    });
 
     // 키워드 병합 (중복 제거)
     const mergedKeywords = Array.from(new Set([
@@ -62,11 +51,6 @@ export async function enhanceWithLLM(
 
     // 카테고리 선택 (LLM 제안 우선, 없으면 기존)
     const finalCategory = data.suggestedCategory || parsedComment.category;
-
-      provider: config.provider,
-      addedKeywords: data.additionalKeywords?.length || 0,
-      codeExplanations: data.codeExplanations?.length || 0
-    });
 
     return {
       ...parsedComment,

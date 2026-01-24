@@ -52,13 +52,6 @@ export class GitHubInjector {
           branch = 'main';  // 임시값
         }
 
-
-          owner,
-          name,
-          branch,
-          prNumber
-        });
-
         return {
           owner,
           name,
@@ -77,7 +70,6 @@ export class GitHubInjector {
    * 시작
    */
   async start() {
-
     // 설정 확인
     const config = await this.getConfig();
     if (!config.showButtons) {
@@ -90,14 +82,12 @@ export class GitHubInjector {
       return;
     }
 
-
     // API를 통해 기본 브랜치 확인 및 업데이트
     try {
       await this.updateDefaultBranch();
     } catch (error) {
       // API 호출 실패해도 계속 진행 (추출한 branch 사용)
     }
-
 
     // 코멘트 감지 시작
     this.detector.start();
@@ -145,7 +135,6 @@ export class GitHubInjector {
    * 코멘트 감지 콜백
    */
   private onCommentDetected(commentElement: CommentElement) {
-
     // 코멘트 정보 추출
     const comment = this.extractCommentInfo(commentElement);
     if (!comment) {
@@ -204,10 +193,6 @@ export class GitHubInjector {
    * 버튼 클릭 핸들러
    */
   private async onButtonClick(comment: Comment) {
-      repository: this.repository,
-      commentLength: comment.content.length
-    });
-
     const button = this.uiBuilder.getButton(comment.id);
     if (!button) return;
 
@@ -227,7 +212,6 @@ export class GitHubInjector {
       });
 
       if (response.success) {
-
         // 성공 메시지 표시 (PR URL 링크 포함)
         this.uiBuilder.showSuccessMessage(
           button,
@@ -238,7 +222,6 @@ export class GitHubInjector {
         throw new Error(response.error || 'Unknown error');
       }
     } catch (error) {
-
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.uiBuilder.showErrorMessage(button, errorMessage);

@@ -35,10 +35,6 @@ export class ConversionOrchestrator {
   async convertComment(payload: ConversionPayload): Promise<ConversionResult> {
     const { comment, repository } = payload;
 
-      commentId: comment.id,
-      repository: `${repository.owner}/${repository.name}`
-    });
-
     // 1. 설정 로드
     const config = await this.container.configService.loadConfig(repository.platform);
 
@@ -72,7 +68,6 @@ export class ConversionOrchestrator {
       comment,
       files
     );
-
 
     // 6. 결과 반환
     return {

@@ -52,12 +52,6 @@ export class ConfigServiceImpl implements ConfigService {
       'llmEnabled'
     ]);
 
-      hasEncryptedToken: !!storage[encryptedTokenKey],
-      gitlabUrl: storage.gitlabUrl,
-      hasClaudeKey: !!storage.claudeApiKey_enc,
-      hasOpenAIKey: !!storage.openaiApiKey_enc
-    });
-
     // 3. Token 복호화
     const encryptedToken = storage[encryptedTokenKey] as string | undefined;
     if (!encryptedToken) {
@@ -100,12 +94,6 @@ export class ConfigServiceImpl implements ConfigService {
       openaiApiKey
     };
 
-      enabled: llmConfig.enabled,
-      provider: llmConfig.provider,
-      hasClaudeKey: !!llmConfig.claudeApiKey,
-      hasOpenAIKey: !!llmConfig.openaiApiKey
-    });
-
     return { token, llmConfig, gitlabUrl };
   }
 
@@ -123,7 +111,6 @@ export class ConfigServiceImpl implements ConfigService {
         return;
       }
 
-
       // 2. 기존 sync 데이터 읽기
       const syncData = await chrome.storage.sync.get([
         'githubToken',
@@ -138,11 +125,6 @@ export class ConfigServiceImpl implements ConfigService {
         await chrome.storage.local.set({ migration_v2_complete: true });
         return;
       }
-
-        hasGitHubToken: !!syncData.githubToken,
-        hasGitLabToken: !!syncData.gitlabToken,
-        hasLLM: !!syncData.llm
-      });
 
       // 4. 암호화하여 local에 저장
       const encryptedData: Record<string, any> = {};

@@ -67,21 +67,6 @@ export class FileGenerationServiceImpl implements FileGenerationService {
         // 새로 분석
         analysisResult = await this.instructionAnalyzer.analyzeProject(client, repository);
         this.analysisCache.set(cacheKey, analysisResult);
-          confidence: analysisResult?.confidence,
-          existingFiles: analysisResult?.existingFiles.length || 0
-        });
-      }
-
-      // 중복 체크
-      if (analysisResult) {
-        const similarFiles = this.instructionAnalyzer.findSimilarInstructions(
-          analysisResult.existingFiles,
-          enhancedComment.keywords,
-          enhancedComment.category
-        );
-
-        if (similarFiles.length > 0) {
-        }
       }
     }
 
@@ -106,9 +91,6 @@ export class FileGenerationServiceImpl implements FileGenerationService {
 
         files.push(file);
 
-          filePath: file.filePath,
-          isUpdate: file.isUpdate
-        });
       } catch (error) {
         // 부분 실패 허용: 한 타입 실패해도 다른 타입 계속 진행
       }
@@ -135,20 +117,11 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     analysisResult?: AnalysisResult | null,
     llmConfig?: LLMConfig
   ): Promise<FileGenerationResult> {
-
     // 1. AI 기반 파일명 생성 (Claude Code 타입이고 LLM이 활성화된 경우)
     let smartFilePath: string | null = null;
 
-      projectType,
-      isClaudeCode: projectType === 'claude-code',
-      llmEnabled: llmConfig?.enabled,
-      llmProvider: llmConfig?.provider,
-      hasAnalysisResult: !!analysisResult
-    });
-
     if (projectType === 'claude-code' && llmConfig?.enabled && analysisResult) {
       try {
-
         const namingResult = await this.smartFileNaming.generateFileName({
           parsedComment: enhancedComment,
           analysisResult,
@@ -157,13 +130,8 @@ export class FileGenerationServiceImpl implements FileGenerationService {
 
         smartFilePath = namingResult.fullPath;
 
-          path: smartFilePath,
-          confidence: namingResult.confidence,
-          reasoning: namingResult.reasoning
-        });
       } catch (error) {
       }
-    } else {
     }
 
     // 2. 매칭 파일 찾기 (기존 방식)
@@ -186,7 +154,6 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     // 4. 파일 경로 결정 (우선순위: Generator > Matcher)
     // Generator가 이미 smartFilePath를 사용했으므로 그 결과 사용
     const finalFilePath = generationResult.filePath || matchResult.filePath;
-
 
     return {
       projectType,

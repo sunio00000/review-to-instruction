@@ -273,10 +273,6 @@ async function handleGetPRInfo(
     const headBranch = prData.head.ref;
     const baseBranch = prData.base.ref;
 
-      head: headBranch,
-      base: baseBranch
-    });
-
     sendResponse({
       success: true,
       data: {

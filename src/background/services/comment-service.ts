@@ -31,20 +31,8 @@ export class CommentServiceImpl implements CommentService {
       throw new Error('키워드를 추출할 수 없습니다. 더 명확한 컨벤션 설명이 필요합니다.');
     }
 
-      keywords: parsedComment.keywords,
-      category: parsedComment.category
-    });
-
     // 4. LLM 강화
     const enhancedComment = await enhanceWithLLM(parsedComment, llmConfig);
-
-    // 5. 결과 로깅
-    if (enhancedComment.llmEnhanced) {
-        provider: llmConfig.provider,
-        addedKeywords: enhancedComment.additionalKeywords?.length || 0
-      });
-    } else {
-    }
 
     return enhancedComment;
   }

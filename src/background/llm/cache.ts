@@ -111,11 +111,6 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-        provider: entry.metadata.provider,
-        age: Math.round(age / 1000 / 60 / 60), // hours
-        accessCount: entry.metadata.accessCount
-      });
-
       this.hitCount++;
       return entry.data;
 
@@ -161,10 +156,6 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-        provider,
-        cacheSize: Object.keys(cache).length
-      });
-
     } catch (error) {
       // 캐시 저장 실패해도 에러를 throw하지 않음 (Fail-safe)
     }
@@ -182,7 +173,6 @@ export class LLMCache {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: cache });
 
-
     } catch (error) {
     }
   }
@@ -195,7 +185,6 @@ export class LLMCache {
       await chrome.storage.local.remove(STORAGE_KEY);
       this.hitCount = 0;
       this.missCount = 0;
-
 
     } catch (error) {
       throw error;
@@ -257,7 +246,6 @@ export class LLMCache {
     // 오래된 10% 제거
     const evictCount = Math.ceil(MAX_CACHE_ENTRIES * 0.1);
     const toEvict = entries.slice(0, evictCount);
-
 
     for (const [key] of toEvict) {
       delete cache[key];
