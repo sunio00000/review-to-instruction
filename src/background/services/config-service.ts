@@ -24,8 +24,9 @@ export interface ConfigService {
  * ConfigService 구현
  */
 export class ConfigServiceImpl implements ConfigService {
-  private crypto = new CryptoService();
   private migrationComplete = false;
+
+  constructor(private crypto: CryptoService) {}
 
   /**
    * 플랫폼에 맞는 설정을 Chrome Storage에서 로드

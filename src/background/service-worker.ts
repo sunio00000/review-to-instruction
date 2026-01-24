@@ -4,6 +4,10 @@
 
 import type { Message, MessageResponse } from '../types';
 import { handleMessage } from './message-handler';
+import { CryptoService } from './services/crypto-service';
+
+// 전역 CryptoService 인스턴스 (마스터 비밀번호 유지)
+export const globalCrypto = new CryptoService();
 
 // Extension 설치 시
 chrome.runtime.onInstalled.addListener(() => {

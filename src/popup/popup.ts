@@ -260,11 +260,34 @@ async function checkMasterPasswordSetup(): Promise<boolean> {
   return !!result.masterPasswordHash;
 }
 
-// 마스터 비밀번호 검증용 해시 생성
+// 마스터 비밀번호 검증용 해시 생성 (PBKDF2 사용)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+
+  // PBKDF2 키 생성
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  // 고정 Salt (비밀번호 검증용이므로 사용자별로 다를 필요 없음)
+  const salt = encoder.encode('review-to-instruction-password-verification-v1');
+
+  // PBKDF2로 해시 생성 (500,000 iterations)
+  const hashBuffer = await window.crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 500000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256  // 256 bits
+  );
+
   return Array.from(new Uint8Array(hashBuffer))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
@@ -346,6 +369,15 @@ async function setupMasterPassword(): Promise<void> {
     const passwordHash = await hashPassword(password);
     await chrome.storage.local.set({ masterPasswordHash: passwordHash });
 
+    // Background에 마스터 비밀번호 전달 (세션 동안 유지)
+    await chrome.runtime.sendMessage({
+      type: 'SET_MASTER_PASSWORD',
+      payload: { password }
+    });
+
+    // CryptoService에도 설정 (Popup에서 저장할 때 사용)
+    crypto.setMasterPassword(password);
+
     // 모달 닫기
     const modal = document.getElementById('master-password-modal')!;
     modal.style.display = 'none';
@@ -393,6 +425,15 @@ async function unlockWithPassword(): Promise<boolean> {
       errorDiv.style.display = 'block';
       return false;
     }
+
+    // Background에 마스터 비밀번호 전달 (세션 동안 유지)
+    await chrome.runtime.sendMessage({
+      type: 'SET_MASTER_PASSWORD',
+      payload: { password }
+    });
+
+    // CryptoService에도 설정 (Popup에서 저장할 때 사용)
+    crypto.setMasterPassword(password);
 
     // 모달 닫기
     const modal = document.getElementById('unlock-modal')!;

@@ -11,6 +11,7 @@ import { ConfigServiceImpl } from './config-service';
 import { CommentServiceImpl } from './comment-service';
 import { FileGenerationServiceImpl } from './file-generation-service';
 import { PullRequestServiceImpl } from './pr-service';
+import { CryptoService } from './crypto-service';
 
 export interface ServiceContainer {
   configService: ConfigService;
@@ -21,10 +22,11 @@ export interface ServiceContainer {
 
 /**
  * 서비스 컨테이너 생성
+ * @param crypto CryptoService 인스턴스 (전역 인스턴스 사용)
  */
-export function createServiceContainer(): ServiceContainer {
+export function createServiceContainer(crypto: CryptoService): ServiceContainer {
   return {
-    configService: new ConfigServiceImpl(),
+    configService: new ConfigServiceImpl(crypto),
     commentService: new CommentServiceImpl(),
     fileGenerationService: new FileGenerationServiceImpl(),
     prService: new PullRequestServiceImpl()

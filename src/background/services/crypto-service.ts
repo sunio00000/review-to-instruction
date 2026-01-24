@@ -2,13 +2,20 @@
  * CryptoService - Web Crypto API를 사용한 토큰 암호화/복호화
  *
  * AES-GCM 256-bit 암호화를 사용하여 API 토큰을 안전하게 저장합니다.
- * Extension ID를 기반으로 암호화 키를 생성하므로, 각 Extension 설치마다 고유한 키를 가집니다.
+ * 마스터 비밀번호 기반 암호화를 사용하여 강력한 보안을 제공합니다.
  *
  * 보안 특성:
  * - AES-GCM 256-bit 암호화
- * - Extension ID 기반 키 유도 (PBKDF2 100,000 iterations)
+ * - 마스터 비밀번호 기반 키 유도 (PBKDF2 500,000 iterations)
+ * - Extension ID를 Salt에 포함하여 설치마다 고유한 키 생성
  * - 12-byte IV (Initialization Vector) 사용
  * - 암호문과 IV를 base64로 인코딩하여 저장
+ * - Legacy: Extension ID 기반 암호화 지원 (마이그레이션용, 100,000 iterations)
+ *
+ * 세션 관리:
+ * - 마스터 비밀번호는 메모리에만 저장 (chrome.storage 미사용)
+ * - 브라우저 세션 동안 유지 (Service Worker 종료 시까지)
+ * - Popup과 Background 간 메시지 패싱으로 동기화
  */
 
 export class CryptoService {

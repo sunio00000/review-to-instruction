@@ -8,6 +8,7 @@ import { ApiClient } from './api-client';
 import { llmCache } from './llm/cache';
 import { createServiceContainer } from './services/di-container';
 import { ConversionOrchestrator } from './services/conversion-orchestrator';
+import { globalCrypto } from './service-worker';
 
 /**
  * 메시지 핸들러
@@ -48,6 +49,10 @@ export async function handleMessage(
 
     case 'GET_PR_INFO':
       await handleGetPRInfo(message.payload, sendResponse);
+      break;
+
+    case 'SET_MASTER_PASSWORD':
+      await handleSetMasterPassword(message.payload, sendResponse);
       break;
 
     default:
@@ -117,8 +122,8 @@ async function handleTestApi(
   }
 }
 
-// Orchestrator 초기화
-const orchestrator = new ConversionOrchestrator(createServiceContainer());
+// Orchestrator 초기화 (전역 CryptoService 사용)
+const orchestrator = new ConversionOrchestrator(createServiceContainer(globalCrypto));
 
 /**
  * 코멘트 변환 (instruction/skills 생성)
@@ -283,6 +288,35 @@ async function handleGetPRInfo(
       }
     });
 
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * 마스터 비밀번호 설정
+ */
+async function handleSetMasterPassword(
+  payload: { password: string },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    const { password } = payload;
+
+    if (!password) {
+      throw new Error('비밀번호가 제공되지 않았습니다.');
+    }
+
+    // 전역 CryptoService에 마스터 비밀번호 설정
+    globalCrypto.setMasterPassword(password);
+
+    sendResponse({
+      success: true,
+      data: { message: '마스터 비밀번호가 설정되었습니다.' }
+    });
   } catch (error) {
     sendResponse({
       success: false,
