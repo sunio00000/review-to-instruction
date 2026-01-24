@@ -72,6 +72,29 @@ export async function enhanceWithLLM(
 /**
  * LLM 클라이언트 팩토리
  */
+export function createLLMClient(config: LLMConfig): ILLMClient | null {
+  if (!config.enabled || config.provider === 'none') {
+    return null;
+  }
+
+  const apiKey = config.provider === 'claude' ? config.claudeApiKey : config.openaiApiKey;
+  if (!apiKey) {
+    return null;
+  }
+
+  switch (config.provider) {
+    case 'claude':
+      return new ClaudeClient(apiKey);
+    case 'openai':
+      return new OpenAIClient(apiKey);
+    default:
+      return null;
+  }
+}
+
+/**
+ * 내부용 클라이언트 생성 (기존 호환성 유지)
+ */
 function createClient(provider: 'claude' | 'openai', apiKey: string): ILLMClient {
   switch (provider) {
     case 'claude':

@@ -6,6 +6,7 @@
 
 import type { ApiClient } from '../background/api-client';
 import type { Repository, ParsedComment, Comment, FileGenerationResult } from '../types';
+import type { ILLMClient } from '../background/llm/types';
 
 export interface PrCreationOptions {
   client: ApiClient;
@@ -223,6 +224,57 @@ function generatePrBody(
   return sections.join('\n');
 }
 
+// ==================== LLM 요약 기능 ====================
+
+/**
+ * LLM을 사용하여 코멘트를 한 줄로 요약
+ * PR 타이틀과 커밋 메시지에 사용
+ */
+async function summarizeCommentForPR(
+  llmClient: ILLMClient,
+  parsedComment: ParsedComment
+): Promise<string | null> {
+  try {
+    const prompt = `다음 코드 리뷰 코멘트의 핵심 내용을 한 줄(최대 80자)로 요약해주세요.
+
+코멘트 내용:
+${parsedComment.content.slice(0, 500)}
+
+카테고리: ${parsedComment.category}
+키워드: ${parsedComment.keywords.join(', ')}
+
+요구사항:
+- 한 줄로 요약 (최대 80자)
+- "Add", "Update" 같은 동사 제외
+- 핵심 규칙/컨벤션만 명시
+- 한글 또는 영어로 작성
+
+예시:
+- "error 처리 시 구체적인 에러 메시지 포함"
+- "useState hooks 선언 시 초기값 명시"
+- "API 호출 후 에러 핸들링 추가"
+
+요약:`;
+
+    const summary = await llmClient.generateText(prompt, {
+      max_tokens: 100,
+      temperature: 0.3
+    });
+
+    // 첫 줄만 추출하고 따옴표 제거
+    const firstLine = summary
+      .split('\n')[0]
+      .trim()
+      .replace(/^["']|["']$/g, '');
+
+    // 80자 제한
+    return firstLine.slice(0, 80);
+  } catch (error) {
+    // LLM 실패 시 null 반환 (fallback to default)
+    return null;
+  }
+}
+
 // ==================== Feature 1: 다중 파일 PR 생성 ====================
 
 /**
@@ -234,6 +286,7 @@ export interface MultiFilePrCreationOptions {
   parsedComment: ParsedComment;
   originalComment: Comment;
   files: FileGenerationResult[];  // 여러 파일
+  llmClient?: ILLMClient;  // LLM 클라이언트 (optional, 요약 기능용)
 }
 
 /**
@@ -244,9 +297,14 @@ export interface MultiFilePrCreationOptions {
 export async function createPullRequestWithMultipleFiles(
   options: MultiFilePrCreationOptions
 ): Promise<PrCreationResult> {
-  const { client, repository, parsedComment, originalComment, files } = options;
+  const { client, repository, parsedComment, originalComment, files, llmClient } = options;
 
   try {
+    // 0. LLM 요약 생성 (optional)
+    let llmSummary: string | null = null;
+    if (llmClient) {
+      llmSummary = await summarizeCommentForPR(llmClient, parsedComment);
+    }
 
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
@@ -271,7 +329,8 @@ export async function createPullRequestWithMultipleFiles(
         parsedComment,
         originalComment,
         repository,
-        file
+        file,
+        llmSummary
       );
 
       const commitSuccess = await client.createOrUpdateFile(
@@ -289,7 +348,7 @@ export async function createPullRequestWithMultipleFiles(
     }
 
     // 4. PR/MR 생성
-    const prTitle = generateMultiFilePrTitle(parsedComment, files);
+    const prTitle = generateMultiFilePrTitle(parsedComment, files, llmSummary);
     const prBody = generateMultiFilePrBody(
       parsedComment,
       originalComment,
@@ -330,21 +389,26 @@ function generateMultiFileCommitMessage(
   parsedComment: ParsedComment,
   originalComment: Comment,
   repository: Repository,
-  file: FileGenerationResult
+  file: FileGenerationResult,
+  llmSummary: string | null
 ): string {
   const action = file.isUpdate ? 'Update' : 'Add';
   const projectType = file.projectType;
 
-  const category = parsedComment.category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
-  const title = `${action} ${category} convention for ${projectType}`;
+  // LLM 요약이 있으면 사용, 없으면 기존 방식
+  const title = llmSummary
+    ? `${action} ${projectType} convention: ${llmSummary}`
+    : (() => {
+        const category = parsedComment.category
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        return `${action} ${category} convention for ${projectType}`;
+      })();
 
   const purpose = file.isUpdate
     ? `PR #${repository.prNumber} 리뷰에서 확인된 추가 사례를 ${projectType} 컨벤션에 반영`
-    : `PR #${repository.prNumber} 리뷰에서 확립된 ${category} 규칙을 ${projectType}용으로 추가`;
+    : `PR #${repository.prNumber} 리뷰에서 확립된 규칙을 ${projectType}용으로 추가`;
 
   const source = `\n\n출처: PR #${repository.prNumber}, ${originalComment.author}의 코멘트`;
 
@@ -356,20 +420,11 @@ function generateMultiFileCommitMessage(
  */
 function generateMultiFilePrTitle(
   parsedComment: ParsedComment,
-  files: FileGenerationResult[]
+  files: FileGenerationResult[],
+  llmSummary: string | null
 ): string {
   const hasUpdates = files.some(f => f.isUpdate);
   const action = hasUpdates ? 'Update' : 'Add';
-
-  const category = parsedComment.category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
-  const keyword = parsedComment.keywords[0];
-  const keywordTitle = keyword
-    ? keyword.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    : category;
 
   // 프로젝트 타입 목록
   const projectTypes = files.map(f => {
@@ -382,6 +437,22 @@ function generateMultiFilePrTitle(
   });
 
   const typesStr = projectTypes.join(', ');
+
+  // LLM 요약이 있으면 사용, 없으면 기존 방식
+  if (llmSummary) {
+    return `${action} AI conventions (${typesStr}): ${llmSummary}`;
+  }
+
+  // Fallback: 기존 방식
+  const category = parsedComment.category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  const keyword = parsedComment.keywords[0];
+  const keywordTitle = keyword
+    ? keyword.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    : category;
 
   return `${action} AI conventions (${typesStr}): ${keywordTitle}`;
 }

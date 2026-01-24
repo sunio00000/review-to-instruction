@@ -60,13 +60,14 @@ export class ConversionOrchestrator {
       config.llmConfig  // LLM 설정 전달
     );
 
-    // 5. PR/MR 생성
+    // 5. PR/MR 생성 (LLM 설정 전달하여 요약 기능 활성화)
     const prResult = await this.container.prService.create(
       client,
       repository,
       enhancedComment,
       comment,
-      files
+      files,
+      config.llmConfig  // LLM으로 PR 타이틀/커밋 메시지 요약
     );
 
     // 6. 결과 반환

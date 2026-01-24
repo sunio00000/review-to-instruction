@@ -27,6 +27,11 @@ export interface LLMAnalysisResult {
 export interface ILLMClient {
   provider: LLMProvider;
   analyzeComment(content: string, codeExamples: string[]): Promise<LLMResponse>;
+  generateText(prompt: string, options?: {
+    max_tokens?: number;
+    temperature?: number;
+    system?: string;
+  }): Promise<string>;
 }
 
 // LLM API 에러
