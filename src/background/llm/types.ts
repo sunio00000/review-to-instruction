@@ -37,7 +37,8 @@ export interface ILLMClient {
   analyzeComment(
     content: string,
     codeExamples: string[],
-    replies?: Array<{ author: string; content: string; createdAt: string; }>
+    replies?: Array<{ author: string; content: string; createdAt: string; }>,
+    existingKeywords?: string[]
   ): Promise<LLMResponse>;
   generateText(prompt: string, options?: {
     max_tokens?: number;

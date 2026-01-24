@@ -31,11 +31,12 @@ export async function enhanceWithLLM(
     // 클라이언트 생성
     const client = createClient(config.provider, apiKey);
 
-    // LLM 분석 호출 (replies 포함)
+    // LLM 분석 호출 (replies 포함, 기존 키워드 전달)
     const response = await client.analyzeComment(
       parsedComment.content,
       parsedComment.codeExamples,
-      replies
+      replies,
+      parsedComment.keywords  // 기존 규칙 기반 키워드 전달
     );
 
     if (!response.success || !response.data) {

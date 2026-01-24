@@ -18,7 +18,8 @@ export abstract class BaseLLMClient implements ILLMClient {
   abstract analyzeComment(
     content: string,
     codeExamples: string[],
-    replies?: Array<{ author: string; content: string; createdAt: string; }>
+    replies?: Array<{ author: string; content: string; createdAt: string; }>,
+    existingKeywords?: string[]
   ): Promise<LLMResponse>;
 
   /**
@@ -37,18 +38,19 @@ export abstract class BaseLLMClient implements ILLMClient {
   }): Promise<string>;
 
   /**
-   * 캐시를 활용한 분석 (Feature 2: 답글 포함)
+   * 캐시를 활용한 분석 (Feature 2: 답글 포함, 기존 키워드 전달)
    * - Protected: 하위 클래스에서 analyzeComment()에서 호출
    */
   protected async analyzeWithCache(
     content: string,
     codeExamples: string[],
-    replies?: Array<{ author: string; content: string; createdAt: string; }>
+    replies?: Array<{ author: string; content: string; createdAt: string; }>,
+    existingKeywords?: string[]
   ): Promise<LLMResponse> {
     try {
-      // 1. 캐시 키 생성 (replies 포함)
+      // 1. 캐시 키 생성 (replies + existingKeywords 포함)
       const cacheKey = await llmCache.generateCacheKey(
-        content + (replies ? JSON.stringify(replies) : ''),
+        content + (replies ? JSON.stringify(replies) : '') + (existingKeywords ? JSON.stringify(existingKeywords) : ''),
         codeExamples,
         this.provider
       );
@@ -65,7 +67,7 @@ export abstract class BaseLLMClient implements ILLMClient {
       }
 
       // 3. 캐시 MISS - API 호출
-      const response = await this.callAnalysisAPI(content, codeExamples, replies);
+      const response = await this.callAnalysisAPI(content, codeExamples, replies, existingKeywords);
 
       // 4. 응답 캐싱 (성공한 경우만)
       if (response.success && response.data) {
@@ -77,7 +79,7 @@ export abstract class BaseLLMClient implements ILLMClient {
 
     } catch (error) {
       // 캐시 실패 시 API 직접 호출 (Fail-safe)
-      return this.callAnalysisAPI(content, codeExamples, replies);
+      return this.callAnalysisAPI(content, codeExamples, replies, existingKeywords);
     }
   }
 
@@ -89,7 +91,8 @@ export abstract class BaseLLMClient implements ILLMClient {
   protected abstract callAnalysisAPI(
     content: string,
     codeExamples: string[],
-    replies?: Array<{ author: string; content: string; createdAt: string; }>
+    replies?: Array<{ author: string; content: string; createdAt: string; }>,
+    existingKeywords?: string[]
   ): Promise<LLMResponse>;
 
   /**
