@@ -61,8 +61,8 @@ export class DirectorySuggester {
     // 1. 규칙 기반 후보 3개 생성
     const candidates = this.generateRuleBasedCandidates(comment, analysisResult, baseDir);
 
-    // 2. LLM 활성화 시 최종 선택
-    if (llmConfig?.enabled && llmConfig.provider !== 'none' && this.llmClient) {
+    // 2. LLM 사용 가능 시 최종 선택
+    if (llmConfig && this.llmClient) {
       try {
         const selectedPath = await this.selectBestWithLLM(candidates, comment, analysisResult);
         return selectedPath;

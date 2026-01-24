@@ -37,8 +37,8 @@ export class PullRequestServiceImpl implements PullRequestService {
     files: FileGenerationResult[],
     llmConfig?: LLMConfig
   ): Promise<PullRequestResult> {
-    // LLM 클라이언트 생성 (활성화되어 있으면)
-    const llmClient = llmConfig?.enabled
+    // LLM 클라이언트 생성 (llmConfig가 있으면)
+    const llmClient = llmConfig
       ? (createLLMClient(llmConfig) ?? undefined)
       : undefined;
 

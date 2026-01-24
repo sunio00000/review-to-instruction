@@ -78,14 +78,13 @@ export interface MatchResult {
 }
 
 // LLM 제공자 타입
-export type LLMProvider = 'claude' | 'openai' | 'none';
+export type LLMProvider = 'claude' | 'openai';
 
 // LLM 설정
 export interface LLMConfig {
-  provider: LLMProvider;      // 'claude', 'openai', 'none'
+  provider: LLMProvider;      // 'claude' or 'openai' (required)
   claudeApiKey?: string;
   openaiApiKey?: string;
-  enabled: boolean;            // LLM 기능 활성화 여부
 }
 
 // API 설정

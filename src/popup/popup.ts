@@ -29,8 +29,6 @@ const testGitlabButton = document.getElementById('test-gitlab') as HTMLButtonEle
 const saveStatus = document.getElementById('save-status') as HTMLDivElement;
 
 // LLM 설정 DOM 요소 (가시성 제어용)
-const llmEnabledCheckbox = document.getElementById('llm-enabled') as HTMLInputElement;
-const llmSettingsDiv = document.getElementById('llm-settings') as HTMLDivElement;
 const llmProviderSelect = document.getElementById('llm-provider') as HTMLSelectElement;
 
 // 캐시 관리 DOM 요소
@@ -164,11 +162,6 @@ function showStatus(element: HTMLElement, message: string, type: 'success' | 'er
 
 // LLM UI 업데이트
 function updateLLMUI() {
-  const isEnabled = llmEnabledCheckbox.checked;
-
-  // LLM 활성화 시 설정 표시
-  llmSettingsDiv.style.display = isEnabled ? 'block' : 'none';
-
   // FormManager의 가시성 업데이트 호출 (API 키 필드 표시/숨김)
   formManager.updateVisibility();
 }
@@ -562,7 +555,6 @@ testGithubButton.addEventListener('click', testGithubApi);
 testGitlabButton.addEventListener('click', testGitlabApi);
 
 // LLM 설정 이벤트 리스너
-llmEnabledCheckbox.addEventListener('change', updateLLMUI);
 llmProviderSelect.addEventListener('change', updateLLMUI);
 
 // 캐시 관리 이벤트 리스너

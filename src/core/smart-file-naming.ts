@@ -45,7 +45,7 @@ export class SmartFileNaming {
     // 2. 파일명 생성 (LLM 또는 규칙 기반)
     let fileResult: FileNamingResult;
 
-    if (llmConfig?.enabled && llmConfig.provider !== 'none') {
+    if (llmConfig) {
       try {
         fileResult = await this.generateWithAI(parsedComment, analysisResult, llmConfig);
       } catch (error) {
@@ -67,7 +67,7 @@ export class SmartFileNaming {
    * LLM 클라이언트 생성
    */
   private createLLMClient(llmConfig?: LLMConfig): ClaudeClient | OpenAIClient | undefined {
-    if (!llmConfig?.enabled || llmConfig.provider === 'none') {
+    if (!llmConfig) {
       return undefined;
     }
 

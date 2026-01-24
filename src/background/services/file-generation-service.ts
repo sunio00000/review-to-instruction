@@ -120,7 +120,7 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     // 1. AI 기반 파일명 생성 (Claude Code 타입이고 LLM이 활성화된 경우)
     let smartFilePath: string | null = null;
 
-    if (projectType === 'claude-code' && llmConfig?.enabled && analysisResult) {
+    if (projectType === 'claude-code' && llmConfig && analysisResult) {
       try {
         const namingResult = await this.smartFileNaming.generateFileName({
           parsedComment: enhancedComment,

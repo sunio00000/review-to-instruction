@@ -16,15 +16,10 @@ export async function enhanceWithLLM(
   replies?: Array<{ author: string; content: string; createdAt: string; }>
 ): Promise<{ enhancedComment: EnhancedComment; tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; } }> {
 
-  // LLM 비활성화 또는 제공자가 'none'인 경우
-  if (!config.enabled || config.provider === 'none') {
-    return { enhancedComment: { ...parsedComment, llmEnhanced: false } };
-  }
-
   // API 키 확인
   const apiKey = config.provider === 'claude' ? config.claudeApiKey : config.openaiApiKey;
   if (!apiKey) {
-    return { enhancedComment: { ...parsedComment, llmEnhanced: false } };
+    throw new Error(`${config.provider === 'claude' ? 'Claude' : 'OpenAI'} API key is required. Please configure it in the extension settings.`);
   }
 
   try {
@@ -77,10 +72,6 @@ export async function enhanceWithLLM(
  * LLM 클라이언트 팩토리
  */
 export function createLLMClient(config: LLMConfig): ILLMClient | null {
-  if (!config.enabled || config.provider === 'none') {
-    return null;
-  }
-
   const apiKey = config.provider === 'claude' ? config.claudeApiKey : config.openaiApiKey;
   if (!apiKey) {
     return null;

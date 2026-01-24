@@ -49,8 +49,7 @@ export class ConfigServiceImpl implements ConfigService {
       'gitlabUrl',
       'claudeApiKey_enc',
       'openaiApiKey_enc',
-      'llmProvider',
-      'llmEnabled'
+      'llmProvider'
     ]);
 
     // 3. Token 복호화
@@ -89,8 +88,7 @@ export class ConfigServiceImpl implements ConfigService {
 
     // 6. LLM 설정 구성
     const llmConfig: LLMConfig = {
-      enabled: (storage.llmEnabled as boolean | undefined) ?? false,
-      provider: (storage.llmProvider as 'claude' | 'openai' | 'none' | undefined) ?? 'none',
+      provider: (storage.llmProvider as 'claude' | 'openai' | undefined) ?? 'claude',
       claudeApiKey,
       openaiApiKey
     };
@@ -150,10 +148,9 @@ export class ConfigServiceImpl implements ConfigService {
         encryptedData.openaiApiKey_enc = await this.crypto.encrypt(llmData.openaiApiKey);
       }
 
-      // LLM 설정 (provider, enabled)
+      // LLM 설정 (provider)
       if (llmData) {
-        encryptedData.llmProvider = llmData.provider ?? 'none';
-        encryptedData.llmEnabled = llmData.enabled ?? false;
+        encryptedData.llmProvider = llmData.provider ?? 'claude';
       }
 
       // gitlabUrl은 암호화 불필요 (민감 정보 아님)

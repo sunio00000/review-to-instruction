@@ -72,20 +72,15 @@
 
       <!-- LLM 설정 -->
       <section class="settings-section">
-        <h2>🤖 LLM 분석 (선택)</h2>
-        <label class="checkbox-label">
-          <input type="checkbox" id="llm-enabled" />
-          <span>LLM을 사용하여 코멘트 자동 분석 및 재구성</span>
-        </label>
+        <h2>🤖 LLM 분석</h2>
         <small class="help-text warning">
           ⚠️ LLM API 호출 시 비용이 발생합니다. (코멘트당 평균 5-20원)
         </small>
 
-        <div id="llm-settings" class="llm-settings" style="display: none;">
+        <div id="llm-settings" class="llm-settings">
           <div class="input-group" style="margin-top: 12px;">
             <label for="llm-provider">제공자:</label>
             <select id="llm-provider" class="select-input">
-              <option value="none">사용 안 함</option>
               <option value="claude">Anthropic Claude (Sonnet 4.5)</option>
               <option value="openai">OpenAI (GPT-4 Turbo)</option>
             </select>
