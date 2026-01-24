@@ -47,7 +47,9 @@ async function loadConfig() {
     await formManager.load();
     updateLLMUI();
   } catch (error) {
-    showStatus(saveStatus, '❌ 설정 로드 실패', 'error');
+    console.error('Load config error:', error);
+    showStatus(saveStatus, `❌ 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    throw error; // 상위로 전파하여 모달이 닫히지 않도록
   }
 }
 
@@ -371,19 +373,26 @@ async function setupMasterPassword(): Promise<void> {
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     crypto.setMasterPassword(password);
 
-    // 모달 닫기
-    const modal = document.getElementById('master-password-modal')!;
-    modal.style.display = 'none';
-
-    // FormManager 초기화 및 설정 로드
+    // FormManager 초기화 및 설정 로드 (모달 닫기 전에 실행)
     formManager.bindElements();
     formManager.bindVisibilityUpdates();
     await loadConfig();
-    await loadCacheStats();
+
+    // 캐시 통계는 실패해도 무시 (치명적이지 않음)
+    try {
+      await loadCacheStats();
+    } catch (error) {
+      console.warn('Failed to load cache stats:', error);
+    }
+
+    // 모든 초기화 성공 후 모달 닫기
+    const modal = document.getElementById('master-password-modal')!;
+    modal.style.display = 'none';
 
     showStatus(saveStatus, '✅ 마스터 비밀번호가 설정되었습니다.', 'success');
   } catch (error) {
-    errorDiv.textContent = `설정 실패: ${error}`;
+    console.error('Setup password error:', error);
+    errorDiv.textContent = `설정 실패: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
   } finally {
     setButton.disabled = false;
@@ -428,19 +437,26 @@ async function unlockWithPassword(): Promise<boolean> {
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     crypto.setMasterPassword(password);
 
-    // 모달 닫기
-    const modal = document.getElementById('unlock-modal')!;
-    modal.style.display = 'none';
-
-    // FormManager 초기화 및 설정 로드
+    // FormManager 초기화 및 설정 로드 (모달 닫기 전에 실행)
     formManager.bindElements();
     formManager.bindVisibilityUpdates();
     await loadConfig();
-    await loadCacheStats();
+
+    // 캐시 통계는 실패해도 무시 (치명적이지 않음)
+    try {
+      await loadCacheStats();
+    } catch (error) {
+      console.warn('Failed to load cache stats:', error);
+    }
+
+    // 모든 초기화 성공 후 모달 닫기
+    const modal = document.getElementById('unlock-modal')!;
+    modal.style.display = 'none';
 
     return true;
   } catch (error) {
-    errorDiv.textContent = `잠금 해제 실패: ${error}`;
+    console.error('Unlock error:', error);
+    errorDiv.textContent = `잠금 해제 실패: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
     return false;
   } finally {
