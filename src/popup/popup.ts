@@ -44,12 +44,16 @@ const cacheStatus = document.getElementById('cache-status') as HTMLDivElement;
 // 설정 로드 (FormManager 사용)
 async function loadConfig() {
   try {
+    console.log('[LoadConfig] Starting to load config...');
     await formManager.load();
+    console.log('[LoadConfig] FormManager loaded successfully');
     updateLLMUI();
+    console.log('[LoadConfig] LLM UI updated');
   } catch (error) {
-    console.error('Load config error:', error);
-    showStatus(saveStatus, `❌ 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`, 'error');
-    throw error; // 상위로 전파하여 모달이 닫히지 않도록
+    console.error('[LoadConfig] Error during config load:', error);
+    // 첫 실행시나 저장된 설정이 없을 때는 에러를 무시하고 기본값 사용
+    // 중대한 에러가 아니므로 throw하지 않음
+    console.warn('[LoadConfig] Using default values due to error');
   }
 }
 
@@ -360,38 +364,63 @@ async function setupMasterPassword(): Promise<void> {
   setButton.classList.add('loading');
 
   try {
+    console.log('[Setup] Starting master password setup...');
+
     // 비밀번호 해시 저장 (검증용)
     const passwordHash = await hashPassword(password);
+    console.log('[Setup] Password hashed successfully');
+
     await chrome.storage.local.set({ masterPasswordHash: passwordHash });
+    console.log('[Setup] Password hash saved to storage');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
+    console.log('[Setup] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     crypto.setMasterPassword(password);
+    console.log('[Setup] Password set in crypto service');
 
-    // FormManager 초기화 및 설정 로드 (모달 닫기 전에 실행)
-    formManager.bindElements();
-    formManager.bindVisibilityUpdates();
-    await loadConfig();
+    // 모달 닫기 (먼저 닫고 나중에 초기화)
+    const modal = document.getElementById('master-password-modal')!;
+    modal.style.display = 'none';
+    console.log('[Setup] Modal closed');
+
+    // FormManager 초기화
+    try {
+      console.log('[Setup] Binding form elements...');
+      formManager.bindElements();
+      formManager.bindVisibilityUpdates();
+      console.log('[Setup] Form elements bound successfully');
+    } catch (bindError) {
+      console.error('[Setup] Form binding error:', bindError);
+      // 첫 실행시 폼 요소가 비어있을 수 있으므로 무시
+    }
+
+    // 설정 로드 (첫 실행시 데이터가 없을 수 있음)
+    try {
+      console.log('[Setup] Loading config...');
+      await loadConfig();
+      console.log('[Setup] Config loaded successfully');
+    } catch (configError) {
+      console.warn('[Setup] Config load failed (might be first run):', configError);
+      // 첫 실행시 저장된 설정이 없을 수 있으므로 무시
+    }
 
     // 캐시 통계는 실패해도 무시 (치명적이지 않음)
     try {
       await loadCacheStats();
     } catch (error) {
-      console.warn('Failed to load cache stats:', error);
+      console.warn('[Setup] Failed to load cache stats:', error);
     }
 
-    // 모든 초기화 성공 후 모달 닫기
-    const modal = document.getElementById('master-password-modal')!;
-    modal.style.display = 'none';
-
     showStatus(saveStatus, '✅ 마스터 비밀번호가 설정되었습니다.', 'success');
+    console.log('[Setup] Setup completed successfully');
   } catch (error) {
-    console.error('Setup password error:', error);
+    console.error('[Setup] Fatal error during setup:', error);
     errorDiv.textContent = `설정 실패: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
   } finally {
@@ -419,43 +448,68 @@ async function unlockWithPassword(): Promise<boolean> {
   unlockButton.classList.add('loading');
 
   try {
+    console.log('[Unlock] Starting unlock process...');
+
     const passwordHash = await hashPassword(password);
     const result = await chrome.storage.local.get(['masterPasswordHash']);
+    console.log('[Unlock] Password hashed and stored hash retrieved');
 
     if (result.masterPasswordHash !== passwordHash) {
+      console.log('[Unlock] Password mismatch');
       errorDiv.textContent = '비밀번호가 일치하지 않습니다.';
       errorDiv.style.display = 'block';
       return false;
     }
+    console.log('[Unlock] Password verified successfully');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
+    console.log('[Unlock] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     crypto.setMasterPassword(password);
+    console.log('[Unlock] Password set in crypto service');
 
-    // FormManager 초기화 및 설정 로드 (모달 닫기 전에 실행)
-    formManager.bindElements();
-    formManager.bindVisibilityUpdates();
-    await loadConfig();
+    // 모달 닫기 (먼저 닫고 나중에 초기화)
+    const modal = document.getElementById('unlock-modal')!;
+    modal.style.display = 'none';
+    console.log('[Unlock] Modal closed');
+
+    // FormManager 초기화
+    try {
+      console.log('[Unlock] Binding form elements...');
+      formManager.bindElements();
+      formManager.bindVisibilityUpdates();
+      console.log('[Unlock] Form elements bound successfully');
+    } catch (bindError) {
+      console.error('[Unlock] Form binding error:', bindError);
+      // 폼 바인딩 실패해도 계속 진행
+    }
+
+    // 설정 로드
+    try {
+      console.log('[Unlock] Loading config...');
+      await loadConfig();
+      console.log('[Unlock] Config loaded successfully');
+    } catch (configError) {
+      console.warn('[Unlock] Config load failed:', configError);
+      // 설정 로드 실패해도 계속 진행
+    }
 
     // 캐시 통계는 실패해도 무시 (치명적이지 않음)
     try {
       await loadCacheStats();
     } catch (error) {
-      console.warn('Failed to load cache stats:', error);
+      console.warn('[Unlock] Failed to load cache stats:', error);
     }
 
-    // 모든 초기화 성공 후 모달 닫기
-    const modal = document.getElementById('unlock-modal')!;
-    modal.style.display = 'none';
-
+    console.log('[Unlock] Unlock completed successfully');
     return true;
   } catch (error) {
-    console.error('Unlock error:', error);
+    console.error('[Unlock] Fatal error during unlock:', error);
     errorDiv.textContent = `잠금 해제 실패: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
     return false;
