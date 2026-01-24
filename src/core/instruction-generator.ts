@@ -28,153 +28,103 @@ export function generateInstruction(options: InstructionOptions): string {
 }
 
 /**
- * 새 instruction 파일 생성
+ * 새 instruction 파일 생성 (Official Claude Code Rules format)
  */
 function createInstruction(options: InstructionOptions): string {
   const { parsedComment, originalComment, repository } = options;
 
   const title = generateTitle(parsedComment);
-  const date = new Date().toISOString().split('T')[0];
 
   // LLM 강화 여부 확인
   const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
   const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
 
-  // YAML frontmatter
-  const frontmatter = [
-    '---',
-    `title: "${title}"`,
-    `keywords: [${parsedComment.keywords.map(k => `"${k}"`).join(', ')}]`,
-    `category: "${parsedComment.category}"`,
-    `created_from: "PR #${repository.prNumber}, Comment by ${originalComment.author}"`,
-    `created_at: "${date}"`,
-    `last_updated: "${date}"`,
-    enhanced ? `llm_enhanced: true` : '',
-    '---',
-    ''
-  ].filter(Boolean).join('\n');
+  // YAML frontmatter (optional, simplified for Claude Code)
+  // Only include paths for conditional rules if needed
+  const frontmatter = '---\n# Optional: Scope this rule to specific files\n# paths:\n#   - "src/**/*.ts"\n---\n\n';
 
-  // 주석 추가
-  const note = generateNote(parsedComment);
+  // Markdown content
+  const sections: string[] = [];
 
-  // Markdown 본문
-  const body = [
-    note ? `${note}\n` : '',
-    `# ${title}`,
-    ''
-  ];
+  // Title
+  sections.push(`# ${title}\n`);
 
-  // LLM 요약 (있으면)
+  // Summary (if LLM enhanced)
   if (enhanced?.summary) {
-    body.push('## 요약');
-    body.push(enhanced.summary);
-    body.push('');
+    sections.push(`${enhanced.summary}\n`);
   }
 
-  // 규칙 (LLM 상세 설명 또는 원본)
-  body.push('## 규칙');
+  // Rules section (bullet points preferred)
+  sections.push('## Rules\n');
+
   if (enhanced?.detailedExplanation) {
-    body.push(enhanced.detailedExplanation);
+    // Use LLM explanation
+    const rules = convertToMarkdownList(enhanced.detailedExplanation);
+    sections.push(rules);
   } else {
-    body.push(summarizeComment(originalComment.content));
+    // Use original content as bullet points
+    const rules = convertToMarkdownList(summarizeComment(originalComment.content));
+    sections.push(rules);
   }
-  body.push('');
+  sections.push('');
 
-  // 코드 예시 (LLM 설명 포함)
+  // Examples section
   if (parsedComment.codeExamples.length > 0) {
-    body.push('## 예시\n');
+    sections.push('## Examples\n');
 
     if (enhanced?.codeExplanations && enhanced.codeExplanations.length > 0) {
-      // LLM 설명 있음
-      enhanced.codeExplanations.forEach((explanation, index) => {
-        if (enhanced.codeExplanations!.length > 1) {
-          const label = explanation.isGoodExample !== undefined
-            ? (explanation.isGoodExample ? '올바른 예시' : '잘못된 예시')
-            : `예시 ${index + 1}`;
-          body.push(`### ${label}\n`);
-        }
-        body.push('```');
-        body.push(explanation.code);
-        body.push('```');
-        body.push('');
-        body.push(`**설명:** ${explanation.explanation}`);
-        body.push('');
+      // LLM explanations available
+      enhanced.codeExplanations.forEach((explanation) => {
+        const label = explanation.isGoodExample !== undefined
+          ? (explanation.isGoodExample ? '### ✅ Correct' : '### ❌ Incorrect')
+          : '### Example';
+        sections.push(`${label}\n`);
+        sections.push('```');
+        sections.push(explanation.code);
+        sections.push('```\n');
+        sections.push(explanation.explanation);
+        sections.push('');
       });
     } else {
-      // LLM 설명 없음 (기존 방식)
-      parsedComment.codeExamples.forEach((example, index) => {
-        if (parsedComment.codeExamples.length > 1) {
-          body.push(`### 예시 ${index + 1}\n`);
-        }
-        body.push('```');
-        body.push(example);
-        body.push('```\n');
+      // No LLM explanations
+      parsedComment.codeExamples.forEach((example) => {
+        sections.push('```');
+        sections.push(example);
+        sections.push('```\n');
       });
     }
   }
 
-  // 출처
-  body.push('## 출처');
-  body.push(`이 컨벤션은 [PR #${repository.prNumber}](${originalComment.url})의 리뷰 과정에서 확립되었습니다.`);
-  body.push(`- 작성자: ${originalComment.author}`);
-  body.push(`- 작성일: ${new Date(originalComment.createdAt).toLocaleDateString('ko-KR')}`);
+  // Metadata footer
+  sections.push('---\n');
+  sections.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
+  sections.push(`**Keywords:** ${parsedComment.keywords.join(', ')}`);
+  sections.push(`**Category:** ${parsedComment.category}`);
 
-  return frontmatter + body.join('\n') + '\n';
+  return frontmatter + sections.join('\n') + '\n';
 }
 
 /**
- * 기존 instruction 파일 업데이트
+ * 기존 instruction 파일 업데이트 (simplified)
  */
 function updateInstruction(options: InstructionOptions, existingContent: string): string {
   const { parsedComment, originalComment, repository } = options;
 
-  // 기존 frontmatter 업데이트
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---/;
-  const match = existingContent.match(frontmatterRegex);
-
-  if (!match) {
-    // frontmatter가 없으면 새로 생성
-    return createInstruction(options);
-  }
-
   const date = new Date().toISOString().split('T')[0];
 
-  // frontmatter 업데이트
-  let updatedFrontmatter = match[1];
-
-  // last_updated 업데이트
-  if (updatedFrontmatter.includes('last_updated:')) {
-    updatedFrontmatter = updatedFrontmatter.replace(
-      /last_updated: ".*"/,
-      `last_updated: "${date}"`
-    );
-  } else {
-    updatedFrontmatter += `\nlast_updated: "${date}"`;
-  }
-
-  // 키워드 병합
-  const existingKeywords = extractKeywordsFromFrontmatter(updatedFrontmatter);
-  const mergedKeywords = Array.from(new Set([...existingKeywords, ...parsedComment.keywords]));
-  updatedFrontmatter = updatedFrontmatter.replace(
-    /keywords: \[.*\]/,
-    `keywords: [${mergedKeywords.map(k => `"${k}"`).join(', ')}]`
-  );
-
-  const newFrontmatter = `---\n${updatedFrontmatter}\n---`;
-
-  // 기존 본문에 새 내용 추가
-  const existingBody = existingContent.substring(match[0].length);
-
-  const addendum = [
+  // Add new section at the end
+  const addendum: string[] = [
     '',
-    `## 업데이트 (${date})`,
-    summarizeComment(originalComment.content),
+    '',
+    `## Update (${date})`,
+    '',
+    convertToMarkdownList(summarizeComment(originalComment.content)),
     ''
   ];
 
-  // 코드 예시 추가
+  // Add code examples if present
   if (parsedComment.codeExamples.length > 0) {
-    addendum.push('### 예시\n');
+    addendum.push('### Examples\n');
     parsedComment.codeExamples.forEach(example => {
       addendum.push('```');
       addendum.push(example);
@@ -182,9 +132,9 @@ function updateInstruction(options: InstructionOptions, existingContent: string)
     });
   }
 
-  addendum.push(`출처: [PR #${repository.prNumber}](${originalComment.url}) - ${originalComment.author}`);
+  addendum.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
 
-  return newFrontmatter + existingBody + addendum.join('\n') + '\n';
+  return existingContent.trim() + addendum.join('\n') + '\n';
 }
 
 /**
@@ -207,29 +157,19 @@ function generateTitle(parsedComment: ParsedComment): string {
   return category;
 }
 
-/**
- * 주석 생성 (새 범주인 경우)
- */
-function generateNote(parsedComment: ParsedComment): string {
-  // 특정 카테고리에 대한 주석
-  const categoryNotes: Record<string, string> = {
-    'security': '<!-- NOTE: 이 규칙은 보안 관련 중요 사항입니다. 반드시 준수해야 합니다. -->',
-    'performance': '<!-- NOTE: 이 규칙은 성능 최적화를 위한 권장사항입니다. -->',
-    'architecture': '<!-- NOTE: 이 규칙은 아키텍처 설계 원칙입니다. 프로젝트 전반에 적용됩니다. -->'
-  };
-
-  return categoryNotes[parsedComment.category] || '';
-}
 
 /**
- * Frontmatter에서 키워드 추출
+ * 텍스트를 Markdown 리스트로 변환
  */
-function extractKeywordsFromFrontmatter(frontmatter: string): string[] {
-  const keywordsMatch = frontmatter.match(/keywords: \[(.*)\]/);
-  if (!keywordsMatch) return [];
+function convertToMarkdownList(text: string): string {
+  // If already in bullet format, return as is
+  if (text.trim().startsWith('-') || text.trim().startsWith('*')) {
+    return text;
+  }
 
-  return keywordsMatch[1]
-    .split(',')
-    .map(k => k.trim().replace(/['"]/g, ''))
-    .filter(k => k.length > 0);
+  // Split by paragraphs or sentences
+  const lines = text.split(/\n+/).filter(line => line.trim().length > 0);
+
+  // Convert to bullet points
+  return lines.map(line => `- ${line.trim()}`).join('\n');
 }

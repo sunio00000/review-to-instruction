@@ -67,13 +67,12 @@ export class CursorGenerator extends BaseGenerator {
   }
 
   /**
-   * 규칙 콘텐츠 생성
+   * 규칙 콘텐츠 생성 (Cursor best practices: concise, bullet points)
    */
   private generateRuleContent(options: GeneratorOptions): string {
     const { parsedComment, originalComment, repository } = options;
 
     const title = this.generateTitle(parsedComment);
-    const date = new Date().toISOString().split('T')[0];
 
     // LLM 강화 여부 확인
     const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
@@ -84,29 +83,17 @@ export class CursorGenerator extends BaseGenerator {
     // 제목
     sections.push(`# ${title}\n`);
 
-    // 메타데이터 (굵은 글씨로)
-    sections.push(`**Category:** ${parsedComment.category}`);
-    sections.push(`**Keywords:** ${parsedComment.keywords.join(', ')}`);
-    sections.push(`**Source:** PR #${repository.prNumber}, Comment by ${originalComment.author}`);
-    sections.push(`**Date:** ${date}`);
-    if (isEnhanced) {
-      sections.push(`**Enhanced by LLM:** Yes`);
-    }
-    sections.push('');
-
     // LLM 요약 (있으면)
     if (enhanced?.summary) {
-      sections.push('## Summary\n');
       sections.push(enhanced.summary);
       sections.push('');
     }
 
-    // 규칙
-    sections.push('## Rules\n');
+    // 규칙 (bullet points preferred)
     if (enhanced?.detailedExplanation) {
-      sections.push(enhanced.detailedExplanation);
+      sections.push(this.convertToMarkdownList(enhanced.detailedExplanation));
     } else {
-      sections.push(summarizeComment(originalComment.content));
+      sections.push(this.convertToMarkdownList(summarizeComment(originalComment.content)));
     }
     sections.push('');
 
@@ -116,25 +103,20 @@ export class CursorGenerator extends BaseGenerator {
 
       if (enhanced?.codeExplanations && enhanced.codeExplanations.length > 0) {
         // LLM 설명 있음
-        enhanced.codeExplanations.forEach((explanation, index) => {
-          if (enhanced.codeExplanations!.length > 1) {
-            const label = explanation.isGoodExample !== undefined
-              ? (explanation.isGoodExample ? 'Correct Example' : 'Incorrect Example')
-              : `Example ${index + 1}`;
-            sections.push(`### ${label}\n`);
-          }
+        enhanced.codeExplanations.forEach((explanation) => {
+          const label = explanation.isGoodExample !== undefined
+            ? (explanation.isGoodExample ? '### ✅ Correct' : '### ❌ Incorrect')
+            : '### Example';
+          sections.push(`${label}\n`);
           sections.push('```');
           sections.push(explanation.code);
           sections.push('```\n');
-          sections.push(`**Explanation:** ${explanation.explanation}`);
+          sections.push(explanation.explanation);
           sections.push('');
         });
       } else {
         // LLM 설명 없음
-        parsedComment.codeExamples.forEach((example, index) => {
-          if (parsedComment.codeExamples.length > 1) {
-            sections.push(`### Example ${index + 1}\n`);
-          }
+        parsedComment.codeExamples.forEach((example) => {
           sections.push('```');
           sections.push(example);
           sections.push('```\n');
@@ -142,13 +124,27 @@ export class CursorGenerator extends BaseGenerator {
       }
     }
 
-    // 출처
-    sections.push('## Source\n');
-    sections.push(`This convention was established during the review of [PR #${repository.prNumber}](${originalComment.url}).`);
-    sections.push(`- Author: ${originalComment.author}`);
-    sections.push(`- Date: ${new Date(originalComment.createdAt).toLocaleDateString('en-US')}`);
+    // 메타데이터 (footer)
+    sections.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
+    sections.push(`**Keywords:** ${parsedComment.keywords.join(', ')}`);
 
     return sections.join('\n');
+  }
+
+  /**
+   * 텍스트를 Markdown 리스트로 변환
+   */
+  private convertToMarkdownList(text: string): string {
+    // If already in bullet format, return as is
+    if (text.trim().startsWith('-') || text.trim().startsWith('*')) {
+      return text;
+    }
+
+    // Split by paragraphs or sentences
+    const lines = text.split(/\n+/).filter(line => line.trim().length > 0);
+
+    // Convert to bullet points
+    return lines.map(line => `- ${line.trim()}`).join('\n');
   }
 
   /**

@@ -28,136 +28,121 @@ export function generateSkill(options: SkillOptions): string {
 }
 
 /**
- * 새 skill 파일 생성
+ * 새 skill 파일 생성 (Official Claude Code Skills format)
  */
 function createSkill(options: SkillOptions): string {
   const { parsedComment, originalComment, repository } = options;
 
-  const title = generateTitle(parsedComment);
-  const date = new Date().toISOString().split('T')[0];
+  // LLM 강화 여부 확인
+  const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
+  const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
 
-  // YAML frontmatter
+  // Generate skill name (kebab-case)
+  const skillName = generateSkillName(parsedComment);
+
+  // Generate description (triggers when to use this skill)
+  const description = generateSkillDescription(parsedComment);
+
+  // YAML frontmatter (name and description are required)
   const frontmatter = [
     '---',
-    `title: "${title}"`,
-    `keywords: [${parsedComment.keywords.map(k => `"${k}"`).join(', ')}]`,
-    `category: "${parsedComment.category}"`,
-    `created_from: "PR #${repository.prNumber}, Comment by ${originalComment.author}"`,
-    `created_at: "${date}"`,
-    `last_updated: "${date}"`,
+    `name: ${skillName}`,
+    `description: ${description}`,
     '---',
     ''
   ].join('\n');
 
-  // Markdown 본문
-  const body = [
-    `# ${title}`,
-    '',
-    '## 설명',
-    summarizeComment(originalComment.content),
-    ''
-  ];
+  // Markdown content
+  const sections: string[] = [];
 
-  // 올바른 예시와 잘못된 예시 구분
+  // Main instructions
+  if (enhanced?.detailedExplanation) {
+    sections.push(enhanced.detailedExplanation);
+  } else {
+    sections.push(summarizeComment(originalComment.content));
+  }
+  sections.push('');
+
+  // Examples section
   if (parsedComment.codeExamples.length > 0) {
-    const hasGoodBad = originalComment.content.includes('✅') ||
-                       originalComment.content.includes('❌') ||
-                       originalComment.content.includes('좋은') ||
-                       originalComment.content.includes('나쁜');
+    sections.push('## Examples\n');
 
-    if (hasGoodBad) {
-      body.push('## 올바른 예시\n');
-      const goodExamples = extractGoodExamples(originalComment.content, parsedComment.codeExamples);
-      goodExamples.forEach(example => {
-        body.push('```');
-        body.push(example);
-        body.push('```\n');
-      });
-
-      body.push('## 잘못된 예시\n');
-      const badExamples = extractBadExamples(originalComment.content, parsedComment.codeExamples);
-      badExamples.forEach(example => {
-        body.push('```');
-        body.push(example);
-        body.push('```\n');
+    if (enhanced?.codeExplanations && enhanced.codeExplanations.length > 0) {
+      // LLM explanations available
+      enhanced.codeExplanations.forEach((explanation) => {
+        const label = explanation.isGoodExample !== undefined
+          ? (explanation.isGoodExample ? '### ✅ Correct' : '### ❌ Incorrect')
+          : '### Example';
+        sections.push(`${label}\n`);
+        sections.push('```');
+        sections.push(explanation.code);
+        sections.push('```\n');
+        sections.push(explanation.explanation);
+        sections.push('');
       });
     } else {
-      body.push('## 예시\n');
-      parsedComment.codeExamples.forEach(example => {
-        body.push('```');
-        body.push(example);
-        body.push('```\n');
-      });
+      // No LLM explanations - check for good/bad examples
+      const hasGoodBad = originalComment.content.includes('✅') || originalComment.content.includes('❌');
+
+      if (hasGoodBad) {
+        const goodExamples = extractGoodExamples(originalComment.content, parsedComment.codeExamples);
+        const badExamples = extractBadExamples(originalComment.content, parsedComment.codeExamples);
+
+        if (goodExamples.length > 0) {
+          sections.push('### ✅ Correct\n');
+          goodExamples.forEach(example => {
+            sections.push('```');
+            sections.push(example);
+            sections.push('```\n');
+          });
+        }
+
+        if (badExamples.length > 0) {
+          sections.push('### ❌ Incorrect\n');
+          badExamples.forEach(example => {
+            sections.push('```');
+            sections.push(example);
+            sections.push('```\n');
+          });
+        }
+      } else {
+        parsedComment.codeExamples.forEach(example => {
+          sections.push('```');
+          sections.push(example);
+          sections.push('```\n');
+        });
+      }
     }
   }
 
-  // 사용 시기
-  body.push('## 사용 시기');
-  body.push(generateUsageGuidance(parsedComment));
-  body.push('');
+  // Metadata footer
+  sections.push('---\n');
+  sections.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
 
-  // 출처
-  body.push('## 출처');
-  body.push(`이 스킬은 [PR #${repository.prNumber}](${originalComment.url})의 리뷰 과정에서 확립되었습니다.`);
-  body.push(`- 작성자: ${originalComment.author}`);
-  body.push(`- 작성일: ${new Date(originalComment.createdAt).toLocaleDateString('ko-KR')}`);
-
-  return frontmatter + body.join('\n') + '\n';
+  return frontmatter + sections.join('\n') + '\n';
 }
 
 /**
- * 기존 skill 파일 업데이트
+ * 기존 skill 파일 업데이트 (simplified)
  */
 function updateSkill(options: SkillOptions, existingContent: string): string {
   const { parsedComment, originalComment, repository } = options;
 
-  // 기존 frontmatter 업데이트
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---/;
-  const match = existingContent.match(frontmatterRegex);
-
-  if (!match) {
-    // frontmatter가 없으면 새로 생성
-    return createSkill(options);
-  }
-
   const date = new Date().toISOString().split('T')[0];
 
-  // frontmatter 업데이트
-  let updatedFrontmatter = match[1];
-
-  // last_updated 업데이트
-  if (updatedFrontmatter.includes('last_updated:')) {
-    updatedFrontmatter = updatedFrontmatter.replace(
-      /last_updated: ".*"/,
-      `last_updated: "${date}"`
-    );
-  } else {
-    updatedFrontmatter += `\nlast_updated: "${date}"`;
-  }
-
-  // 키워드 병합
-  const existingKeywords = extractKeywordsFromFrontmatter(updatedFrontmatter);
-  const mergedKeywords = Array.from(new Set([...existingKeywords, ...parsedComment.keywords]));
-  updatedFrontmatter = updatedFrontmatter.replace(
-    /keywords: \[.*\]/,
-    `keywords: [${mergedKeywords.map(k => `"${k}"`).join(', ')}]`
-  );
-
-  const newFrontmatter = `---\n${updatedFrontmatter}\n---`;
-
-  // 기존 본문에 새 내용 추가
-  const existingBody = existingContent.substring(match[0].length);
-
-  const addendum = [
+  // Add new section at the end
+  const addendum: string[] = [
     '',
-    `## 추가 사례 (${date})`,
+    '',
+    `## Additional Case (${date})`,
+    '',
     summarizeComment(originalComment.content),
     ''
   ];
 
-  // 코드 예시 추가
+  // Add code examples if present
   if (parsedComment.codeExamples.length > 0) {
-    addendum.push('### 예시\n');
+    addendum.push('### Examples\n');
     parsedComment.codeExamples.forEach(example => {
       addendum.push('```');
       addendum.push(example);
@@ -165,48 +150,46 @@ function updateSkill(options: SkillOptions, existingContent: string): string {
     });
   }
 
-  addendum.push(`출처: [PR #${repository.prNumber}](${originalComment.url}) - ${originalComment.author}`);
+  addendum.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
 
-  return newFrontmatter + existingBody + addendum.join('\n') + '\n';
+  return existingContent.trim() + addendum.join('\n') + '\n';
 }
 
 /**
- * 제목 생성
+ * Skill 이름 생성 (kebab-case)
  */
-function generateTitle(parsedComment: ParsedComment): string {
-  const category = parsedComment.category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
+function generateSkillName(parsedComment: ParsedComment): string {
   if (parsedComment.keywords.length > 0) {
-    const mainKeyword = parsedComment.keywords[0]
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    return `${mainKeyword} - ${category}`;
+    return parsedComment.keywords[0].toLowerCase();
   }
-
-  return category;
+  return parsedComment.category.toLowerCase();
 }
 
 /**
- * 사용 시기 가이던스 생성
+ * Skill description 생성 (트리거 메커니즘)
  */
-function generateUsageGuidance(parsedComment: ParsedComment): string {
-  const categoryGuidance: Record<string, string> = {
-    'naming': '변수, 함수, 클래스 등의 이름을 지을 때 이 규칙을 따르세요.',
-    'style': '코드 스타일을 통일할 때 이 규칙을 적용하세요.',
-    'architecture': '시스템 설계나 구조를 결정할 때 이 원칙을 고려하세요.',
-    'testing': '테스트 코드를 작성할 때 이 패턴을 사용하세요.',
-    'security': '보안이 중요한 코드를 작성할 때 반드시 이 규칙을 준수하세요.',
-    'performance': '성능이 중요한 부분에서 이 최적화 기법을 적용하세요.',
-    'error-handling': '에러 처리 로직을 구현할 때 이 패턴을 사용하세요.',
-    'documentation': '코드 문서화가 필요할 때 이 형식을 따르세요.'
+function generateSkillDescription(parsedComment: ParsedComment): string {
+  const categoryDescriptions: Record<string, string> = {
+    'naming': 'Use when naming variables, functions, or classes. Applies naming conventions.',
+    'style': 'Use when formatting code or applying code style rules.',
+    'architecture': 'Use when making architectural decisions or designing system structure.',
+    'testing': 'Use when writing tests or implementing test patterns.',
+    'security': 'Use when implementing security-critical code. Must be followed.',
+    'performance': 'Use when optimizing performance or implementing efficient code.',
+    'error-handling': 'Use when implementing error handling or exception management.',
+    'documentation': 'Use when writing code documentation or comments.'
   };
 
-  return categoryGuidance[parsedComment.category] || '이 스킬이 필요한 상황에서 사용하세요.';
+  const baseDescription = categoryDescriptions[parsedComment.category] || 'Use when implementing this pattern.';
+
+  if (parsedComment.keywords.length > 0) {
+    const keyword = parsedComment.keywords[0].replace('-', ' ');
+    return `${baseDescription} Focus on ${keyword}.`;
+  }
+
+  return baseDescription;
 }
+
 
 /**
  * 올바른 예시 추출
@@ -238,15 +221,3 @@ function extractBadExamples(content: string, codeExamples: string[]): string[] {
   });
 }
 
-/**
- * Frontmatter에서 키워드 추출
- */
-function extractKeywordsFromFrontmatter(frontmatter: string): string[] {
-  const keywordsMatch = frontmatter.match(/keywords: \[(.*)\]/);
-  if (!keywordsMatch) return [];
-
-  return keywordsMatch[1]
-    .split(',')
-    .map(k => k.trim().replace(/['"]/g, ''))
-    .filter(k => k.length > 0);
-}
