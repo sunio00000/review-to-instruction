@@ -1,6 +1,6 @@
 /**
  * Review to Instruction - Windsurf Generator
- * Windsurf rules/ 디렉토리 파일 생성
+ * Windsurf .windsurf/rules/ 디렉토리 파일 생성
  */
 
 import { BaseGenerator, type GeneratorOptions, type GenerationResult } from './base-generator';
@@ -9,7 +9,7 @@ import { summarizeComment } from '../parser';
 
 /**
  * Windsurf 파일 생성기
- * - rules/ 디렉토리에 파일 생성
+ * - .windsurf/rules/ 디렉토리에 파일 생성
  * - YAML frontmatter 없이 순수 Markdown
  * - 메타데이터를 blockquote로 표시
  */
@@ -39,7 +39,7 @@ export class WindsurfGenerator extends BaseGenerator {
    * 대상 디렉토리 반환
    */
   getTargetDirectory(): string {
-    return 'rules';
+    return '.windsurf/rules';
   }
 
   /**

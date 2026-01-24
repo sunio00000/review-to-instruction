@@ -51,7 +51,7 @@ export class ClaudeCodeGenerator extends BaseGenerator {
    */
   getTargetDirectory(): string {
     return this.fileType === 'instruction'
-      ? '.claude/instructions'
+      ? '.claude/rules'
       : '.claude/skills';
   }
 

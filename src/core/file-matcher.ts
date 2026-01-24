@@ -35,18 +35,18 @@ export async function findMatchingFile(
       parsedComment
     );
 
-    // 3. instructions/ 디렉토리에서도 매칭 파일 찾기
-    const instructionsMatch = await findInDirectory(
+    // 3. rules/ 디렉토리에서도 매칭 파일 찾기
+    const rulesMatch = await findInDirectory(
       client,
       repository,
-      '.claude/instructions',
+      '.claude/rules',
       parsedComment
     );
 
     // 4. 더 높은 스코어의 매칭 선택
-    const bestMatch = skillsMatch.score > instructionsMatch.score
+    const bestMatch = skillsMatch.score > rulesMatch.score
       ? skillsMatch
-      : instructionsMatch;
+      : rulesMatch;
 
     // 매칭 스코어가 임계값 이상이면 기존 파일 업데이트
     if (bestMatch.isMatch) {
@@ -291,7 +291,7 @@ export function generateFilePath(
   isSkill: boolean,
   fileName: string
 ): string {
-  const dir = isSkill ? '.claude/skills' : '.claude/instructions';
+  const dir = isSkill ? '.claude/skills' : '.claude/rules';
   const normalizedFileName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
   return `${dir}/${normalizedFileName}`;
 }
@@ -416,7 +416,7 @@ async function findMatchingFileForCursor(
 }
 
 /**
- * Windsurf 파일 매칭 (rules/ 디렉토리)
+ * Windsurf 파일 매칭 (.windsurf/rules/ 디렉토리)
  */
 async function findMatchingFileForWindsurf(
   client: ApiClient,
@@ -424,11 +424,11 @@ async function findMatchingFileForWindsurf(
   parsedComment: ParsedComment
 ): Promise<ProjectTypeMatchResult> {
   try {
-    // rules/ 디렉토리에서 매칭 파일 찾기
+    // .windsurf/rules/ 디렉토리에서 매칭 파일 찾기
     const matchResult = await findInDirectory(
       client,
       repository,
-      'rules',
+      '.windsurf/rules',
       parsedComment
     );
 

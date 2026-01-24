@@ -62,7 +62,7 @@ export interface Repository {
 
 // Claude Code instruction/skill 파일
 export interface ClaudeFile {
-  path: string;                 // 파일 경로 (.claude/instructions/ 또는 .claude/skills/)
+  path: string;                 // 파일 경로 (.claude/rules/ 또는 .claude/skills/)
   title: string;
   keywords: string[];
   category: string;

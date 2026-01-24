@@ -35,9 +35,9 @@ Our team uses PascalCase for component file names.
 ```
 
 Into AI-ready instruction files automatically:
-- `.claude/instructions/component-naming.md`
+- `.claude/rules/component-naming.md`
 - `.cursorrules` (appends rule)
-- `rules/component-naming.md`
+- `.windsurf/rules/component-naming.md`
 
 **All in one PR with a single click.**
 
@@ -63,7 +63,7 @@ When you see a convention comment during PR review, you need to:
 🤝 Get team consensus on the approach<br/>
 📋 Copy the comment text manually<br/>
 🤔 Think of an appropriate filename<br/>
-🔍 Navigate to `.claude/instructions/` folder<br/>
+🔍 Navigate to `.claude/rules/` folder<br/>
 📝 Create new `.md` file<br/>
 ⚙️ Write YAML frontmatter (title, keywords, category...)<br/>
 ✍️ Format content in Markdown<br/>
@@ -72,7 +72,7 @@ When you see a convention comment during PR review, you need to:
 🔀 Open Pull Request<br/>
 📄 Write PR description<br/>
 🔁 Repeat for `.cursorrules` (Cursor)<br/>
-🔁 Repeat for `rules/` (Windsurf)
+🔁 Repeat for `.windsurf/rules/` (Windsurf)
 
 ### ⏱️ **Time Required: 15-20 minutes per convention**
 
@@ -94,9 +94,9 @@ When you see a convention comment during PR review, you need to:
 📝 Generates professional summaries and explanations<br/>
 🎯 Extracts keywords and categorizes content<br/>
 📁 Creates files for **ALL tools simultaneously:**<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;• `.claude/instructions/xxx.md` (Claude Code)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;• `.claude/rules/xxx.md` (Claude Code)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;• `.cursorrules` (Cursor)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;• `rules/xxx.md` (Windsurf)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;• `.windsurf/rules/xxx.md` (Windsurf)<br/>
 🌿 Creates branch with unique timestamp<br/>
 💾 Commits all files with detailed messages<br/>
 🔀 Opens Pull Request with preview<br/>
@@ -270,7 +270,7 @@ Not yet. Only `gitlab.com` currently supported.
 Yes! LLM is completely optional. Extension works perfectly with rule-based parsing alone.
 
 **Q: Which AI tools are supported?**
-Claude Code (`.claude/`), Cursor (`.cursorrules`), Windsurf (`rules/`)
+Claude Code (`.claude/rules/`, `.claude/skills/`), Cursor (`.cursorrules`), Windsurf (`.windsurf/rules/`)
 
 **Q: How does AI-based file naming work?**
 When LLM is enabled, the extension analyzes your existing instruction files to learn naming patterns, then uses AI to generate filenames that match your project's style. It falls back to rule-based naming if AI is unavailable.
