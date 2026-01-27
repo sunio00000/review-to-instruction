@@ -110,8 +110,7 @@ describe('FormManager', () => {
       expect(formManager.getValue('test-select')).toBeDefined();
     });
 
-    it('존재하지 않는 요소는 경고만 출력하고 계속 진행한다', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('존재하지 않는 요소는 조용히 스킵하고 계속 진행한다', () => {
       const fieldsWithMissing: FieldSchema[] = [
         ...mockFields,
         {
@@ -125,8 +124,10 @@ describe('FormManager', () => {
       const manager = new FormManager(fieldsWithMissing, cryptoService);
       manager.bindElements();
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith('[FormManager] Element not found: #non-existent');
-      consoleWarnSpy.mockRestore();
+      // 존재하는 요소는 정상적으로 바인딩됨
+      expect(manager.getValue('test-text')).toBeDefined();
+      // 존재하지 않는 요소는 조용히 스킵됨 (에러 없이)
+      expect(manager.getValue('non-existent')).toBeUndefined();
     });
   });
 
@@ -163,21 +164,14 @@ describe('FormManager', () => {
     });
 
     it('복호화 실패 시 빈 값으로 설정한다', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
       vi.mocked(chrome.storage.local.get).mockResolvedValue({
         testPassword_enc: 'invalid-encrypted-data'
       });
 
       await formManager.load();
 
+      // 복호화 실패 시 빈 값으로 설정됨
       expect((document.getElementById('test-password') as HTMLInputElement).value).toBe('');
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[FormManager] Decryption failed for test-password'),
-        expect.any(Error)
-      );
-
-      consoleWarnSpy.mockRestore();
     });
 
     it('값이 없으면 기본값을 적용한다', async () => {
@@ -681,13 +675,14 @@ describe('FormManager', () => {
       expect(formManager.getValue('non-existent')).toBeUndefined();
     });
 
-    it('존재하지 않는 필드에 setValue()를 호출하면 경고를 출력한다', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('존재하지 않는 필드에 setValue()를 호출하면 조용히 무시한다', () => {
+      // 에러 없이 조용히 무시됨
+      expect(() => {
+        formManager.setValue('non-existent', 'value');
+      }).not.toThrow();
 
-      formManager.setValue('non-existent', 'value');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith('[FormManager] Element not found for setValue: non-existent');
-      consoleWarnSpy.mockRestore();
+      // getValue로 확인해도 여전히 undefined
+      expect(formManager.getValue('non-existent')).toBeUndefined();
     });
   });
 

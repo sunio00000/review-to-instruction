@@ -50,8 +50,8 @@ All committed to a new PR with proper formatting and metadata.
 
 4. **Start using:**
    - Navigate to any PR/MR on GitHub or GitLab
-   - Find a comment containing conventions (keywords like `convention`, `rule`, `pattern`)
-   - Click the "Convert to AI Instruction" button
+   - **For individual comments**: Click the "Convert to AI Instruction" button on any convention-related comment
+   - **For discussion threads**: Click the purple "Convert Thread (N comments)" button at the top of discussions with 2+ comments
    - Review and merge the generated PR
 
 ## Features
@@ -64,6 +64,13 @@ Automatically detects and generates instruction files for:
 
 ### Intelligent Processing
 - **Smart File Matching**: Automatically updates existing files or creates new ones based on similarity scoring
+- **Discussion Thread Conversion** (New!): Convert entire discussion threads into unified instructions
+  - Detects threads with 2+ comments automatically
+  - Displays distinctive "Convert Thread" button on discussion headers
+  - Merges all comments with author and timestamp metadata
+  - Analyzes discussion evolution, consensus, and actionable outcomes
+  - Generates filenames reflecting the thread's central topic (e.g., "component-naming-discussion.md")
+  - Works alongside individual comment buttons for maximum flexibility
 - **Thread Analysis**: Analyzes entire comment threads including all replies for comprehensive context
 - **AI Enhancement** (Optional): Uses Claude or OpenAI APIs to improve summaries and generate better explanations
 - **Caching**: Reduces LLM API costs by 50-70% through intelligent result caching
