@@ -636,22 +636,28 @@ function generateFileName(category: string, keywords: string[]): string {
  * Check if comment is convention-related
  */
 export function isConventionComment(content: string): boolean {
+  // 1. 50자 이상이면 무조건 통과 (관대한 필터링)
+  if (content.length >= 50) {
+    return true;
+  }
+
   const lowercaseContent = content.toLowerCase();
 
-  // Check for convention keywords
+  // 2. Check for convention keywords
   const hasKeyword = CONVENTION_KEYWORDS.some(keyword =>
     lowercaseContent.includes(keyword.toLowerCase())
   );
 
-  // Check for code examples (strong signal)
+  // 3. Check for code examples (strong signal) - 길이 조건 제거
   const hasCodeExample = /```|`[^`]+`/.test(content);
 
-  // Check for emoji patterns
+  // 4. Check for emoji patterns
   const hasEmojiPattern =
     EMOJI_PATTERNS.good.some(emoji => content.includes(emoji)) ||
     EMOJI_PATTERNS.bad.some(emoji => content.includes(emoji));
 
-  return hasKeyword || (hasCodeExample && content.length > 50) || hasEmojiPattern;
+  // OR 조건: 하나만 만족해도 통과
+  return hasKeyword || hasCodeExample || hasEmojiPattern;
 }
 
 /**

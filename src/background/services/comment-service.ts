@@ -38,17 +38,19 @@ export class CommentServiceImpl implements CommentService {
     // 2. 코멘트 파싱 (규칙 기반)
     const parsedComment = parseComment(comment.content);
 
-    // 3. 키워드 검증
-    if (parsedComment.keywords.length === 0) {
-      throw new Error('키워드를 추출할 수 없습니다. 더 명확한 컨벤션 설명이 필요합니다.');
-    }
+    // 3. 키워드 검증 제거 - LLM이 키워드를 추출할 것
 
-    // 4. LLM 강화 (답글 포함)
+    // 4. LLM 강화 (답글 포함, 키워드 병합)
     const { enhancedComment, tokenUsage } = await enhanceWithLLM(
       parsedComment,
       llmConfig,
       comment.replies
     );
+
+    // 5. 선택적 경고 (디버깅용)
+    if (enhancedComment.keywords.length === 0) {
+      console.warn('[CommentService] No keywords extracted, but proceeding with LLM enhancement');
+    }
 
     return { enhancedComment, tokenUsage };
   }
@@ -73,10 +75,7 @@ export class CommentServiceImpl implements CommentService {
     // 2. 통합 코멘트 파싱
     const parsedComment = parseComment(mergedComment.content);
 
-    // 3. 키워드 검증
-    if (parsedComment.keywords.length === 0) {
-      throw new Error('Thread에서 키워드를 추출할 수 없습니다.');
-    }
+    // 3. 키워드 검증 제거 - LLM이 Thread에서 키워드를 추출할 것
 
     // 4. Thread 맥락을 고려한 LLM 강화
     const { enhancedComment, tokenUsage } = await enhanceWithLLM(
@@ -85,6 +84,11 @@ export class CommentServiceImpl implements CommentService {
       undefined,  // replies 없음 (이미 통합됨)
       thread      // Thread 전체 컨텍스트 전달
     );
+
+    // 5. 선택적 경고 (디버깅용)
+    if (enhancedComment.keywords.length === 0) {
+      console.warn('[CommentService] Thread has no keywords, but proceeding');
+    }
 
     return { enhancedComment, tokenUsage };
   }

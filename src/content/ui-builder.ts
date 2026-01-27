@@ -293,14 +293,14 @@ export class UIBuilder {
       return '네트워크 오류: 인터넷 연결을 확인해주세요.';
     }
 
-    // 컨벤션 감지 실패
+    // 컨벤션 감지 실패 (완화된 필터링)
     if (errorLower.includes('컨벤션') || errorLower.includes('convention')) {
-      return '이 코멘트는 컨벤션 관련 내용이 아닙니다. 규칙이나 패턴을 명확히 설명해주세요.';
+      return '이 코멘트는 너무 짧거나 관련 내용이 없습니다. 최소 50자 이상 또는 코드 예시를 포함해주세요.';
     }
 
-    // 키워드 추출 실패
+    // 키워드 추출 실패 (더 이상 발생하지 않지만 안전장치로 유지)
     if (errorLower.includes('키워드') || errorLower.includes('keyword')) {
-      return '키워드를 추출할 수 없습니다. 더 명확한 컨벤션 설명이 필요합니다.';
+      return '키워드 추출에 실패했지만 LLM이 자동으로 처리합니다. 잠시 후 다시 시도해주세요.';
     }
 
     // API 에러
