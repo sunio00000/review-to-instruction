@@ -47,6 +47,7 @@ header h1 {
 main {
   flex: 1;
   padding: 20px;
+  padding-bottom: 80px;
   overflow-y: auto;
 }
 
@@ -182,7 +183,15 @@ main {
 
 /* 액션 버튼 영역 */
 .actions {
-  margin-top: 24px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #e1e4e8;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
 .actions .btn-primary {
@@ -381,6 +390,11 @@ footer a:hover {
 
   .error-text {
     color: #f85149;
+  }
+
+  .actions {
+    background-color: #0d1117;
+    border-top-color: #30363d;
   }
 }
 

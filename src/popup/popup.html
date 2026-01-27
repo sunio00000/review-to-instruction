@@ -26,6 +26,9 @@
             autocomplete="off"
           />
           <small class="error-text" data-error-for="github-token"></small>
+          <small class="help-text">
+            <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">토큰 발급받기</a>
+          </small>
         </div>
         <button id="test-github" class="btn btn-secondary">연결 테스트</button>
         <div id="github-status" class="status"></div>
@@ -56,18 +59,19 @@
             autocomplete="off"
           />
           <small class="error-text" data-error-for="gitlab-token"></small>
+          <small class="help-text">
+            <a href="https://gitlab.com/-/user_settings/personal_access_tokens?name=Review+to+Instruction&scopes=api" target="_blank">토큰 발급받기</a>
+          </small>
         </div>
         <button id="test-gitlab" class="btn btn-secondary">연결 테스트</button>
         <div id="gitlab-status" class="status"></div>
-      </section>
 
-      <!-- 버튼 설정 -->
-      <section class="settings-section">
-        <h2>버튼 설정</h2>
-        <label class="checkbox-label">
-          <input type="checkbox" id="show-buttons" checked />
-          <span>PR/MR 코멘트에 "Convert to Instruction" 버튼 표시</span>
-        </label>
+        <div class="input-group" style="margin-top: 16px;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="show-buttons" checked />
+            <span>PR/MR 코멘트에 "Convert to Instruction" 버튼 표시</span>
+          </label>
+        </div>
       </section>
 
       <!-- LLM 설정 -->
@@ -153,18 +157,6 @@
         </div>
 
         <div id="cache-status" class="status"></div>
-      </section>
-
-      <!-- 저장 위치 -->
-      <section class="settings-section">
-        <h2>저장 위치</h2>
-        <div class="input-group">
-          <label>기본 디렉토리:</label>
-          <input type="text" value=".claude/" readonly class="readonly-input" />
-        </div>
-        <small class="help-text">
-          Instructions는 .claude/instructions/, Skills는 .claude/skills/에 저장됩니다.
-        </small>
       </section>
 
       <!-- 저장 버튼 -->
