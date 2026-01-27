@@ -3,7 +3,7 @@
  * AI 기반 분석 및 지능적 파일명 생성 지원
  */
 
-import type { Repository, EnhancedComment, Comment, FileGenerationResult, ProjectType, LLMConfig } from '../../types';
+import type { Repository, EnhancedComment, Comment, FileGenerationResult, ProjectType, LLMConfig, DiscussionThread } from '../../types';
 import type { ApiClient } from '../api-client';
 import { ProjectTypeDetector } from '../../core/project-detector';
 import { GeneratorFactory } from '../../core/generators/generator-factory';
@@ -17,7 +17,8 @@ export interface FileGenerationService {
     repository: Repository,
     enhancedComment: EnhancedComment,
     originalComment: Comment,
-    llmConfig?: LLMConfig
+    llmConfig?: LLMConfig,
+    thread?: DiscussionThread
   ): Promise<FileGenerationResult[]>;
 }
 
@@ -44,7 +45,8 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     repository: Repository,
     enhancedComment: EnhancedComment,
     originalComment: Comment,
-    llmConfig?: LLMConfig
+    llmConfig?: LLMConfig,
+    thread?: DiscussionThread
   ): Promise<FileGenerationResult[]> {
     // 1. 프로젝트 타입 감지
     const detectionResult = await this.projectDetector.detect(client, repository);
@@ -86,7 +88,8 @@ export class FileGenerationServiceImpl implements FileGenerationService {
           projectType,
           generator,
           analysisResult,
-          llmConfig
+          llmConfig,
+          thread
         );
 
         files.push(file);
@@ -115,7 +118,8 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     projectType: string,
     generator: any,
     analysisResult?: AnalysisResult | null,
-    llmConfig?: LLMConfig
+    llmConfig?: LLMConfig,
+    thread?: DiscussionThread
   ): Promise<FileGenerationResult> {
     // 1. AI 기반 파일명 생성 (Claude Code 타입이고 LLM이 활성화된 경우)
     let smartFilePath: string | null = null;
@@ -125,7 +129,8 @@ export class FileGenerationServiceImpl implements FileGenerationService {
         const namingResult = await this.smartFileNaming.generateFileName({
           parsedComment: enhancedComment,
           analysisResult,
-          llmConfig
+          llmConfig,
+          thread  // Thread 컨텍스트 전달
         });
 
         smartFilePath = namingResult.fullPath;

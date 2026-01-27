@@ -3,7 +3,7 @@
  * AI를 활용한 지능적 파일명 생성 + 디렉토리 제안
  */
 
-import type { ParsedComment, EnhancedComment, LLMConfig } from '../types';
+import type { ParsedComment, EnhancedComment, LLMConfig, DiscussionThread } from '../types';
 import type { AnalysisResult } from './instruction-analyzer';
 import { ClaudeClient } from '../background/llm/claude-client';
 import { OpenAIClient } from '../background/llm/openai-client';
@@ -14,6 +14,7 @@ export interface FileNamingOptions {
   parsedComment: ParsedComment | EnhancedComment;
   analysisResult: AnalysisResult | null;
   llmConfig?: LLMConfig;
+  thread?: DiscussionThread;  // Thread 컨텍스트 (옵션)
 }
 
 export interface FileNamingResult {
@@ -29,7 +30,7 @@ export class SmartFileNaming {
    * AI 기반 파일명 + 디렉토리 생성
    */
   async generateFileName(options: FileNamingOptions): Promise<FileNamingResult> {
-    const { parsedComment, analysisResult, llmConfig } = options;
+    const { parsedComment, analysisResult, llmConfig, thread } = options;
 
     // 1. 디렉토리 제안 (규칙 기반 + LLM 선택적)
     const llmClient = this.createLLMClient(llmConfig);
@@ -42,12 +43,12 @@ export class SmartFileNaming {
     );
 
 
-    // 2. 파일명 생성 (LLM 또는 규칙 기반)
+    // 2. 파일명 생성 (LLM 또는 규칙 기반, Thread 컨텍스트 전달)
     let fileResult: FileNamingResult;
 
     if (llmConfig) {
       try {
-        fileResult = await this.generateWithAI(parsedComment, analysisResult, llmConfig);
+        fileResult = await this.generateWithAI(parsedComment, analysisResult, llmConfig, thread);
       } catch (error) {
         fileResult = this.generateWithRules(parsedComment, analysisResult);
       }
@@ -82,7 +83,8 @@ export class SmartFileNaming {
   private async generateWithAI(
     parsedComment: ParsedComment | EnhancedComment,
     analysisResult: AnalysisResult | null,
-    llmConfig: LLMConfig
+    llmConfig: LLMConfig,
+    thread?: DiscussionThread
   ): Promise<FileNamingResult> {
 
     // LLM 클라이언트 생성
@@ -91,8 +93,10 @@ export class SmartFileNaming {
       : new OpenAIClient(llmConfig.openaiApiKey!);
 
 
-    // 프롬프트 구성
-    const prompt = this.buildAINamingPrompt(parsedComment, analysisResult);
+    // 프롬프트 구성 (Thread가 있으면 Thread 프롬프트 사용)
+    const prompt = thread
+      ? this.buildThreadNamingPrompt(parsedComment, analysisResult, thread)
+      : this.buildAINamingPrompt(parsedComment, analysisResult);
 
     // AI 호출
     const response = await client.generateFileName(prompt);
@@ -151,6 +155,87 @@ This will be the first instruction file in the project. Use clear, descriptive k
   "filename": "suggested-filename.md",
   "directory": ".claude/instructions",
   "reasoning": "Brief explanation of why this filename is appropriate"
+}
+
+Respond ONLY with valid JSON, no additional text.`;
+
+    return prompt;
+  }
+
+  /**
+   * Thread 전용 AI 프롬프트 구성
+   */
+  private buildThreadNamingPrompt(
+    parsedComment: ParsedComment | EnhancedComment,
+    analysisResult: AnalysisResult | null,
+    thread: DiscussionThread
+  ): string {
+    const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
+    const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
+
+    // Thread 메타데이터
+    const commentCount = thread.comments.length;
+    const authors = [...new Set(thread.comments.map(c => c.author))].join(', ');
+    const firstComment = thread.comments[0];
+    const lastComment = thread.comments[thread.comments.length - 1];
+
+    let prompt = `You are an expert at organizing code conventions and documentation. Generate an appropriate filename for a Claude Code instruction file based on a Discussion Thread.
+
+## Discussion Thread Overview
+- Total comments: ${commentCount}
+- Participants: ${authors}
+- Platform: ${thread.platform}
+- First comment by: ${firstComment.author}
+- Last comment by: ${lastComment.author}
+
+## Thread Summary
+- Category: ${parsedComment.category}
+- Keywords: ${parsedComment.keywords.join(', ')}
+- Content Summary: ${enhanced?.summary || parsedComment.content.substring(0, 300)}
+
+## Thread Context (Brief)
+${thread.comments.slice(0, 3).map((comment, index) => `
+Comment ${index + 1} by @${comment.author}:
+${comment.content.substring(0, 150)}${comment.content.length > 150 ? '...' : ''}
+`).join('\n')}
+${commentCount > 3 ? `\n... and ${commentCount - 3} more comments` : ''}
+`;
+
+    if (analysisResult && analysisResult.existingFiles.length > 0) {
+      prompt += `
+## Existing Project Pattern
+- Naming Pattern: ${analysisResult.pattern.namingPattern}
+- Common Keywords: ${analysisResult.pattern.commonKeywords.join(', ')}
+- Example Filenames: ${analysisResult.existingFiles.slice(0, 5).map(f => f.path.split('/').pop()).join(', ')}
+`;
+    } else {
+      prompt += `
+## No Existing Files
+This will be the first instruction file in the project. Use clear, descriptive kebab-case naming.
+`;
+    }
+
+    prompt += `
+## Special Instructions for Thread Files
+1. The filename should capture the MAIN TOPIC of the entire discussion, not just individual comments
+2. Consider the evolution of ideas throughout the thread
+3. If the discussion reached a consensus or conclusion, reflect that
+4. If the thread discusses refining or updating an existing convention, consider using "update-", "refine-", or "discussion-" prefix
+
+## Requirements
+1. Generate a filename that is:
+   - Descriptive of the thread's central topic
+   - Follows the project's naming pattern (${analysisResult?.pattern.namingPattern || 'kebab-case'})
+   - Reflects the discussion nature (e.g., "component-naming-discussion", "async-pattern-consensus")
+   - Unique and not conflicting with existing files
+2. Suggest the appropriate directory (usually .claude/instructions)
+3. Provide reasoning explaining how the filename captures the thread's essence
+
+## Response Format (JSON)
+{
+  "filename": "suggested-filename.md",
+  "directory": ".claude/instructions",
+  "reasoning": "Brief explanation of why this filename captures the discussion thread appropriately"
 }
 
 Respond ONLY with valid JSON, no additional text.`;

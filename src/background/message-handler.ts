@@ -3,7 +3,7 @@
  * Content script와 Background 간 메시지 처리
  */
 
-import type { Message, MessageResponse, Comment, Repository, Platform } from '../types';
+import type { Message, MessageResponse, Comment, Repository, Platform, DiscussionThread } from '../types';
 import { ApiClient } from './api-client';
 import { llmCache } from './llm/cache';
 import { createServiceContainer } from './services/di-container';
@@ -33,6 +33,10 @@ export async function handleMessage(
 
     case 'CONVERT_COMMENT':
       await handleConvertComment(message.payload, sendResponse);
+      break;
+
+    case 'CONVERT_THREAD':
+      await handleConvertThread(message.payload, sendResponse);
       break;
 
     case 'GET_CACHE_STATS':
@@ -137,6 +141,24 @@ async function handleConvertComment(
 ) {
   try {
     const result = await orchestrator.convertComment(payload);
+    sendResponse({ success: true, data: result });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Thread 변환 (Discussion Thread 전체를 하나의 instruction으로)
+ */
+async function handleConvertThread(
+  payload: { thread: DiscussionThread; repository: Repository },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    const result = await orchestrator.convertThread(payload);
     sendResponse({ success: true, data: result });
   } catch (error) {
     sendResponse({

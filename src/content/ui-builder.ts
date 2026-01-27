@@ -3,7 +3,7 @@
  * 코멘트에 버튼을 추가하고 UI를 관리합니다.
  */
 
-import type { Platform, Comment } from '../types';
+import type { Platform, Comment, DiscussionThread } from '../types';
 
 export interface ButtonOptions {
   platform: Platform;
@@ -11,8 +11,15 @@ export interface ButtonOptions {
   onClick: (comment: Comment) => void;
 }
 
+export interface ThreadButtonOptions {
+  platform: Platform;
+  thread: DiscussionThread;
+  onClick: (thread: DiscussionThread) => void;
+}
+
 export class UIBuilder {
   private buttons = new Map<string, HTMLButtonElement>();
+  private threadButtons = new Map<string, HTMLButtonElement>();
 
   /**
    * 코멘트에 버튼 추가
@@ -321,5 +328,117 @@ export class UIBuilder {
    */
   getButton(commentId: string): HTMLButtonElement | undefined {
     return this.buttons.get(commentId);
+  }
+
+  /**
+   * Thread 버튼 추가 (Discussion 상단)
+   */
+  addThreadButton(options: ThreadButtonOptions): HTMLButtonElement {
+    const existingButton = this.threadButtons.get(options.thread.id);
+    if (existingButton) {
+      return existingButton;
+    }
+
+    const button = this.createThreadButton(options);
+    this.insertThreadButton(options.thread.containerElement, button);
+    this.threadButtons.set(options.thread.id, button);
+
+    return button;
+  }
+
+  /**
+   * Thread 버튼 엘리먼트 생성
+   */
+  private createThreadButton(options: ThreadButtonOptions): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.className = `review-to-instruction-button thread-button ${options.platform}`;
+    button.setAttribute('data-thread-id', options.thread.id);
+    button.setAttribute('type', 'button');
+
+    // Thread 전용 아이콘 + 코멘트 수 표시
+    const commentCount = options.thread.comments.length;
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0114.25 14H1.75A1.75 1.75 0 010 12.25v-9.5C0 1.784.784 1 1.75 1zM1.5 2.75v9.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25z"/>
+        <path d="M3.5 6.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z"/>
+      </svg>
+      <span>Convert Thread (${commentCount} comments)</span>
+    `;
+
+    // 클릭 이벤트
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.handleThreadButtonClick(button, options);
+    });
+
+    return button;
+  }
+
+  /**
+   * Thread 버튼을 Discussion 컨테이너에 삽입
+   */
+  private insertThreadButton(container: HTMLElement, button: HTMLButtonElement) {
+    // Discussion 최상단 헤더 찾기
+    const headerSelectors = [
+      '.timeline-comment-header',  // GitHub
+      '.discussion-header',        // GitLab
+      '.note-header',             // GitLab alternative
+      '.timeline-comment:first-child .comment-header'  // Fallback
+    ];
+
+    let header: Element | null = null;
+    for (const selector of headerSelectors) {
+      header = container.querySelector(selector);
+      if (header) break;
+    }
+
+    // 버튼 컨테이너 생성
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'review-to-instruction-thread-button-container';
+    buttonContainer.appendChild(button);
+
+    if (header) {
+      // 헤더 옆에 버튼 추가
+      header.appendChild(buttonContainer);
+    } else {
+      // Fallback: 컨테이너 최상단
+      container.insertBefore(buttonContainer, container.firstChild);
+    }
+  }
+
+  /**
+   * Thread 버튼 클릭 핸들러
+   */
+  private handleThreadButtonClick(button: HTMLButtonElement, options: ThreadButtonOptions) {
+    // 버튼 상태를 loading으로 변경
+    this.setButtonState(button, 'loading');
+
+    // 콜백 실행
+    try {
+      options.onClick(options.thread);
+    } catch (error) {
+      this.setButtonState(button, 'error');
+
+      // 3초 후 원래 상태로 복귀
+      setTimeout(() => {
+        this.setButtonState(button, 'default');
+      }, 3000);
+    }
+  }
+
+  /**
+   * Thread 버튼 찾기
+   */
+  getThreadButton(threadId: string): HTMLButtonElement | undefined {
+    return this.threadButtons.get(threadId);
+  }
+
+  /**
+   * 모든 Thread 버튼 제거
+   */
+  removeAllThreadButtons() {
+    this.threadButtons.forEach((button) => button.remove());
+    this.threadButtons.clear();
   }
 }

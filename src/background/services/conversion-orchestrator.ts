@@ -2,7 +2,7 @@
  * ConversionOrchestrator - 코멘트 변환 비즈니스 로직 조율
  */
 
-import type { Comment, Repository } from '../../types';
+import type { Comment, Repository, DiscussionThread } from '../../types';
 import type { ServiceContainer } from './di-container';
 import { ApiClient } from '../api-client';
 
@@ -87,6 +87,108 @@ export class ConversionOrchestrator {
       keywords: enhancedComment.keywords,
       llmEnhanced: enhancedComment.llmEnhanced,
       tokenUsage
+    };
+  }
+
+  /**
+   * Thread 전체를 하나의 instruction으로 변환
+   */
+  async convertThread(payload: {
+    thread: DiscussionThread;
+    repository: Repository;
+  }): Promise<ConversionResult> {
+    const { thread, repository } = payload;
+
+    // 1. 설정 로드
+    const config = await this.container.configService.loadConfig(repository.platform);
+
+    // 2. API 클라이언트 생성
+    const client = new ApiClient({
+      token: config.token,
+      platform: repository.platform,
+      gitlabUrl: config.gitlabUrl
+    });
+
+    // 3. Thread 코멘트들을 하나의 통합 코멘트로 병합
+    const mergedComment = this.mergeThreadComments(thread);
+
+    // 4. 코멘트 검증 및 강화 (Thread 컨텍스트 전달)
+    const { enhancedComment, tokenUsage } =
+      await this.container.commentService.validateAndEnhanceThread(
+        mergedComment,
+        thread,
+        config.llmConfig
+      );
+
+    // 5. 파일 생성 (Thread 전체 컨텍스트 전달)
+    const files = await this.container.fileGenerationService.generateForAllTypes(
+      client,
+      repository,
+      enhancedComment,
+      mergedComment,
+      config.llmConfig,
+      thread  // Thread 컨텍스트를 파일명 생성에 전달
+    );
+
+    // 6. PR/MR 생성
+    const prResult = await this.container.prService.create(
+      client,
+      repository,
+      enhancedComment,
+      mergedComment,
+      files,
+      config.llmConfig
+    );
+
+    // 7. 결과 반환
+    return {
+      prUrl: prResult.prUrl,
+      files: files.map(f => ({
+        projectType: f.projectType,
+        filePath: f.filePath,
+        isUpdate: f.isUpdate
+      })),
+      category: enhancedComment.category,
+      keywords: enhancedComment.keywords,
+      llmEnhanced: enhancedComment.llmEnhanced,
+      tokenUsage
+    };
+  }
+
+  /**
+   * Thread 코멘트들을 하나의 Markdown으로 병합
+   */
+  private mergeThreadComments(thread: DiscussionThread): Comment {
+    const allComments = thread.comments;
+
+    // 첫 번째 코멘트를 기본으로
+    const firstComment = allComments[0];
+
+    // 모든 코멘트 내용을 Markdown 형식으로 통합
+    const mergedContent = allComments
+      .map((comment, index) => {
+        const header = `### Comment ${index + 1} by @${comment.author}`;
+        const timestamp = new Date(comment.createdAt).toLocaleString();
+        return `${header} (${timestamp})\n\n${comment.content}`;
+      })
+      .join('\n\n---\n\n');
+
+    // 모든 작성자 목록
+    const authors = [...new Set(allComments.map(c => c.author))];
+    const authorText = authors.length > 1
+      ? `Thread by ${firstComment.author} (+${authors.length - 1} others)`
+      : `Thread by ${firstComment.author}`;
+
+    return {
+      id: thread.id,
+      author: authorText,
+      content: mergedContent,
+      htmlContent: mergedContent,  // LLM이 Markdown으로 처리
+      url: firstComment.url,
+      createdAt: firstComment.createdAt,
+      platform: thread.platform,
+      // replies는 이미 통합되었으므로 undefined
+      replies: undefined
     };
   }
 }

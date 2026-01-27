@@ -4,13 +4,16 @@
  */
 
 import { CommentDetector, type CommentElement } from './comment-detector';
+import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
-import type { Comment, Repository } from '../types';
+import type { Comment, Repository, DiscussionThread } from '../types';
 
 export class GitHubInjector {
   private detector: CommentDetector;
+  private threadDetector: ThreadDetector;
   private uiBuilder: UIBuilder;
   private repository: Repository | null = null;
+  private threadObserver: MutationObserver | null = null;
 
   constructor() {
     this.uiBuilder = new UIBuilder();
@@ -21,6 +24,9 @@ export class GitHubInjector {
       '.timeline-comment, .review-comment',  // GitHub 코멘트 선택자
       '.comment-body'                         // 코멘트 내용 선택자
     );
+
+    // Thread 감지기
+    this.threadDetector = new ThreadDetector('github');
   }
 
   /**
@@ -91,6 +97,12 @@ export class GitHubInjector {
 
     // 코멘트 감지 시작
     this.detector.start();
+
+    // Thread 감지 및 버튼 추가
+    this.detectAndAddThreadButtons();
+
+    // 새로운 Thread 감지 (MutationObserver)
+    this.observeThreads();
   }
 
   /**
@@ -129,6 +141,13 @@ export class GitHubInjector {
   stop() {
     this.detector.stop();
     this.uiBuilder.removeAllButtons();
+    this.uiBuilder.removeAllThreadButtons();
+
+    // Thread Observer 정지
+    if (this.threadObserver) {
+      this.threadObserver.disconnect();
+      this.threadObserver = null;
+    }
   }
 
   /**
@@ -258,6 +277,90 @@ export class GitHubInjector {
 
       if (response.success) {
         // 성공 메시지 표시 (PR URL 링크 + 토큰 사용량 포함)
+        this.uiBuilder.showSuccessMessage(
+          button,
+          response.data.prUrl,
+          response.data.isUpdate,
+          response.data.tokenUsage
+        );
+      } else {
+        throw new Error(response.error || 'Unknown error');
+      }
+    } catch (error) {
+      // 에러 메시지 표시
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.uiBuilder.showErrorMessage(button, errorMessage);
+    }
+  }
+
+  /**
+   * Thread 감지 및 버튼 추가
+   */
+  private detectAndAddThreadButtons() {
+    const threads = this.threadDetector.detectThreads();
+
+    threads.forEach(thread => {
+      // 2개 이상 코멘트가 있는 Thread만 처리
+      if (thread.comments.length >= 2) {
+        this.uiBuilder.addThreadButton({
+          platform: 'github',
+          thread,
+          onClick: (thread) => this.onThreadButtonClick(thread)
+        });
+      }
+    });
+  }
+
+  /**
+   * 새로운 Thread 감지 (MutationObserver)
+   */
+  private observeThreads() {
+    // 이미 Observer가 있으면 재사용
+    if (this.threadObserver) {
+      return;
+    }
+
+    this.threadObserver = new MutationObserver(() => {
+      // 디바운싱: 100ms 후 Thread 재감지
+      setTimeout(() => {
+        this.detectAndAddThreadButtons();
+      }, 100);
+    });
+
+    // PR 타임라인 컨테이너 감시
+    const timelineContainer = document.querySelector('.js-discussion, .discussion-timeline');
+    if (timelineContainer) {
+      this.threadObserver.observe(timelineContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+
+  /**
+   * Thread 버튼 클릭 핸들러
+   */
+  private async onThreadButtonClick(thread: DiscussionThread) {
+    const button = this.uiBuilder.getThreadButton(thread.id);
+    if (!button) return;
+
+    try {
+      // Chrome Extension API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+        throw new Error('Chrome Extension API를 사용할 수 없습니다. Extension이 제대로 로드되었는지 확인해주세요.');
+      }
+
+      // Background script로 메시지 전송
+      const response = await chrome.runtime.sendMessage({
+        type: 'CONVERT_THREAD',
+        payload: {
+          thread,
+          repository: this.repository
+        }
+      });
+
+      if (response.success) {
+        // 성공 메시지 표시
         this.uiBuilder.showSuccessMessage(
           button,
           response.data.prUrl,

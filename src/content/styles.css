@@ -251,3 +251,81 @@ body.gl-dark .review-to-instruction-result.error {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+/* ==================== Thread 버튼 스타일 ==================== */
+
+/* Thread 버튼 컨테이너 */
+.review-to-instruction-thread-button-container {
+  display: inline-flex;
+  margin-left: 12px;
+  align-items: center;
+}
+
+/* Thread 버튼 - 그라데이션으로 개별 버튼과 구분 */
+.review-to-instruction-button.thread-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.review-to-instruction-button.thread-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.review-to-instruction-button.thread-button:active:not(:disabled) {
+  background: linear-gradient(135deg, #4a5bb8 0%, #533673 100%);
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+/* Thread 버튼 로딩 상태 */
+.review-to-instruction-button.thread-button.loading {
+  background: linear-gradient(135deg, #0969da 0%, #0550ae 100%);
+}
+
+/* Thread 버튼 성공 상태 */
+.review-to-instruction-button.thread-button.success {
+  background: linear-gradient(135deg, #2da44e 0%, #1f7a37 100%);
+}
+
+/* Thread 버튼 에러 상태 */
+.review-to-instruction-button.thread-button.error {
+  background: linear-gradient(135deg, #cf222e 0%, #a40e26 100%);
+}
+
+/* 다크 모드 - Thread 버튼 */
+@media (prefers-color-scheme: dark) {
+  .review-to-instruction-button.thread-button {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+  }
+
+  .review-to-instruction-button.thread-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+    box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+  }
+}
+
+html[data-color-mode="dark"] .review-to-instruction-button.thread-button {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+}
+
+html[data-color-mode="dark"] .review-to-instruction-button.thread-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+}
+
+body.gl-dark .review-to-instruction-button.thread-button {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+}
+
+body.gl-dark .review-to-instruction-button.thread-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+}

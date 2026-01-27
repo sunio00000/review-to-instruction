@@ -25,6 +25,14 @@ export interface CommentReply {
   createdAt: string;
 }
 
+// Discussion Thread (여러 코멘트로 구성)
+export interface DiscussionThread {
+  id: string;
+  platform: Platform;
+  comments: Comment[];           // Thread 내 모든 코멘트
+  containerElement: HTMLElement; // Discussion 컨테이너 DOM
+}
+
 // 파싱된 코멘트
 export interface ParsedComment {
   content: string;              // 원본 코멘트 내용
@@ -115,6 +123,7 @@ export type MessageType =
   | 'GET_CONFIG'
   | 'SAVE_CONFIG'
   | 'CONVERT_COMMENT'
+  | 'CONVERT_THREAD'       // Discussion Thread 전체 변환
   | 'CREATE_PR'
   | 'TEST_API'
   | 'GET_CACHE_STATS'      // Feature 2: 캐시 통계 조회
