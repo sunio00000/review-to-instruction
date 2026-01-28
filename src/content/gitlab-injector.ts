@@ -20,7 +20,7 @@ export class GitLabInjector {
     this.threadDetector = new ThreadDetector('gitlab');
 
     // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
-    // MR discussion notes와 답글을 모두 포함
+    // MR discussion notes, 리뷰 코멘트, diff 노트, 답글을 모두 포함
     // 시스템 노트와 커밋 히스토리는 shouldExcludeComment에서 필터링
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
@@ -30,7 +30,12 @@ export class GitLabInjector {
         '[data-testid="note"]',            // data-testid 속성
         '.timeline-entry',                 // 타임라인 엔트리
         '.discussion-note',                // 디스커션 노트
-        'article[data-note-id]'            // article with note id
+        'article[data-note-id]',           // article with note id
+        '.diff-note',                      // diff 내부 노트
+        '.note-wrapper',                   // 노트 래퍼
+        'li.note',                         // li 태그 노트
+        '[data-note-type="DiffNote"]',     // diff 노트 타입
+        '.discussion-reply-holder .note'   // 답글 노트
       ],
       // 코멘트 내용 선택자 (여러 Fallback 시도)
       [
@@ -38,7 +43,9 @@ export class GitLabInjector {
         '[data-testid="note-text"]',       // data-testid 속성
         '.timeline-entry-body',            // 타임라인 본문
         '.note-body',                      // 노트 본문
-        '.js-note-text'                    // JS 타겟 클래스
+        '.js-note-text',                   // JS 타겟 클래스
+        '.note-text.md',                   // 마크다운 노트 텍스트
+        '.note-body .note-text'            // 노트 본문 내부 텍스트
       ]
     );
   }

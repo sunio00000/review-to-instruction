@@ -15,7 +15,12 @@
 
 /* GitHub 코멘트 내부 버튼 컨테이너 */
 .timeline-comment .review-to-instruction-button-container,
-.review-comment .review-to-instruction-button-container {
+.review-comment .review-to-instruction-button-container,
+.inline-comment .review-to-instruction-button-container,
+.js-comment .review-to-instruction-button-container,
+.js-comment-container .review-to-instruction-button-container,
+div[id^="discussion_r"] .review-to-instruction-button-container,
+div[id^="pullrequestreview"] .review-to-instruction-button-container {
   padding: 0 16px;
   margin-top: 8px;
   margin-bottom: 12px;
@@ -23,7 +28,11 @@
 
 /* GitLab 노트 내부 버튼 컨테이너 */
 .note .review-to-instruction-button-container,
-[data-testid="note"] .review-to-instruction-button-container {
+[data-testid="note"] .review-to-instruction-button-container,
+.diff-note .review-to-instruction-button-container,
+.note-wrapper .review-to-instruction-button-container,
+li.note .review-to-instruction-button-container,
+[data-note-type="DiffNote"] .review-to-instruction-button-container {
   padding: 0 16px;
   margin-top: 8px;
   margin-bottom: 12px;

@@ -130,19 +130,27 @@ export class UIBuilder {
    * 코멘트 컨테이너 찾기 (GitHub/GitLab 호환)
    */
   private findCommentContainer(contentElement: HTMLElement): HTMLElement | null {
-    // GitHub 선택자
+    // GitHub 선택자 (일반 코멘트 + 리뷰 코멘트)
     const githubSelectors = [
       '.timeline-comment',           // 일반 코멘트
       '.review-comment',             // 리뷰 코멘트
-      '.js-comment'                  // JS 타겟 코멘트
+      '.js-comment',                 // JS 타겟 코멘트
+      '.inline-comment',             // 인라인 코멘트
+      '.js-comment-container',       // 코멘트 컨테이너
+      'div[id^="discussion_r"]',     // 디스커션 ID
+      'div[id^="pullrequestreview"]' // PR 리뷰 ID
     ];
 
-    // GitLab 선택자
+    // GitLab 선택자 (일반 노트 + diff 노트)
     const gitlabSelectors = [
       '.note',                       // GitLab 노트
       '[data-testid="note"]',        // data-testid
       '.timeline-entry',             // 타임라인 엔트리
-      '.discussion-note'             // 디스커션 노트
+      '.discussion-note',            // 디스커션 노트
+      '.diff-note',                  // diff 노트
+      '.note-wrapper',               // 노트 래퍼
+      'li.note',                     // li 태그 노트
+      '[data-note-type="DiffNote"]'  // diff 노트 타입
     ];
 
     const allSelectors = [...githubSelectors, ...gitlabSelectors];
@@ -168,18 +176,41 @@ export class UIBuilder {
   ): { mode: 'after' | 'append'; element: HTMLElement } {
     // GitHub: comment-body 다음에 삽입
     if (commentContainer.classList.contains('timeline-comment') ||
-        commentContainer.classList.contains('review-comment')) {
-      const commentBody = commentContainer.querySelector('.comment-body');
-      if (commentBody) {
-        return { mode: 'after', element: commentBody as HTMLElement };
+        commentContainer.classList.contains('review-comment') ||
+        commentContainer.classList.contains('inline-comment') ||
+        commentContainer.classList.contains('js-comment')) {
+      // 리뷰 코멘트의 경우 여러 위치 시도
+      const bodySelectors = [
+        '.comment-body',
+        '.js-comment-body',
+        '.review-comment-contents .comment-body',
+        '.edit-comment-hide'
+      ];
+
+      for (const selector of bodySelectors) {
+        const commentBody = commentContainer.querySelector(selector);
+        if (commentBody) {
+          return { mode: 'after', element: commentBody as HTMLElement };
+        }
       }
     }
 
     // GitLab: note-text 다음에 삽입
-    if (commentContainer.classList.contains('note')) {
-      const noteText = commentContainer.querySelector('.note-text, [data-testid="note-text"]');
-      if (noteText) {
-        return { mode: 'after', element: noteText as HTMLElement };
+    if (commentContainer.classList.contains('note') ||
+        commentContainer.classList.contains('diff-note') ||
+        commentContainer.classList.contains('discussion-note')) {
+      const noteSelectors = [
+        '.note-text',
+        '[data-testid="note-text"]',
+        '.note-text.md',
+        '.note-body .note-text'
+      ];
+
+      for (const selector of noteSelectors) {
+        const noteText = commentContainer.querySelector(selector);
+        if (noteText) {
+          return { mode: 'after', element: noteText as HTMLElement };
+        }
       }
     }
 

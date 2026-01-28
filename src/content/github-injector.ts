@@ -19,10 +19,24 @@ export class GitHubInjector {
     this.uiBuilder = new UIBuilder();
 
     // GitHub PR 페이지의 코멘트 선택자
+    // 일반 코멘트, 리뷰 코멘트, 인라인 코드 리뷰 코멘트 포함
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
-      '.timeline-comment, .review-comment',  // GitHub 코멘트 선택자
-      '.comment-body'                         // 코멘트 내용 선택자
+      [
+        '.timeline-comment',           // 일반 타임라인 코멘트
+        '.review-comment',             // 리뷰 코멘트
+        '.js-comment',                 // JS 타겟 코멘트
+        '.inline-comment',             // 인라인 코멘트
+        '.js-comment-container',       // 코멘트 컨테이너
+        'div[id^="discussion_r"]',     // 디스커션 ID로 시작하는 div
+        'div[id^="pullrequestreview"]' // PR 리뷰 ID로 시작하는 div
+      ],
+      [
+        '.comment-body',               // 기본 코멘트 본문
+        '.js-comment-body',            // JS 타겟 본문
+        '.review-comment-contents .comment-body', // 리뷰 코멘트 본문
+        '.edit-comment-hide'           // 편집 가능 코멘트
+      ]
     );
 
     // Thread 감지기
