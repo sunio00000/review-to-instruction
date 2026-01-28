@@ -4,6 +4,7 @@
  */
 
 import type { Platform, Comment, DiscussionThread } from '../types';
+import { calculateCost, formatCost } from '../utils/token-pricing';
 
 export interface ButtonOptions {
   platform: Platform;
@@ -79,9 +80,9 @@ export class UIBuilder {
       // 정상 버튼 툴팁 (답글 여부에 따라 다른 메시지)
       const hasReplies = options.comment.replies && options.comment.replies.length > 0;
       if (hasReplies) {
-        button.title = `이 코멘트와 ${options.comment.replies!.length}개의 답글을 모두 반영한 AI Instruction을 생성합니다`;
+        button.title = `📋 Instruction 미리보기 및 생성\n\n이 코멘트와 ${options.comment.replies!.length}개의 답글을 모두 반영한 AI Instruction을 생성합니다.\n(클릭 시 LLM 분석 수행, 비용 발생)`;
       } else {
-        button.title = '이 코멘트 내용을 반영한 AI Instruction을 생성합니다';
+        button.title = '📋 Instruction 미리보기 및 생성\n\n이 코멘트 내용을 반영한 AI Instruction을 생성합니다.\n(클릭 시 LLM 분석 수행, 비용 발생)';
       }
     }
 
@@ -323,9 +324,15 @@ export class UIBuilder {
 
     const actionText = isUpdate ? '업데이트' : '생성';
 
-    // 토큰 사용량 텍스트 (작게 표시)
+    // 토큰 사용량 및 비용 텍스트 (작게 표시)
     const tokenText = tokenUsage
-      ? `<span class="token-usage" style="font-size: 0.85em; opacity: 0.8; margin-left: 8px;">(${tokenUsage.totalTokens} tokens)</span>`
+      ? (() => {
+          const cost = calculateCost(
+            { inputTokens: tokenUsage.inputTokens, outputTokens: tokenUsage.outputTokens },
+            'claude' // TODO: 설정에서 provider 가져오기
+          );
+          return `<span class="token-usage" style="font-size: 0.85em; opacity: 0.8; margin-left: 8px;">(${tokenUsage.totalTokens} tokens, ${formatCost(cost)})</span>`;
+        })()
       : '';
 
     resultDiv.innerHTML = `

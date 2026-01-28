@@ -228,7 +228,15 @@
             <span class="stat-label">캐시 크기:</span>
             <span class="stat-value" id="cache-size">-</span>
           </div>
+          <div class="stat-item">
+            <span class="stat-label">예상 누적 비용:</span>
+            <span class="stat-value" id="total-cost-span">계산 중...</span>
+          </div>
         </div>
+
+        <p class="help-text" style="margin-top: 10px; font-size: 0.9em; color: #57606a;">
+          💡 <strong>캐시 적중률</strong>이 높을수록 동일한 코멘트 재변환 시 API 호출을 건너뛰어 비용과 시간을 절약합니다.
+        </p>
 
         <div class="cache-actions">
           <button id="refresh-cache-stats" class="btn btn-secondary">통계 갱신</button>

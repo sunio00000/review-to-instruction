@@ -15,6 +15,7 @@
 import { CryptoService } from '../background/services/crypto-service';
 import { FormManager } from '../utils/form-manager';
 import { popupFormSchema } from './form-schema';
+import { calculateCost, formatCost } from '../utils/token-pricing';
 
 // CryptoService 인스턴스
 const crypto = new CryptoService();
@@ -37,6 +38,7 @@ const cacheHitRateSpan = document.getElementById('cache-hit-rate') as HTMLSpanEl
 const cacheHitsSpan = document.getElementById('cache-hits') as HTMLSpanElement;
 const cacheMissesSpan = document.getElementById('cache-misses') as HTMLSpanElement;
 const cacheSizeSpan = document.getElementById('cache-size') as HTMLSpanElement;
+const totalCostSpan = document.getElementById('total-cost-span') as HTMLSpanElement;
 const refreshCacheStatsButton = document.getElementById('refresh-cache-stats') as HTMLButtonElement;
 const clearCacheButton = document.getElementById('clear-cache') as HTMLButtonElement;
 const cacheStatus = document.getElementById('cache-status') as HTMLDivElement;
@@ -198,6 +200,17 @@ async function loadCacheStats() {
 
       // 캐시 크기
       cacheSizeSpan.textContent = formatBytes(stats.cacheSize);
+
+      // 누적 비용 계산 및 표시
+      if (stats.totalTokensUsed) {
+        const cost = calculateCost(
+          stats.totalTokensUsed,
+          stats.llmProvider || 'claude'
+        );
+        totalCostSpan.textContent = formatCost(cost);
+      } else {
+        totalCostSpan.textContent = '데이터 없음';
+      }
 
     } else {
       showStatus(cacheStatus, '캐시 통계를 불러올 수 없습니다.', 'error');
