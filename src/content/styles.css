@@ -66,9 +66,20 @@ li.note .review-to-instruction-button-container,
   transform: scale(0.98);
 }
 
-.review-to-instruction-button:disabled {
-  opacity: 0.6;
+.review-to-instruction-button:disabled,
+.review-to-instruction-button.disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  background-color: #f3f4f6;
+  color: #6e7781;
+  border-color: rgba(27, 31, 36, 0.08);
+}
+
+.review-to-instruction-button:disabled:hover,
+.review-to-instruction-button.disabled:hover {
+  background-color: #f3f4f6;
+  border-color: rgba(27, 31, 36, 0.08);
+  transform: none;
 }
 
 /* 버튼 아이콘 */
@@ -199,6 +210,14 @@ li.note .review-to-instruction-button-container,
     background-color: #161b22;
   }
 
+  .review-to-instruction-button:disabled,
+  .review-to-instruction-button.disabled {
+    opacity: 0.4;
+    background-color: #21262d;
+    color: #484f58;
+    border-color: rgba(240, 246, 252, 0.06);
+  }
+
   .review-to-instruction-result.success {
     background-color: rgba(46, 160, 67, 0.15);
     color: #3fb950;
@@ -228,6 +247,14 @@ html[data-color-mode="dark"] .review-to-instruction-button:active:not(:disabled)
   background-color: #161b22;
 }
 
+html[data-color-mode="dark"] .review-to-instruction-button:disabled,
+html[data-color-mode="dark"] .review-to-instruction-button.disabled {
+  opacity: 0.4;
+  background-color: #21262d;
+  color: #484f58;
+  border-color: rgba(240, 246, 252, 0.06);
+}
+
 html[data-color-mode="dark"] .review-to-instruction-result.success {
   background-color: rgba(46, 160, 67, 0.15);
   color: #3fb950;
@@ -254,6 +281,14 @@ body.gl-dark .review-to-instruction-button:hover:not(:disabled) {
 
 body.gl-dark .review-to-instruction-button:active:not(:disabled) {
   background-color: #1f1f1f;
+}
+
+body.gl-dark .review-to-instruction-button:disabled,
+body.gl-dark .review-to-instruction-button.disabled {
+  opacity: 0.4;
+  background-color: #2f2f2f;
+  color: #6e6e6e;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 body.gl-dark .review-to-instruction-result.success {
