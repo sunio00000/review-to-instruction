@@ -54,6 +54,10 @@ li.note .review-to-instruction-button-container,
   cursor: pointer;
   transition: all 0.2s ease;
   outline: none;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .review-to-instruction-button:hover:not(:disabled) {
@@ -152,12 +156,14 @@ li.note .review-to-instruction-button-container,
 /* 결과 메시지 */
 .review-to-instruction-result {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 8px 12px;
   font-size: 13px;
   border-radius: 6px;
   animation: slideIn 0.3s ease;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 @keyframes slideIn {
@@ -187,10 +193,16 @@ li.note .review-to-instruction-button-container,
   color: inherit;
   text-decoration: underline;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .review-to-instruction-result a:hover {
   opacity: 0.8;
+}
+
+.review-to-instruction-result svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* GitHub 다크 모드 지원 */

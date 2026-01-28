@@ -619,6 +619,144 @@ async function init() {
   }
 }
 
+// 아코디언 섹션 토글
+function setupAccordion() {
+  const sectionHeaders = document.querySelectorAll('.section-header');
+
+  sectionHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const section = header.closest('.settings-section') as HTMLElement;
+      section.classList.toggle('collapsed');
+    });
+  });
+}
+
+// 실시간 입력 검증
+function setupInlineValidation() {
+  const githubTokenInput = document.getElementById('github-token') as HTMLInputElement;
+  const gitlabTokenInput = document.getElementById('gitlab-token') as HTMLInputElement;
+  const claudeKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
+  const openaiKeyInput = document.getElementById('openai-api-key') as HTMLInputElement;
+
+  // GitHub Token 검증 (ghp_, gho_, ghs_, ghu_ 등으로 시작)
+  if (githubTokenInput) {
+    githubTokenInput.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value.trim();
+      if (!value) {
+        githubTokenInput.classList.remove('valid', 'invalid');
+        updateSectionStatus('github', 'required');
+      } else if (/^gh[pousr]_[A-Za-z0-9]{36,}$/.test(value)) {
+        githubTokenInput.classList.remove('invalid');
+        githubTokenInput.classList.add('valid');
+        updateSectionStatus('github', 'configured');
+      } else {
+        githubTokenInput.classList.remove('valid');
+        githubTokenInput.classList.add('invalid');
+        updateSectionStatus('github', 'required');
+      }
+    });
+  }
+
+  // GitLab Token 검증 (glpat- 또는 gldt- 로 시작)
+  if (gitlabTokenInput) {
+    gitlabTokenInput.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value.trim();
+      if (!value) {
+        gitlabTokenInput.classList.remove('valid', 'invalid');
+        updateSectionStatus('gitlab', 'optional');
+      } else if (/^gl[pd][a-z]{2}-[A-Za-z0-9_-]{20,}$/.test(value)) {
+        gitlabTokenInput.classList.remove('invalid');
+        gitlabTokenInput.classList.add('valid');
+        updateSectionStatus('gitlab', 'configured');
+      } else {
+        gitlabTokenInput.classList.remove('valid');
+        gitlabTokenInput.classList.add('invalid');
+        updateSectionStatus('gitlab', 'optional');
+      }
+    });
+  }
+
+  // Claude API Key 검증 (sk-ant- 로 시작)
+  if (claudeKeyInput) {
+    claudeKeyInput.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value.trim();
+      if (!value) {
+        claudeKeyInput.classList.remove('valid', 'invalid');
+      } else if (/^sk-ant-[A-Za-z0-9_-]{95,}$/.test(value)) {
+        claudeKeyInput.classList.remove('invalid');
+        claudeKeyInput.classList.add('valid');
+        updateSectionStatus('llm', 'configured');
+      } else {
+        claudeKeyInput.classList.remove('valid');
+        claudeKeyInput.classList.add('invalid');
+      }
+    });
+  }
+
+  // OpenAI API Key 검증 (sk- 로 시작)
+  if (openaiKeyInput) {
+    openaiKeyInput.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value.trim();
+      if (!value) {
+        openaiKeyInput.classList.remove('valid', 'invalid');
+      } else if (/^sk-[A-Za-z0-9]{48,}$/.test(value) || /^sk-proj-[A-Za-z0-9_-]{48,}$/.test(value)) {
+        openaiKeyInput.classList.remove('invalid');
+        openaiKeyInput.classList.add('valid');
+        updateSectionStatus('llm', 'configured');
+      } else {
+        openaiKeyInput.classList.remove('valid');
+        openaiKeyInput.classList.add('invalid');
+      }
+    });
+  }
+}
+
+// 상태 배지 업데이트
+function updateSectionStatus(sectionName: string, status: 'configured' | 'required' | 'optional') {
+  const statusElement = document.querySelector(`[data-status="${sectionName}"]`) as HTMLElement;
+  if (statusElement) {
+    statusElement.className = `section-status ${status}`;
+    statusElement.textContent = status === 'configured' ? '설정됨' :
+                                 status === 'required' ? '필수' : '선택';
+  }
+}
+
+// 빠른 설정: 필수 섹션만 펼치기
+function quickSetup() {
+  const allSections = document.querySelectorAll('.settings-section');
+  allSections.forEach(section => {
+    const sectionName = section.getAttribute('data-section');
+    if (sectionName === 'github' || sectionName === 'llm') {
+      // 필수 섹션은 펼치기
+      section.classList.remove('collapsed');
+    } else {
+      // 선택 섹션은 접기
+      section.classList.add('collapsed');
+    }
+  });
+
+  // 화면 최상단으로 스크롤
+  document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 전체 펼치기/접기 토글
+let allExpanded = false;
+function toggleExpandAll() {
+  const allSections = document.querySelectorAll('.settings-section');
+  const expandBtn = document.getElementById('expand-all-btn') as HTMLButtonElement;
+
+  allSections.forEach(section => {
+    if (allExpanded) {
+      section.classList.add('collapsed');
+    } else {
+      section.classList.remove('collapsed');
+    }
+  });
+
+  allExpanded = !allExpanded;
+  expandBtn.textContent = allExpanded ? '📁 전체 접기' : '📂 전체 펼치기';
+}
+
 // 이벤트 리스너
 saveButton.addEventListener('click', saveConfig);
 testGithubButton.addEventListener('click', testGithubApi);
@@ -630,6 +768,31 @@ llmProviderSelect.addEventListener('change', updateLLMUI);
 // 캐시 관리 이벤트 리스너
 refreshCacheStatsButton.addEventListener('click', loadCacheStats);
 clearCacheButton.addEventListener('click', clearCache);
+
+// Quick links 이벤트 리스너
+const quickSetupBtn = document.getElementById('quick-setup-btn');
+const expandAllBtn = document.getElementById('expand-all-btn');
+if (quickSetupBtn) quickSetupBtn.addEventListener('click', quickSetup);
+if (expandAllBtn) expandAllBtn.addEventListener('click', toggleExpandAll);
+
+// 아코디언 초기화
+setupAccordion();
+
+// 인라인 검증 초기화
+setupInlineValidation();
+
+// 토큰 보기/숨기기 토글
+const toggleVisibilityButtons = document.querySelectorAll('[data-toggle-visibility]');
+toggleVisibilityButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const targetId = button.getAttribute('data-toggle-visibility');
+    const input = document.getElementById(targetId!) as HTMLInputElement;
+    if (input) {
+      input.type = input.type === 'password' ? 'text' : 'password';
+      button.textContent = input.type === 'password' ? '👁️' : '🙈';
+    }
+  });
+});
 
 // 마스터 비밀번호 초기화
 init();

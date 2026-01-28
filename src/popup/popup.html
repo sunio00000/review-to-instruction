@@ -11,32 +11,64 @@
     <header>
       <h1>Review to Instruction</h1>
       <p class="subtitle">리뷰를 AI Instruction으로 자동 변환</p>
+      <div class="quick-links">
+        <button id="quick-setup-btn" class="quick-link-btn" title="최소 설정으로 빠르게 시작">⚡ 빠른 설정</button>
+        <button id="expand-all-btn" class="quick-link-btn" title="모든 섹션 펼치기">📂 전체 펼치기</button>
+      </div>
     </header>
 
     <main>
       <!-- GitHub 설정 -->
-      <section class="settings-section">
-        <h2>GitHub 설정</h2>
+      <section class="settings-section" data-section="github">
+        <div class="section-header">
+          <div class="section-header-left">
+            <div class="section-title">
+              <h2>🐙 GitHub</h2>
+              <span class="section-status required" data-status="github">필수</span>
+            </div>
+          </div>
+          <span class="section-toggle">▼</span>
+        </div>
+        <div class="section-content">
         <div class="input-group">
-          <label for="github-token">Personal Access Token:</label>
-          <input
-            type="password"
-            id="github-token"
-            placeholder="ghp_..."
-            autocomplete="off"
-          />
+          <label for="github-token">
+            Personal Access Token
+            <span class="label-hint">ghp_로 시작하는 토큰</span>
+          </label>
+          <div class="input-with-action">
+            <input
+              type="password"
+              id="github-token"
+              placeholder="ghp_xxxxx..."
+              autocomplete="off"
+            />
+            <button type="button" class="input-action-btn" data-toggle-visibility="github-token" title="토큰 보기/숨기기">
+              👁️
+            </button>
+          </div>
           <small class="error-text" data-error-for="github-token"></small>
           <small class="help-text">
-            <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">토큰 발급받기</a>
+            <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">토큰 발급받기</a> |
+            권한: <code>repo</code> (필수)
           </small>
         </div>
         <button id="test-github" class="btn btn-secondary">연결 테스트</button>
         <div id="github-status" class="status"></div>
+        </div>
       </section>
 
       <!-- GitLab 설정 -->
-      <section class="settings-section">
-        <h2>GitLab 설정</h2>
+      <section class="settings-section collapsed" data-section="gitlab">
+        <div class="section-header">
+          <div class="section-header-left">
+            <div class="section-title">
+              <h2>🦊 GitLab</h2>
+              <span class="section-status optional" data-status="gitlab">선택</span>
+            </div>
+          </div>
+          <span class="section-toggle">▼</span>
+        </div>
+        <div class="section-content">
         <div class="input-group">
           <label for="gitlab-url">GitLab URL (선택):</label>
           <input
@@ -51,16 +83,25 @@
           </small>
         </div>
         <div class="input-group">
-          <label for="gitlab-token">Personal Access Token:</label>
-          <input
-            type="password"
-            id="gitlab-token"
-            placeholder="glpat-..."
-            autocomplete="off"
-          />
+          <label for="gitlab-token">
+            Personal Access Token
+            <span class="label-hint">glpat- 또는 gldt-로 시작</span>
+          </label>
+          <div class="input-with-action">
+            <input
+              type="password"
+              id="gitlab-token"
+              placeholder="glpat-xxxxx..."
+              autocomplete="off"
+            />
+            <button type="button" class="input-action-btn" data-toggle-visibility="gitlab-token" title="토큰 보기/숨기기">
+              👁️
+            </button>
+          </div>
           <small class="error-text" data-error-for="gitlab-token"></small>
           <small class="help-text">
-            <a href="https://gitlab.com/-/user_settings/personal_access_tokens?name=Review+to+Instruction&scopes=api" target="_blank">토큰 발급받기</a>
+            <a href="https://gitlab.com/-/user_settings/personal_access_tokens?name=Review+to+Instruction&scopes=api" target="_blank" rel="noopener">토큰 발급받기</a> |
+            권한: <code>api</code> (필수)
           </small>
         </div>
         <button id="test-gitlab" class="btn btn-secondary">연결 테스트</button>
@@ -72,11 +113,21 @@
             <span>PR/MR 코멘트에 "Convert to Instruction" 버튼 표시</span>
           </label>
         </div>
+        </div>
       </section>
 
       <!-- LLM 설정 -->
-      <section class="settings-section">
-        <h2>🤖 LLM 분석</h2>
+      <section class="settings-section" data-section="llm">
+        <div class="section-header">
+          <div class="section-header-left">
+            <div class="section-title">
+              <h2>🤖 LLM 분석</h2>
+              <span class="section-status required" data-status="llm">필수</span>
+            </div>
+          </div>
+          <span class="section-toggle">▼</span>
+        </div>
+        <div class="section-content">
         <small class="help-text warning">
           ⚠️ LLM API 호출 시 비용이 발생합니다. (코멘트당 평균 5-20원)
         </small>
@@ -92,38 +143,66 @@
           </div>
 
           <div id="claude-api-key-group" class="input-group api-key-group" style="display: none;">
-            <label for="claude-api-key">Claude API Key:</label>
-            <input
-              type="password"
-              id="claude-api-key"
-              placeholder="sk-ant-..."
-              autocomplete="off"
-            />
+            <label for="claude-api-key">
+              Claude API Key
+              <span class="label-hint">sk-ant-로 시작</span>
+            </label>
+            <div class="input-with-action">
+              <input
+                type="password"
+                id="claude-api-key"
+                placeholder="sk-ant-xxxxx..."
+                autocomplete="off"
+              />
+              <button type="button" class="input-action-btn" data-toggle-visibility="claude-api-key" title="키 보기/숨기기">
+                👁️
+              </button>
+            </div>
             <small class="error-text" data-error-for="claude-api-key"></small>
             <small class="help-text">
-              <a href="https://console.anthropic.com/settings/keys" target="_blank">API 키 발급받기</a>
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">API 키 발급받기</a> |
+              모델: <code>claude-sonnet-4-5</code>
             </small>
           </div>
 
           <div id="openai-api-key-group" class="input-group api-key-group" style="display: none;">
-            <label for="openai-api-key">OpenAI API Key:</label>
-            <input
-              type="password"
-              id="openai-api-key"
-              placeholder="sk-..."
-              autocomplete="off"
-            />
+            <label for="openai-api-key">
+              OpenAI API Key
+              <span class="label-hint">sk- 또는 sk-proj-로 시작</span>
+            </label>
+            <div class="input-with-action">
+              <input
+                type="password"
+                id="openai-api-key"
+                placeholder="sk-xxxxx... 또는 sk-proj-xxxxx..."
+                autocomplete="off"
+              />
+              <button type="button" class="input-action-btn" data-toggle-visibility="openai-api-key" title="키 보기/숨기기">
+                👁️
+              </button>
+            </div>
             <small class="error-text" data-error-for="openai-api-key"></small>
             <small class="help-text">
-              <a href="https://platform.openai.com/api-keys" target="_blank">API 키 발급받기</a>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">API 키 발급받기</a> |
+              모델: <code>gpt-4-turbo</code>
             </small>
           </div>
+        </div>
         </div>
       </section>
 
       <!-- 캐시 관리 (Feature 2) -->
-      <section class="settings-section">
-        <h2>📊 캐시 관리</h2>
+      <section class="settings-section collapsed" data-section="cache">
+        <div class="section-header">
+          <div class="section-header-left">
+            <div class="section-title">
+              <h2>📊 캐시 관리</h2>
+              <span class="section-status optional" data-status="cache">선택</span>
+            </div>
+          </div>
+          <span class="section-toggle">▼</span>
+        </div>
+        <div class="section-content">
         <small class="help-text">
           LLM 응답을 캐싱하여 API 비용과 응답 시간을 절감합니다.
         </small>
@@ -157,6 +236,7 @@
         </div>
 
         <div id="cache-status" class="status"></div>
+        </div>
       </section>
 
       <!-- 저장 버튼 -->
