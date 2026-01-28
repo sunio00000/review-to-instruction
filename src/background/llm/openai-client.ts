@@ -112,7 +112,13 @@ export class OpenAIClient extends BaseLLMClient {
       detailedExplanation: parsed.detailedExplanation,
       codeExplanations: parsed.codeExplanations || [],
       additionalKeywords: parsed.additionalKeywords || [],
-      suggestedCategory: parsed.suggestedCategory
+      suggestedCategory: parsed.suggestedCategory,
+      reasoning: parsed.reasoning || {
+        detectedIntent: [],
+        keyPhrases: [],
+        codeReferences: [],
+        confidenceScore: 50
+      }
     };
 
     return { result, tokenUsage };

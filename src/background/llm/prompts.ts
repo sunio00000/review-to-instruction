@@ -50,6 +50,14 @@ Note: Extract ADDITIONAL keywords not in the above list. Focus on:
    ${hasExistingKeywords ? '- ONLY include keywords NOT already in the existing list above' : ''}
    - Prioritize: domain terms > patterns > technologies > general concepts
 5. Suggest the most appropriate category from: naming, style, architecture, testing, security, performance, error-handling, documentation, accessibility, i18n, api, database, state-management, git, ci-cd, dependencies.
+6. Provide reasoning information:
+   - detectedIntent: List of detected intents (e.g., "code refactoring request", "bug fix suggestion", "naming convention")
+   - keyPhrases: Key phrases extracted from the comment (2-5 most important phrases)
+   - codeReferences: Mentioned code locations, function names, or file paths
+   - confidenceScore: Confidence score (0-100) based on:
+     * Clarity and specificity of the comment (40 points)
+     * Presence of code examples (30 points)
+     * Explicit rules or patterns mentioned (30 points)
 
 **Output Format (JSON):**
 {
@@ -63,7 +71,13 @@ Note: Extract ADDITIONAL keywords not in the above list. Focus on:
     }
   ],
   "additionalKeywords": ["keyword1", "keyword2"],
-  "suggestedCategory": "category"
+  "suggestedCategory": "category",
+  "reasoning": {
+    "detectedIntent": ["intent1", "intent2"],
+    "keyPhrases": ["phrase1", "phrase2"],
+    "codeReferences": ["file.ts:123", "functionName"],
+    "confidenceScore": 85
+  }
 }
 
 **Important:**
