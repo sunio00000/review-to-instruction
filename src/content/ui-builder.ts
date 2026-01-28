@@ -91,29 +91,100 @@ export class UIBuilder {
    * 버튼을 코멘트에 삽입
    */
   private insertButton(contentElement: HTMLElement, button: HTMLButtonElement) {
-    // 코멘트 엘리먼트의 부모를 찾기
-    const parent = contentElement.parentElement;
-    if (!parent) {
+    // 1. 코멘트 컨테이너 찾기 (GitHub/GitLab 구조 고려)
+    const commentContainer = this.findCommentContainer(contentElement);
+    if (!commentContainer) {
       return;
     }
 
-    // 이미 버튼 컨테이너가 있는지 확인 (중복 방지)
-    const existingContainer = parent.querySelector('.review-to-instruction-button-container');
+    // 2. 이미 버튼 컨테이너가 있는지 확인 (중복 방지)
+    const existingContainer = commentContainer.querySelector('.review-to-instruction-button-container');
     if (existingContainer) {
       return;
     }
 
-    // 코멘트 본문 다음에 버튼 삽입
+    // 3. 버튼 컨테이너 생성
     const container = document.createElement('div');
     container.className = 'review-to-instruction-button-container';
     container.appendChild(button);
 
-    const nextSibling = contentElement.nextSibling;
-    if (nextSibling) {
-      parent.insertBefore(container, nextSibling);
+    // 4. 적절한 위치에 삽입
+    const insertionPoint = this.findInsertionPoint(commentContainer, contentElement);
+    if (insertionPoint.mode === 'after') {
+      // 요소 다음에 삽입
+      if (insertionPoint.element.nextSibling) {
+        insertionPoint.element.parentElement!.insertBefore(
+          container,
+          insertionPoint.element.nextSibling
+        );
+      } else {
+        insertionPoint.element.parentElement!.appendChild(container);
+      }
     } else {
-      parent.appendChild(container);
+      // 컨테이너 끝에 추가
+      commentContainer.appendChild(container);
     }
+  }
+
+  /**
+   * 코멘트 컨테이너 찾기 (GitHub/GitLab 호환)
+   */
+  private findCommentContainer(contentElement: HTMLElement): HTMLElement | null {
+    // GitHub 선택자
+    const githubSelectors = [
+      '.timeline-comment',           // 일반 코멘트
+      '.review-comment',             // 리뷰 코멘트
+      '.js-comment'                  // JS 타겟 코멘트
+    ];
+
+    // GitLab 선택자
+    const gitlabSelectors = [
+      '.note',                       // GitLab 노트
+      '[data-testid="note"]',        // data-testid
+      '.timeline-entry',             // 타임라인 엔트리
+      '.discussion-note'             // 디스커션 노트
+    ];
+
+    const allSelectors = [...githubSelectors, ...gitlabSelectors];
+
+    // closest로 가장 가까운 코멘트 컨테이너 찾기
+    for (const selector of allSelectors) {
+      const container = contentElement.closest(selector);
+      if (container) {
+        return container as HTMLElement;
+      }
+    }
+
+    // Fallback: contentElement의 부모
+    return contentElement.parentElement;
+  }
+
+  /**
+   * 버튼 삽입 위치 찾기
+   */
+  private findInsertionPoint(
+    commentContainer: HTMLElement,
+    contentElement: HTMLElement
+  ): { mode: 'after' | 'append'; element: HTMLElement } {
+    // GitHub: comment-body 다음에 삽입
+    if (commentContainer.classList.contains('timeline-comment') ||
+        commentContainer.classList.contains('review-comment')) {
+      const commentBody = commentContainer.querySelector('.comment-body');
+      if (commentBody) {
+        return { mode: 'after', element: commentBody as HTMLElement };
+      }
+    }
+
+    // GitLab: note-text 다음에 삽입
+    if (commentContainer.classList.contains('note')) {
+      const noteText = commentContainer.querySelector('.note-text, [data-testid="note-text"]');
+      if (noteText) {
+        return { mode: 'after', element: noteText as HTMLElement };
+      }
+    }
+
+    // Fallback: contentElement 다음에 삽입
+    return { mode: 'after', element: contentElement };
   }
 
   /**
@@ -379,18 +450,10 @@ export class UIBuilder {
    * Thread 버튼을 Discussion 컨테이너에 삽입
    */
   private insertThreadButton(container: HTMLElement, button: HTMLButtonElement) {
-    // Discussion 최상단 헤더 찾기
-    const headerSelectors = [
-      '.timeline-comment-header',  // GitHub
-      '.discussion-header',        // GitLab
-      '.note-header',             // GitLab alternative
-      '.timeline-comment:first-child .comment-header'  // Fallback
-    ];
-
-    let header: Element | null = null;
-    for (const selector of headerSelectors) {
-      header = container.querySelector(selector);
-      if (header) break;
+    // 이미 Thread 버튼이 있는지 확인 (중복 방지)
+    const existingThreadButton = container.querySelector('.review-to-instruction-thread-button-container');
+    if (existingThreadButton) {
+      return;
     }
 
     // 버튼 컨테이너 생성
@@ -398,13 +461,62 @@ export class UIBuilder {
     buttonContainer.className = 'review-to-instruction-thread-button-container';
     buttonContainer.appendChild(button);
 
-    if (header) {
-      // 헤더 옆에 버튼 추가
-      header.appendChild(buttonContainer);
+    // 플랫폼별 삽입 위치 찾기
+    const insertionPoint = this.findThreadButtonInsertionPoint(container);
+
+    if (insertionPoint) {
+      insertionPoint.appendChild(buttonContainer);
     } else {
-      // Fallback: 컨테이너 최상단
+      // Fallback: 컨테이너 최상단에 삽입
       container.insertBefore(buttonContainer, container.firstChild);
     }
+  }
+
+  /**
+   * Thread 버튼 삽입 위치 찾기 (GitHub/GitLab 호환)
+   */
+  private findThreadButtonInsertionPoint(container: HTMLElement): HTMLElement | null {
+    // GitHub: 첫 번째 코멘트의 헤더 영역
+    const githubSelectors = [
+      '.timeline-comment-header',           // 코멘트 헤더
+      '.timeline-comment-header-text',      // 헤더 텍스트 영역
+      '.timeline-comment .comment-header'   // 코멘트 내부 헤더
+    ];
+
+    for (const selector of githubSelectors) {
+      const header = container.querySelector(selector);
+      if (header) {
+        // 헤더 내부의 actions 영역 찾기 (있으면 그 옆에 추가)
+        const actions = header.querySelector('.timeline-comment-actions, .comment-actions');
+        if (actions) {
+          return actions as HTMLElement;
+        }
+        // actions 영역이 없으면 헤더 자체에 추가
+        return header as HTMLElement;
+      }
+    }
+
+    // GitLab: 첫 번째 노트의 헤더 영역
+    const gitlabSelectors = [
+      '.note-header',                       // 노트 헤더
+      '.note-header-info',                  // 헤더 정보 영역
+      '[data-testid="note-header"]'        // data-testid
+    ];
+
+    for (const selector of gitlabSelectors) {
+      const header = container.querySelector(selector);
+      if (header) {
+        // GitLab 헤더의 actions 영역 찾기
+        const actions = header.querySelector('.note-actions, .note-header-actions');
+        if (actions) {
+          return actions as HTMLElement;
+        }
+        return header as HTMLElement;
+      }
+    }
+
+    // Fallback: 컨테이너 자체
+    return null;
   }
 
   /**

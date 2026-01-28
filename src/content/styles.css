@@ -6,9 +6,27 @@
 /* 버튼 컨테이너 */
 .review-to-instruction-button-container {
   margin-top: 12px;
+  margin-bottom: 8px;
+  padding: 0 16px;  /* GitHub/GitLab 코멘트 여백과 일치 */
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* GitHub 코멘트 내부 버튼 컨테이너 */
+.timeline-comment .review-to-instruction-button-container,
+.review-comment .review-to-instruction-button-container {
+  padding: 0 16px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+/* GitLab 노트 내부 버튼 컨테이너 */
+.note .review-to-instruction-button-container,
+[data-testid="note"] .review-to-instruction-button-container {
+  padding: 0 16px;
+  margin-top: 8px;
+  margin-bottom: 12px;
 }
 
 /* 기본 버튼 스타일 */
@@ -259,6 +277,28 @@ body.gl-dark .review-to-instruction-result.error {
   display: inline-flex;
   margin-left: 12px;
   align-items: center;
+  vertical-align: middle;
+}
+
+/* GitHub 헤더 내부 Thread 버튼 */
+.timeline-comment-header .review-to-instruction-thread-button-container,
+.comment-header .review-to-instruction-thread-button-container {
+  margin-left: auto;  /* 헤더 우측에 배치 */
+  padding-left: 12px;
+}
+
+/* GitLab 헤더 내부 Thread 버튼 */
+.note-header .review-to-instruction-thread-button-container,
+[data-testid="note-header"] .review-to-instruction-thread-button-container {
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+/* Actions 영역 내부 Thread 버튼 */
+.timeline-comment-actions .review-to-instruction-thread-button-container,
+.comment-actions .review-to-instruction-thread-button-container,
+.note-actions .review-to-instruction-thread-button-container {
+  margin-left: 8px;
 }
 
 /* Thread 버튼 - 그라데이션으로 개별 버튼과 구분 */
