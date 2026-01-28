@@ -8,7 +8,7 @@ import { ApiClient } from './api-client';
 import { llmCache } from './llm/cache';
 import { createServiceContainer } from './services/di-container';
 import { ConversionOrchestrator } from './services/conversion-orchestrator';
-import { globalCrypto } from './service-worker';
+import { globalCrypto } from './global-crypto';
 
 /**
  * 메시지 핸들러
