@@ -9,6 +9,7 @@ export interface ButtonOptions {
   platform: Platform;
   comment: Comment;
   onClick: (comment: Comment) => void;
+  disabled?: boolean;
 }
 
 export interface ThreadButtonOptions {
@@ -68,6 +69,21 @@ export class UIBuilder {
     button.className = `review-to-instruction-button ${options.platform}`;
     button.setAttribute('data-comment-id', options.comment.id);
     button.setAttribute('type', 'button');
+
+    // disabled 상태 설정 및 툴팁
+    if (options.disabled) {
+      button.disabled = true;
+      button.classList.add('disabled');
+      button.title = '이 코멘트는 변환 조건을 만족하지 않습니다\n(50자 이상, 컨벤션 키워드, 코드 예시, 이모지 중 하나 이상 필요)';
+    } else {
+      // 정상 버튼 툴팁 (답글 여부에 따라 다른 메시지)
+      const hasReplies = options.comment.replies && options.comment.replies.length > 0;
+      if (hasReplies) {
+        button.title = `이 코멘트와 ${options.comment.replies!.length}개의 답글을 모두 반영한 AI Instruction을 생성합니다`;
+      } else {
+        button.title = '이 코멘트 내용을 반영한 AI Instruction을 생성합니다';
+      }
+    }
 
     // 아이콘 + 텍스트
     button.innerHTML = `
@@ -459,6 +475,10 @@ export class UIBuilder {
 
     // Thread 전용 아이콘 + 코멘트 수 표시
     const commentCount = options.thread.comments.length;
+
+    // Thread 버튼 툴팁
+    button.title = `이 스레드의 ${commentCount}개 코멘트를 모두 통합 분석하여 AI Instruction을 생성합니다`;
+
     button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0114.25 14H1.75A1.75 1.75 0 010 12.25v-9.5C0 1.784.784 1 1.75 1zM1.5 2.75v9.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25z"/>

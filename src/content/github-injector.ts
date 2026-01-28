@@ -7,6 +7,7 @@ import { CommentDetector, type CommentElement } from './comment-detector';
 import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import type { Comment, Repository, DiscussionThread } from '../types';
+import { isConventionComment } from '../core/parser';
 
 export class GitHubInjector {
   private detector: CommentDetector;
@@ -174,14 +175,18 @@ export class GitHubInjector {
       return;
     }
 
-    // 버튼 추가
+    // 컨벤션 코멘트 여부 체크
+    const isConvention = isConventionComment(comment.content);
+
+    // 버튼 추가 (컨벤션이 아니면 disabled)
     this.uiBuilder.addButton(
       commentElement.element,
       commentElement.contentElement,
       {
         platform: 'github',
         comment,
-        onClick: (comment) => this.onButtonClick(comment)
+        onClick: (comment) => this.onButtonClick(comment),
+        disabled: !isConvention
       }
     );
   }

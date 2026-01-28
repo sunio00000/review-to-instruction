@@ -7,6 +7,7 @@ import { CommentDetector, type CommentElement } from './comment-detector';
 import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import type { Comment, Repository, DiscussionThread } from '../types';
+import { isConventionComment } from '../core/parser';
 
 export class GitLabInjector {
   private detector: CommentDetector;
@@ -21,7 +22,7 @@ export class GitLabInjector {
 
     // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
     // MR discussion notes, 리뷰 코멘트, diff 노트, 답글을 모두 포함
-    // 시스템 노트와 커밋 히스토리는 shouldExcludeComment에서 필터링
+    // 시스템 노트, 커밋 히스토리, 새 코멘트 작성 폼은 shouldExcludeComment에서 필터링
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
       // 코멘트 컨테이너 선택자 (여러 Fallback 시도)
@@ -34,8 +35,7 @@ export class GitLabInjector {
         '.diff-note',                      // diff 내부 노트
         '.note-wrapper',                   // 노트 래퍼
         'li.note',                         // li 태그 노트
-        '[data-note-type="DiffNote"]',     // diff 노트 타입
-        '.discussion-reply-holder .note'   // 답글 노트
+        '[data-note-type="DiffNote"]'      // diff 노트 타입
       ],
       // 코멘트 내용 선택자 (여러 Fallback 시도)
       [
@@ -179,14 +179,18 @@ export class GitLabInjector {
       return;
     }
 
-    // 버튼 추가
+    // 컨벤션 코멘트 여부 체크
+    const isConvention = isConventionComment(comment.content);
+
+    // 버튼 추가 (컨벤션이 아니면 disabled)
     this.uiBuilder.addButton(
       commentElement.element,
       commentElement.contentElement,
       {
         platform: 'gitlab',
         comment,
-        onClick: (comment) => this.onButtonClick(comment)
+        onClick: (comment) => this.onButtonClick(comment),
+        disabled: !isConvention
       }
     );
   }
