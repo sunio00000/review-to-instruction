@@ -124,6 +124,8 @@ export type MessageType =
   | 'SAVE_CONFIG'
   | 'CONVERT_COMMENT'
   | 'CONVERT_THREAD'       // Discussion Thread 전체 변환
+  | 'PREVIEW_INSTRUCTION'  // Instruction 미리보기 생성 (LLM 분석만)
+  | 'CONFIRM_AND_CONVERT'  // 미리보기 확인 후 실제 변환
   | 'CREATE_PR'
   | 'TEST_API'
   | 'GET_CACHE_STATS'      // Feature 2: 캐시 통계 조회

@@ -6,6 +6,7 @@
 import { CommentDetector, type CommentElement } from './comment-detector';
 import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
+import { PreviewModal } from './preview-modal';
 import type { Comment, Repository, DiscussionThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
@@ -280,33 +281,67 @@ export class GitHubInjector {
     if (!button) return;
 
     try {
-      // Chrome Extension API 존재 여부 확인
+      // Chrome Extension API 체크
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-        throw new Error('Chrome Extension API를 사용할 수 없습니다. Extension이 제대로 로드되었는지 확인해주세요.');
+        throw new Error('Chrome Extension API를 사용할 수 없습니다.');
       }
 
-      // Background script로 메시지 전송
-      const response = await chrome.runtime.sendMessage({
-        type: 'CONVERT_COMMENT',
-        payload: {
-          comment,
-          repository: this.repository
-        }
+      // 1. 로딩 상태 표시
+      this.uiBuilder.setButtonState(button, 'loading');
+
+      // 2. 미리보기 요청
+      const previewResponse = await chrome.runtime.sendMessage({
+        type: 'PREVIEW_INSTRUCTION',
+        payload: { comment, repository: this.repository }
       });
 
-      if (response.success) {
-        // 성공 메시지 표시 (PR URL 링크 + 토큰 사용량 포함)
-        this.uiBuilder.showSuccessMessage(
-          button,
-          response.data.prUrl,
-          response.data.isUpdate,
-          response.data.tokenUsage
-        );
-      } else {
-        throw new Error(response.error || 'Unknown error');
+      if (!previewResponse.success) {
+        throw new Error(previewResponse.error || 'Preview failed');
       }
+
+      // 3. 로딩 완료
+      this.uiBuilder.setButtonState(button, 'default');
+
+      // 4. PreviewModal 표시
+      const modal = new PreviewModal();
+      const action = await modal.show({
+        result: previewResponse.data.result,
+        warnings: []
+      });
+
+      // 5. 사용자 액션 처리
+      if (action === 'cancel') {
+        return; // 취소 - 아무것도 안 함
+      }
+
+      if (action === 'edit') {
+        // Phase 2에서 구현
+        alert('수정 기능은 다음 단계에서 구현됩니다.');
+        return;
+      }
+
+      // 6. 확인 버튼: 실제 변환 수행
+      if (action === 'confirm') {
+        this.uiBuilder.setButtonState(button, 'loading');
+
+        const convertResponse = await chrome.runtime.sendMessage({
+          type: 'CONFIRM_AND_CONVERT',
+          payload: { comment, repository: this.repository }
+        });
+
+        if (convertResponse.success) {
+          this.uiBuilder.showSuccessMessage(
+            button,
+            convertResponse.data.prUrl,
+            convertResponse.data.isUpdate,
+            convertResponse.data.tokenUsage
+          );
+        } else {
+          throw new Error(convertResponse.error || 'Conversion failed');
+        }
+      }
+
     } catch (error) {
-      // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.uiBuilder.showErrorMessage(button, errorMessage);
     }

@@ -4,6 +4,7 @@
  */
 
 import type { Message, MessageResponse, Comment, Repository, Platform, DiscussionThread } from '../types';
+import type { InstructionResult, CommentSource } from './llm/types';
 import { ApiClient } from './api-client';
 import { llmCache } from './llm/cache';
 import { createServiceContainer } from './services/di-container';
@@ -33,6 +34,14 @@ export async function handleMessage(
 
     case 'CONVERT_COMMENT':
       await handleConvertComment(message.payload, sendResponse);
+      break;
+
+    case 'PREVIEW_INSTRUCTION':
+      await handlePreviewInstruction(message.payload, sendResponse);
+      break;
+
+    case 'CONFIRM_AND_CONVERT':
+      await handleConfirmAndConvert(message.payload, sendResponse);
       break;
 
     case 'CONVERT_THREAD':
@@ -339,6 +348,125 @@ async function handleSetMasterPassword(
       success: true,
       data: { message: '마스터 비밀번호가 설정되었습니다.' }
     });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Instruction 미리보기 생성 (LLM 분석만 수행, 파일 생성 안 함)
+ */
+async function handlePreviewInstruction(
+  payload: { comment: Comment; repository: Repository },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    // 1. 설정 로드
+    const config = await orchestrator.container.configService.loadConfig(payload.repository.platform);
+
+    // 2. LLM 분석만 수행
+    const { enhancedComment, tokenUsage } = await orchestrator.container.commentService.validateAndEnhance(
+      payload.comment,
+      config.llmConfig
+    );
+
+    // 3. Instruction 내용 생성
+    const instructionContent = `# ${enhancedComment.suggestedCategory || 'Convention'}
+
+${enhancedComment.summary}
+
+## Details
+
+${enhancedComment.detailedExplanation}
+
+${enhancedComment.codeExplanations && enhancedComment.codeExplanations.length > 0 ? `
+## Examples
+
+${enhancedComment.codeExplanations.map((ex, i) => `
+### Example ${i + 1} (${ex.isGoodExample ? '✅ Good' : '❌ Bad'})
+
+\`\`\`
+${ex.code}
+\`\`\`
+
+${ex.explanation}
+`).join('\n')}
+` : ''}`;
+
+    // 4. CommentSource 생성
+    const sources: CommentSource[] = [];
+
+    // 메인 코멘트
+    sources.push({
+      commentId: payload.comment.id,
+      author: payload.comment.author,
+      excerpt: payload.comment.content.substring(0, 150) +
+        (payload.comment.content.length > 150 ? '...' : ''),
+      weight: 1.0
+    });
+
+    // 답글들
+    if (payload.comment.replies && payload.comment.replies.length > 0) {
+      const replyWeight = 0.5 / payload.comment.replies.length;
+      payload.comment.replies.forEach(reply => {
+        sources.push({
+          commentId: reply.id,
+          author: reply.author,
+          excerpt: reply.content.substring(0, 100) +
+            (reply.content.length > 100 ? '...' : ''),
+          weight: replyWeight
+        });
+      });
+    }
+
+    // 5. InstructionResult 생성
+    const result: InstructionResult = {
+      content: instructionContent,
+      reasoning: enhancedComment.reasoning || {
+        detectedIntent: [],
+        keyPhrases: [],
+        codeReferences: [],
+        confidenceScore: 50
+      },
+      sources
+    };
+
+    sendResponse({
+      success: true,
+      data: { result, tokenUsage }
+    });
+
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * 미리보기 확인 후 실제 변환 수행
+ */
+async function handleConfirmAndConvert(
+  payload: { comment: Comment; repository: Repository; editedContent?: string },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    // editedContent가 있으면 comment 덮어쓰기 (Phase 2에서 구현)
+    const finalComment = payload.editedContent
+      ? { ...payload.comment, content: payload.editedContent }
+      : payload.comment;
+
+    // 기존 변환 로직 재사용
+    const result = await orchestrator.convertComment({
+      comment: finalComment,
+      repository: payload.repository
+    });
+
+    sendResponse({ success: true, data: result });
   } catch (error) {
     sendResponse({
       success: false,
