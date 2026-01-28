@@ -22,6 +22,30 @@ export interface LLMAnalysisResult {
   codeExplanations: CodeExplanation[]; // 코드 예시 설명
   additionalKeywords: string[];        // 추가 키워드
   suggestedCategory?: string;          // 제안 카테고리
+  reasoning?: ReasoningInfo;           // Chain-of-Thought 추론 정보 (Phase 1)
+}
+
+// Chain-of-Thought 추론 정보 (Phase 1: 투명성 강화)
+export interface ReasoningInfo {
+  detectedIntent: string[];            // 감지된 의도 (예: "코드 리팩토링 요청", "버그 수정 제안")
+  keyPhrases: string[];                // 추출된 핵심 문구
+  codeReferences: string[];            // 언급된 코드 위치
+  confidenceScore: number;             // 신뢰도 점수 (0-100)
+}
+
+// Instruction 생성 결과 (Phase 1: 미리보기 모달용)
+export interface InstructionResult {
+  content: string;                     // 생성된 Instruction 내용
+  reasoning: ReasoningInfo;            // 추론 과정
+  sources: CommentSource[];            // 참조한 코멘트
+}
+
+// 참조 코멘트 정보
+export interface CommentSource {
+  commentId: string;                   // 코멘트 ID
+  author: string;                      // 작성자
+  excerpt: string;                     // 해당 코멘트에서 사용된 부분
+  weight: number;                      // 이 코멘트의 영향력 (0-1)
 }
 
 // 토큰 사용량
