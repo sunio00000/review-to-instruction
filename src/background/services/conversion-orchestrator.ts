@@ -32,7 +32,7 @@ export interface ConversionResult {
  * ConversionOrchestrator - 모든 서비스를 조율하여 코멘트 변환
  */
 export class ConversionOrchestrator {
-  constructor(private container: ServiceContainer) {}
+  constructor(public container: ServiceContainer) {}
 
   /**
    * 코멘트를 instruction/skill 파일로 변환하고 PR 생성 (Feature 2: 토큰 사용량 추적)
