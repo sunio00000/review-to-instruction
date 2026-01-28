@@ -425,3 +425,531 @@ body.gl-dark .review-to-instruction-button.thread-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
   box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
 }
+
+/* ==================== PreviewModal 스타일 ==================== */
+
+/* 모달 오버레이 */
+.review-to-instruction-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 모달 컨테이너 */
+.review-to-instruction-modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 모달 헤더 */
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #e1e4e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #57606a;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: #f3f4f6;
+  color: #24292f;
+}
+
+/* 모달 본문 */
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-section {
+  margin-bottom: 24px;
+}
+
+.modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.modal-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+/* Instruction 내용 */
+.instruction-content {
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.instruction-content pre {
+  margin: 0;
+  padding: 16px;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+}
+
+.instruction-content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #24292f;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 검증 경고/제안 */
+.validation-section {
+  margin-top: 16px;
+}
+
+.validation-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.validation-message:last-child {
+  margin-bottom: 0;
+}
+
+.validation-warning {
+  background-color: #fff8c5;
+  border: 1px solid #d4a72c;
+  color: #7d4e00;
+}
+
+.validation-error {
+  background-color: #ffebe9;
+  border: 1px solid #ff818266;
+  color: #cf222e;
+}
+
+.validation-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.validation-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 분석 근거 섹션 */
+.reasoning-section {
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.reasoning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reasoning-item {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #24292f;
+}
+
+.reasoning-item strong {
+  font-weight: 600;
+  color: #0969da;
+}
+
+.reasoning-item code {
+  padding: 2px 6px;
+  background-color: white;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* 신뢰도 배지 */
+.confidence-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* 참조 코멘트 섹션 */
+.sources-section {
+  margin-top: 16px;
+}
+
+.sources-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.source-item {
+  padding: 12px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+}
+
+.source-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.source-header strong {
+  color: #0969da;
+  font-size: 13px;
+}
+
+.source-weight {
+  color: #57606a;
+  font-size: 12px;
+  background-color: #e8ecef;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.source-excerpt {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #57606a;
+  font-style: italic;
+}
+
+.no-sources {
+  color: #57606a;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* 모달 푸터 */
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.modal-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-btn-secondary {
+  background-color: #f6f8fa;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+}
+
+.modal-btn-secondary:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #b1b7be;
+}
+
+.modal-btn-primary {
+  background-color: #0969da;
+  color: white;
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+  background-color: #0860ca;
+}
+
+.modal-btn-success {
+  background-color: #2da44e;
+  color: white;
+}
+
+.modal-btn-success:hover:not(:disabled) {
+  background-color: #2c974b;
+}
+
+/* 다크모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .review-to-instruction-modal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  .review-to-instruction-modal {
+    background: #1c2128;
+    color: #c9d1d9;
+  }
+
+  .modal-header,
+  .modal-footer {
+    border-color: #30363d;
+  }
+
+  .modal-header h2 {
+    color: #c9d1d9;
+  }
+
+  .modal-close {
+    color: #8b949e;
+  }
+
+  .modal-close:hover {
+    background-color: #30363d;
+    color: #c9d1d9;
+  }
+
+  .modal-section h3 {
+    color: #c9d1d9;
+  }
+
+  .instruction-content {
+    border-color: #30363d;
+  }
+
+  .instruction-content pre {
+    background-color: #0d1117;
+  }
+
+  .instruction-content code {
+    color: #c9d1d9;
+  }
+
+  .validation-warning {
+    background-color: rgba(187, 128, 9, 0.15);
+    border-color: rgba(187, 128, 9, 0.4);
+    color: #d29922;
+  }
+
+  .validation-error {
+    background-color: rgba(248, 81, 73, 0.15);
+    border-color: rgba(248, 81, 73, 0.4);
+    color: #f85149;
+  }
+
+  .reasoning-section {
+    background-color: #0d1117;
+  }
+
+  .reasoning-item {
+    color: #c9d1d9;
+  }
+
+  .reasoning-item strong {
+    color: #58a6ff;
+  }
+
+  .reasoning-item code {
+    background-color: #1c2128;
+    border-color: #30363d;
+    color: #c9d1d9;
+  }
+
+  .source-item {
+    background-color: #0d1117;
+    border-color: #30363d;
+  }
+
+  .source-header strong {
+    color: #58a6ff;
+  }
+
+  .source-weight {
+    background-color: #21262d;
+    color: #8b949e;
+  }
+
+  .source-excerpt {
+    color: #8b949e;
+  }
+
+  .no-sources {
+    color: #8b949e;
+  }
+
+  .modal-btn-secondary {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border-color: #30363d;
+  }
+
+  .modal-btn-secondary:hover:not(:disabled) {
+    background-color: #30363d;
+    border-color: #484f58;
+  }
+}
+
+html[data-color-mode="dark"] .review-to-instruction-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+html[data-color-mode="dark"] .review-to-instruction-modal {
+  background: #1c2128;
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .modal-header,
+html[data-color-mode="dark"] .modal-footer {
+  border-color: #30363d;
+}
+
+html[data-color-mode="dark"] .modal-header h2 {
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .modal-close {
+  color: #8b949e;
+}
+
+html[data-color-mode="dark"] .modal-close:hover {
+  background-color: #30363d;
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .modal-section h3 {
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .instruction-content {
+  border-color: #30363d;
+}
+
+html[data-color-mode="dark"] .instruction-content pre {
+  background-color: #0d1117;
+}
+
+html[data-color-mode="dark"] .instruction-content code {
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .reasoning-section {
+  background-color: #0d1117;
+}
+
+html[data-color-mode="dark"] .reasoning-item {
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .reasoning-item strong {
+  color: #58a6ff;
+}
+
+html[data-color-mode="dark"] .reasoning-item code {
+  background-color: #1c2128;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+html[data-color-mode="dark"] .source-item {
+  background-color: #0d1117;
+  border-color: #30363d;
+}
+
+html[data-color-mode="dark"] .source-header strong {
+  color: #58a6ff;
+}
+
+html[data-color-mode="dark"] .source-weight {
+  background-color: #21262d;
+  color: #8b949e;
+}
+
+html[data-color-mode="dark"] .source-excerpt {
+  color: #8b949e;
+}
+
+html[data-color-mode="dark"] .modal-btn-secondary {
+  background-color: #21262d;
+  color: #c9d1d9;
+  border-color: #30363d;
+}
+
+html[data-color-mode="dark"] .modal-btn-secondary:hover:not(:disabled) {
+  background-color: #30363d;
+  border-color: #484f58;
+}
