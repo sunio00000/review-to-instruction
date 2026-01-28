@@ -57,6 +57,15 @@ export interface EnhancedComment extends ParsedComment {
   codeExplanations?: CodeExplanation[];    // 코드 예시 설명
   additionalKeywords?: string[];           // LLM이 추출한 추가 키워드
   suggestedCategory?: string;              // LLM이 제안한 카테고리
+  reasoning?: ReasoningInfo;               // 추론 정보 (Phase 1)
+}
+
+// 추론 정보 (Phase 1: 투명성 강화)
+export interface ReasoningInfo {
+  detectedIntent: string[];
+  keyPhrases: string[];
+  codeReferences: string[];
+  confidenceScore: number;
 }
 
 // 레포지토리 정보
