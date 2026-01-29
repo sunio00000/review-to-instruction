@@ -5,7 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2025-01-27
+## [1.0.0] - 2026-01-29
+
+### Added
+- **Dynamic Icon State Management**
+  - Active/Locked/Off icon states based on master password status
+  - Visual feedback in browser toolbar
+- **Smart Filename Abstraction**
+  - LLM-powered abstract and generalized filename generation
+  - Prevents file proliferation (5-10 well-organized files vs 50+ narrow files)
+  - Prefers existing files over creating new ones
+- **Cursor Multi-File Support**
+  - Changed from single `.cursorrules` to `.cursor/rules/*.md` structure
+  - Consistent with Claude Code and Windsurf patterns
+- **Session Storage Persistence**
+  - Master password persists across Service Worker restarts
+  - Automatic restoration from chrome.storage.session
+
+### Changed
+- Cursor file structure: `.cursorrules` → `.cursor/rules/*.md`
+- Improved error messages with user-friendly unlock instructions
+- File naming strategy: category-focused instead of keyword-heavy
+
+### Fixed
+- TypeScript type error in icon-manager (IconPaths compatibility)
+- Chrome API compatibility issues
+
+## [Previous Versions]
+
+### [1.3.0] - 2025-01-27
 
 ### Added
 - Discussion Thread conversion feature
@@ -86,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` - Bug fixes
 - `Security` - Security vulnerability fixes
 
+[1.0.0]: https://github.com/sunio00000/review-to-instruction/releases/tag/v1.0.0
 [1.3.0]: https://github.com/sunio00000/review-to-instruction/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/sunio00000/review-to-instruction/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/sunio00000/review-to-instruction/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/sunio00000/review-to-instruction/releases/tag/v1.0.0
