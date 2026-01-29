@@ -5,12 +5,8 @@
 
 export type IconState = 'active' | 'locked' | 'off';
 
-interface IconPaths {
-  16: string;
-  32: string;
-  48: string;
-  128: string;
-}
+// Chrome API 호환 타입 (index signature 필요)
+type IconPaths = Record<number, string>;
 
 /**
  * 아이콘 상태 관리자
