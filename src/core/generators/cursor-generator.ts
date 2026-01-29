@@ -1,6 +1,6 @@
 /**
  * Review to Instruction - Cursor Generator
- * Cursor .cursorrules 파일 생성 (단일 파일 append 방식)
+ * Cursor .cursor/rules/*.md 파일 생성 (다중 파일 방식)
  */
 
 import { BaseGenerator, type GeneratorOptions, type GenerationResult } from './base-generator';
@@ -9,67 +9,91 @@ import { summarizeComment } from '../parser';
 
 /**
  * Cursor 파일 생성기
- * - .cursorrules 단일 파일에 append
- * - YAML frontmatter 없이 순수 Markdown
- * - 구분자(---)로 각 규칙 분리
+ * - .cursor/rules/ 디렉토리에 개별 Markdown 파일 생성
+ * - YAML frontmatter 포함
+ * - Claude Code와 유사한 구조
  */
 export class CursorGenerator extends BaseGenerator {
   /**
    * 파일 생성
    */
   generate(options: GeneratorOptions): GenerationResult {
-    const { existingContent } = options;
+    const { parsedComment, existingContent, suggestedPath } = options;
 
-    // 기존 파일이 있으면 append, 없으면 새로 생성
+    // 파일 경로 결정
+    const filePath = suggestedPath || this.generateFilePath(parsedComment.suggestedFileName);
+
+    // 콘텐츠 생성
     const content = existingContent
-      ? this.appendToCursorrules(options, existingContent)
-      : this.createCursorrules(options);
+      ? this.updateExistingFile(options, existingContent)
+      : this.createNewFile(options);
 
     return {
       content,
-      filePath: '.cursorrules',
+      filePath,
       isUpdate: !!existingContent
     };
   }
 
   /**
-   * 대상 디렉토리 반환 (루트)
+   * 대상 디렉토리 반환
    */
   getTargetDirectory(): string {
-    return '.';
+    return '.cursor/rules';
   }
 
   /**
-   * 파일 확장자 반환 (확장자 없음)
+   * 파일 확장자 반환
    */
   getFileExtension(): string {
-    return '';
+    return '.md';
   }
 
   /**
-   * 새 .cursorrules 파일 생성
+   * 새 파일 생성
    */
-  private createCursorrules(options: GeneratorOptions): string {
+  private createNewFile(options: GeneratorOptions): string {
     return this.generateRuleContent(options);
   }
 
   /**
-   * 기존 .cursorrules 파일에 append
+   * 기존 파일 업데이트 (append)
    */
-  private appendToCursorrules(
+  private updateExistingFile(
     options: GeneratorOptions,
     existingContent: string
   ): string {
-    const newRule = this.generateRuleContent(options);
-
-    // 기존 내용 + 구분자 + 새 규칙
-    return `${existingContent.trim()}\n\n---\n\n${newRule}`;
+    const newSection = this.generateNewSection(options);
+    return `${existingContent.trim()}\n\n---\n\n${newSection}`;
   }
 
   /**
-   * 규칙 콘텐츠 생성 (Cursor best practices: concise, bullet points)
+   * 규칙 콘텐츠 생성 (YAML frontmatter 포함)
    */
   private generateRuleContent(options: GeneratorOptions): string {
+    const { parsedComment, originalComment, repository } = options;
+
+    const sections: string[] = [];
+
+    // YAML frontmatter
+    sections.push('---');
+    sections.push(`title: "${this.generateTitle(parsedComment)}"`);
+    sections.push(`category: "${parsedComment.category}"`);
+    sections.push(`keywords: [${parsedComment.keywords.map(k => `"${k}"`).join(', ')}]`);
+    sections.push(`source: "PR #${repository.prNumber}"`);
+    sections.push(`author: "${originalComment.author}"`);
+    sections.push('---\n');
+
+    // 본문 내용 추가
+    sections.push(this.generateNewSection(options));
+
+    return sections.join('\n');
+  }
+
+  /**
+   * 새 섹션 생성 (frontmatter 제외)
+   */
+  private generateNewSection(options: GeneratorOptions): string {
     const { parsedComment, originalComment, repository } = options;
 
     const title = this.generateTitle(parsedComment);

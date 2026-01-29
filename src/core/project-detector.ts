@@ -103,20 +103,20 @@ export class ProjectTypeDetector {
   }
 
   /**
-   * Cursor 감지 (.cursorrules 파일)
+   * Cursor 감지 (.cursor/rules/ 디렉토리)
    */
   private async detectCursor(
     client: ApiClient,
     repository: Repository
   ): Promise<{ detected: boolean; type: ProjectType; config: ProjectTypeConfig }> {
     try {
-      const file = await client.getFileContent(repository, '.cursorrules');
+      const contents = await client.getDirectoryContents(repository, '.cursor/rules');
       return {
-        detected: file !== null,
+        detected: contents !== null && contents.length > 0,
         type: 'cursor',
         config: {
           type: 'cursor',
-          detectionPath: '.cursorrules',
+          detectionPath: '.cursor/rules/',
           enabled: true
         }
       };
@@ -126,7 +126,7 @@ export class ProjectTypeDetector {
         type: 'cursor',
         config: {
           type: 'cursor',
-          detectionPath: '.cursorrules',
+          detectionPath: '.cursor/rules/',
           enabled: false
         }
       };

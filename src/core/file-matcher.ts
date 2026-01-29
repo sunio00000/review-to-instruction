@@ -355,7 +355,7 @@ export async function findMatchingFileForProjectType(
     case 'claude-code':
       return findMatchingFileForClaudeCode(client, repository, parsedComment);
     case 'cursor':
-      return findMatchingFileForCursor(client, repository);
+      return findMatchingFileForCursor(client, repository, parsedComment);
     case 'windsurf':
       return findMatchingFileForWindsurf(client, repository, parsedComment);
     default:
@@ -389,29 +389,35 @@ async function findMatchingFileForClaudeCode(
 }
 
 /**
- * Cursor 파일 매칭 (단일 파일 .cursorrules)
+ * Cursor 파일 매칭 (.cursor/rules/ 디렉토리)
  */
 async function findMatchingFileForCursor(
   client: ApiClient,
-  repository: Repository
+  repository: Repository,
+  parsedComment: ParsedComment
 ): Promise<ProjectTypeMatchResult> {
   try {
-    const fileContent = await client.getFileContent(repository, '.cursorrules');
+    // .cursor/rules/ 디렉토리에서 매칭 파일 찾기
+    const matchResult = await findInDirectory(
+      client,
+      repository,
+      '.cursor/rules',
+      parsedComment
+    );
 
-    if (fileContent && fileContent.content) {
-      // 기존 .cursorrules 파일 존재
-      const content = decodeBase64(fileContent.content);
+    if (matchResult.isMatch && matchResult.file) {
+      // 기존 파일 발견
       return {
-        existingContent: content,
-        filePath: '.cursorrules'
+        existingContent: matchResult.file.content,
+        filePath: matchResult.file.path
       };
     }
   } catch (error) {
   }
 
-  // 새 파일 생성
+  // 새 파일 생성 (파일 경로는 Generator가 결정)
   return {
-    filePath: '.cursorrules'
+    filePath: '' // Generator에서 결정
   };
 }
 

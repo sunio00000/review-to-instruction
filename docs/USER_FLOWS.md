@@ -234,7 +234,7 @@ await cache.set(cacheKey, result, TTL_24_HOURS);
 
 **감지 순서**
 1. `.claude/` 디렉토리 존재 → Claude Code
-2. `.cursorrules` 파일 존재 → Cursor
+2. `.cursor/rules/` 디렉토리 존재 → Cursor
 3. `.windsurf/` 디렉토리 존재 → Windsurf
 
 **파일 생성 경로**
@@ -246,7 +246,7 @@ const projectTypePaths = {
     rules: '.claude/rules/'
   },
   'cursor': {
-    root: '.cursorrules'  // 단일 파일
+    rules: '.cursor/rules/'  // 다중 파일
   },
   'windsurf': {
     rules: '.windsurf/rules/'

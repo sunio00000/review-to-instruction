@@ -23,7 +23,7 @@ Our team uses PascalCase for component file names.
 
 Becomes these files automatically:
 - `.claude/rules/component-naming.md`
-- `.cursorrules`
+- `.cursor/rules/component-naming.md`
 - `.windsurf/rules/component-naming.md`
 
 All committed to a new PR with proper formatting and metadata.
@@ -59,7 +59,7 @@ All committed to a new PR with proper formatting and metadata.
 ### Multi-Platform Support
 Automatically detects and generates instruction files for:
 - **Claude Code** (`.claude/rules/`, `.claude/skills/`)
-- **Cursor** (`.cursorrules`)
+- **Cursor** (`.cursor/rules/`)
 - **Windsurf** (`.windsurf/rules/`)
 
 ### Intelligent Processing
