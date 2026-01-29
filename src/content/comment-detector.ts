@@ -75,19 +75,15 @@ export class CommentDetector {
   private processExistingComments() {
     let totalComments = 0;
 
-    // 모든 Fallback 선택자를 순회하며 첫 번째로 발견된 선택자 사용
+    // 모든 선택자를 순회하며 모든 코멘트 처리 (WeakSet으로 중복 방지)
     for (const selector of this.selectors) {
       const comments = document.querySelectorAll<HTMLElement>(selector);
 
-      if (comments.length > 0) {
+      comments.forEach((comment) => {
+        this.processComment(comment);
+      });
 
-        comments.forEach((comment) => {
-          this.processComment(comment);
-        });
-
-        totalComments = comments.length;
-        break;  // 첫 번째 성공한 선택자만 사용
-      }
+      totalComments += comments.length;
     }
 
     if (totalComments === 0) {
