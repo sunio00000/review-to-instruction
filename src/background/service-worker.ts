@@ -30,8 +30,8 @@ async function initializeIconState(): Promise<void> {
     });
   } catch (error) {
     console.error('[Service Worker] Failed to initialize icon state:', error);
-    // 에러 발생 시 locked 상태로 설정
-    await iconManager.setIconState('locked');
+    // 에러 발생 시 active 상태로 설정 (기본값)
+    await iconManager.setIconState('active');
   }
 }
 

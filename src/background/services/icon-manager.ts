@@ -12,7 +12,7 @@ type IconPaths = Record<number, string>;
  * 아이콘 상태 관리자
  */
 export class IconManager {
-  private currentState: IconState = 'locked';
+  private currentState: IconState = 'active';
 
   private readonly iconPaths: Record<IconState, IconPaths> = {
     active: {
