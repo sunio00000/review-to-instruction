@@ -117,7 +117,7 @@ export class SmartFileNaming {
     const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
     const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
 
-    let prompt = `You are an expert at organizing code conventions and documentation. Generate an appropriate filename for a Claude Code instruction file based on the following information:
+    let prompt = `You are an expert at organizing code conventions and documentation. Generate an ABSTRACT and GENERALIZED filename for a Claude Code instruction file that can accommodate similar conventions in the future.
 
 ## Comment Information
 - Category: ${parsedComment.category}
@@ -132,29 +132,46 @@ export class SmartFileNaming {
 - Common Keywords: ${analysisResult.pattern.commonKeywords.join(', ')}
 - Existing Categories: ${Object.keys(analysisResult.pattern.categoryDistribution).join(', ')}
 - Example Filenames: ${analysisResult.existingFiles.slice(0, 5).map(f => f.path.split('/').pop()).join(', ')}
+
+IMPORTANT: If an existing file could logically contain this convention, prefer that filename instead of creating a new one.
 `;
     } else {
       prompt += `
 ## No Existing Files
-This will be the first instruction file in the project. Use clear, descriptive kebab-case naming.
+This will be the first instruction file in the project. Use clear, ABSTRACT, and GENERALIZED naming that can accommodate related conventions.
 `;
     }
 
     prompt += `
-## Requirements
-1. Generate a filename that is:
-   - Descriptive and clear
+## CRITICAL Requirements for Filename Abstraction
+1. **Avoid over-specific filenames**: Instead of "button-component-naming.md", use "component-naming.md"
+2. **Think broadly**: Group related conventions under general categories
+   - ✅ Good: "error-handling.md" (can include try-catch, logging, retries, etc.)
+   - ❌ Bad: "try-catch-conventions.md" (too specific)
+3. **Prefer existing files**: If an existing file's topic is related, reuse that filename
+4. **Use category-level naming**: Base filenames on categories (naming, testing, architecture, etc.)
+5. **Limit file proliferation**: Aim for 5-10 well-organized files, not 50+ narrow files
+
+## Filename Selection Strategy
+1. First, check if any existing file could contain this convention
+2. If yes, return that existing filename
+3. If no, create a NEW filename that is:
+   - Abstract enough to group similar conventions
+   - Based on the category, not specific implementation details
    - Follows the project's naming pattern (${analysisResult?.pattern.namingPattern || 'kebab-case'})
-   - Relevant to the category and keywords
-   - Unique and not conflicting with existing files
-2. Suggest the appropriate directory (usually .claude/instructions)
-3. Provide a brief reasoning for your choice
+   - Clear but not overly descriptive
+
+## Examples of Good Abstraction
+- "naming-conventions.md" instead of "react-component-naming.md"
+- "testing.md" instead of "jest-unit-test-setup.md"
+- "api-design.md" instead of "rest-endpoint-naming.md"
+- "code-organization.md" instead of "file-structure-for-services.md"
 
 ## Response Format (JSON)
 {
   "filename": "suggested-filename.md",
   "directory": ".claude/instructions",
-  "reasoning": "Brief explanation of why this filename is appropriate"
+  "reasoning": "Brief explanation of why this abstract filename is appropriate and how it can accommodate related conventions"
 }
 
 Respond ONLY with valid JSON, no additional text.`;
@@ -179,7 +196,7 @@ Respond ONLY with valid JSON, no additional text.`;
     const firstComment = thread.comments[0];
     const lastComment = thread.comments[thread.comments.length - 1];
 
-    let prompt = `You are an expert at organizing code conventions and documentation. Generate an appropriate filename for a Claude Code instruction file based on a Discussion Thread.
+    let prompt = `You are an expert at organizing code conventions and documentation. Generate an ABSTRACT and GENERALIZED filename for a Claude Code instruction file based on a Discussion Thread that can accommodate similar conventions in the future.
 
 ## Discussion Thread Overview
 - Total comments: ${commentCount}
@@ -207,35 +224,49 @@ ${commentCount > 3 ? `\n... and ${commentCount - 3} more comments` : ''}
 - Naming Pattern: ${analysisResult.pattern.namingPattern}
 - Common Keywords: ${analysisResult.pattern.commonKeywords.join(', ')}
 - Example Filenames: ${analysisResult.existingFiles.slice(0, 5).map(f => f.path.split('/').pop()).join(', ')}
+
+IMPORTANT: If an existing file could logically contain this discussion's conventions, prefer that filename instead of creating a new one.
 `;
     } else {
       prompt += `
 ## No Existing Files
-This will be the first instruction file in the project. Use clear, descriptive kebab-case naming.
+This will be the first instruction file in the project. Use clear, ABSTRACT, and GENERALIZED naming that can accommodate related conventions.
 `;
     }
 
     prompt += `
-## Special Instructions for Thread Files
-1. The filename should capture the MAIN TOPIC of the entire discussion, not just individual comments
-2. Consider the evolution of ideas throughout the thread
-3. If the discussion reached a consensus or conclusion, reflect that
-4. If the thread discusses refining or updating an existing convention, consider using "update-", "refine-", or "discussion-" prefix
+## CRITICAL Requirements for Filename Abstraction
+1. **Avoid over-specific filenames**: Think about the broader category, not the specific discussion details
+2. **Remove discussion markers**: Don't use "-discussion", "-consensus", "-thread" suffixes unless truly necessary
+3. **Prefer existing files**: If an existing file's topic is related, reuse that filename
+4. **Think categorically**: Base filenames on high-level categories (naming, testing, architecture, error-handling, etc.)
+5. **Limit file proliferation**: Aim for well-organized, reusable filenames that can grow with additional conventions
 
-## Requirements
-1. Generate a filename that is:
-   - Descriptive of the thread's central topic
+## Special Instructions for Thread Files
+1. The filename should capture the CORE TOPIC at a high level, not the discussion specifics
+2. Consider: "What would be the chapter title in a style guide book?"
+3. If the discussion reached a consensus, reflect the TOPIC not the process
+4. Avoid temporal markers like "update-", "new-", "2024-" unless truly necessary
+
+## Filename Selection Strategy
+1. First, check if any existing file could contain this thread's conventions
+2. If yes, return that existing filename
+3. If no, create a NEW filename that is:
+   - Abstract and category-based (e.g., "api-design" not "api-endpoint-discussion")
+   - Timeless and reusable
    - Follows the project's naming pattern (${analysisResult?.pattern.namingPattern || 'kebab-case'})
-   - Reflects the discussion nature (e.g., "component-naming-discussion", "async-pattern-consensus")
-   - Unique and not conflicting with existing files
-2. Suggest the appropriate directory (usually .claude/instructions)
-3. Provide reasoning explaining how the filename captures the thread's essence
+
+## Examples of Good Abstraction
+- "naming-conventions.md" instead of "component-naming-discussion.md"
+- "testing-patterns.md" instead of "jest-setup-consensus.md"
+- "error-handling.md" instead of "try-catch-discussion.md"
+- "code-organization.md" instead of "folder-structure-thread.md"
 
 ## Response Format (JSON)
 {
   "filename": "suggested-filename.md",
   "directory": ".claude/instructions",
-  "reasoning": "Brief explanation of why this filename captures the discussion thread appropriately"
+  "reasoning": "Brief explanation of why this abstract filename is appropriate and how it can accommodate related conventions from this and future discussions"
 }
 
 Respond ONLY with valid JSON, no additional text.`;
@@ -332,24 +363,63 @@ Respond ONLY with valid JSON, no additional text.`;
   }
 
   /**
-   * 기본 파일명 생성
+   * 기본 파일명 생성 (추상화된 파일명)
    */
   private createBaseFilename(
     parsedComment: ParsedComment | EnhancedComment,
     namingPattern: 'kebab-case' | 'PascalCase' | 'snake_case'
   ): string {
-    // 사용자가 제안한 파일명이 있으면 우선 사용
+    // 사용자가 제안한 파일명이 있으면 우선 사용 (하지만 단순화)
     if (parsedComment.suggestedFileName) {
-      return this.applyNamingPattern(parsedComment.suggestedFileName, namingPattern);
+      // 제안된 파일명을 단순화 (너무 구체적이면 일반화)
+      const simplified = this.simplifyFilename(parsedComment.suggestedFileName);
+      return this.applyNamingPattern(simplified, namingPattern);
     }
 
-    // 키워드 + 카테고리 조합
-    const keywords = parsedComment.keywords.slice(0, 2); // 최대 2개
-    const parts = [...keywords, parsedComment.category];
+    // 카테고리 중심으로 생성 (키워드는 최대 1개만 사용)
+    // 카테고리가 이미 충분히 설명적이므로 키워드를 최소화
+    const mainKeyword = parsedComment.keywords.length > 0 ? parsedComment.keywords[0] : null;
 
-    const combined = parts.join('-').toLowerCase();
+    // 카테고리만 사용하거나, 카테고리가 너무 일반적이면 키워드 1개 추가
+    const genericCategories = ['general', 'conventions', 'best-practices', 'guidelines'];
+    const useKeyword = mainKeyword && genericCategories.includes(parsedComment.category);
 
-    return this.applyNamingPattern(combined, namingPattern);
+    const combined = useKeyword
+      ? `${mainKeyword}-${parsedComment.category}`
+      : parsedComment.category;
+
+    return this.applyNamingPattern(combined.toLowerCase(), namingPattern);
+  }
+
+  /**
+   * 파일명 단순화 (과도하게 구체적인 파일명을 일반화)
+   */
+  private simplifyFilename(filename: string): string {
+    // 확장자 제거
+    filename = filename.replace(/\.md$/, '');
+
+    // 과도하게 구체적인 부분 제거
+    const overlySpecificPatterns = [
+      /-component$/,       // "button-component" -> "component"
+      /-function$/,        // "helper-function" -> "helper"
+      /-conventions?$/,    // "naming-convention" -> "naming"
+      /-guidelines?$/,     // "style-guideline" -> "style"
+      /-patterns?$/,       // "design-pattern" -> "design"
+      /-rules?$/,          // "linting-rule" -> "linting"
+      /-best-practices?$/, // "testing-best-practice" -> "testing"
+    ];
+
+    let simplified = filename;
+    for (const pattern of overlySpecificPatterns) {
+      simplified = simplified.replace(pattern, '');
+    }
+
+    // 너무 짧아지면 원래 파일명 유지
+    if (simplified.length < 3) {
+      return filename;
+    }
+
+    return simplified;
   }
 
   /**
