@@ -342,7 +342,7 @@ async function handleSetMasterPassword(
     }
 
     // 전역 CryptoService에 마스터 비밀번호 설정
-    globalCrypto.setMasterPassword(password);
+    await globalCrypto.setMasterPassword(password);
 
     sendResponse({
       success: true,

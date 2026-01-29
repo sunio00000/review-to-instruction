@@ -25,8 +25,9 @@ export class CryptoService {
   private static readonly PBKDF2_ITERATIONS_LEGACY = 100000;  // Legacy Extension ID 방식
   private static readonly PBKDF2_ITERATIONS = 500000;  // 마스터 비밀번호 방식
   private static readonly SALT = 'review-to-instruction-salt-v1';
+  private static readonly SESSION_KEY = 'masterPassword';  // chrome.storage.session 키
 
-  // 마스터 비밀번호 저장 (메모리에만, 세션 유지)
+  // 마스터 비밀번호 저장 (메모리 + chrome.storage.session, Service Worker 재시작 대응)
   private masterPassword: string | null = null;
 
   /**
@@ -34,8 +35,18 @@ export class CryptoService {
    *
    * @param password 사용자가 설정한 마스터 비밀번호
    */
-  setMasterPassword(password: string): void {
+  async setMasterPassword(password: string): Promise<void> {
+    // 1. 메모리에 저장 (기존 동작)
     this.masterPassword = password;
+
+    // 2. chrome.storage.session에 저장 (Service Worker 재시작 대응)
+    try {
+      await chrome.storage.session.set({
+        [CryptoService.SESSION_KEY]: password
+      });
+    } catch (error) {
+      console.warn('[CryptoService] Failed to save to session storage:', error);
+    }
   }
 
   /**
@@ -43,15 +54,39 @@ export class CryptoService {
    *
    * @returns 현재 설정된 마스터 비밀번호 (없으면 null)
    */
-  getMasterPassword(): string | null {
-    return this.masterPassword;
+  async getMasterPassword(): Promise<string | null> {
+    // 1. 메모리에 있으면 바로 반환
+    if (this.masterPassword) {
+      return this.masterPassword;
+    }
+
+    // 2. Session storage에서 복원 시도
+    try {
+      const result = await chrome.storage.session.get([CryptoService.SESSION_KEY]);
+      const sessionPassword = result[CryptoService.SESSION_KEY] as string | undefined;
+
+      if (sessionPassword) {
+        this.masterPassword = sessionPassword;
+        return sessionPassword;
+      }
+    } catch (error) {
+      console.warn('[CryptoService] Failed to restore from session storage:', error);
+    }
+
+    return null;
   }
 
   /**
    * 마스터 비밀번호 초기화
    */
-  clearMasterPassword(): void {
+  async clearMasterPassword(): Promise<void> {
     this.masterPassword = null;
+
+    try {
+      await chrome.storage.session.remove([CryptoService.SESSION_KEY]);
+    } catch (error) {
+      console.warn('[CryptoService] Failed to clear session storage:', error);
+    }
   }
 
   /**
@@ -157,8 +192,10 @@ export class CryptoService {
    * @returns CryptoKey 객체
    */
   private async deriveKey(): Promise<CryptoKey> {
-    if (this.masterPassword) {
-      return await this.deriveKeyFromPassword(this.masterPassword);
+    const password = await this.getMasterPassword();
+
+    if (password) {
+      return await this.deriveKeyFromPassword(password);
     } else {
       // Fallback to legacy Extension ID 방식
       return await this.deriveKeyLegacy();

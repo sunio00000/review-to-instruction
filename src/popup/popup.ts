@@ -394,7 +394,7 @@ async function setupMasterPassword(): Promise<void> {
     console.log('[Setup] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
-    crypto.setMasterPassword(password);
+    await crypto.setMasterPassword(password);
     console.log('[Setup] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
@@ -483,7 +483,7 @@ async function unlockWithPassword(): Promise<boolean> {
     console.log('[Unlock] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
-    crypto.setMasterPassword(password);
+    await crypto.setMasterPassword(password);
     console.log('[Unlock] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
