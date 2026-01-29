@@ -1,53 +1,53 @@
-# Review to Instruction - 테스트 가이드
+# Review to Instruction - Testing Guide
 
-## 개요
+## Overview
 
-이 문서는 Review to Instruction의 End-to-End 테스트 시나리오와 검증 방법을 설명합니다.
+This document describes the End-to-End test scenarios and validation methods for Review to Instruction.
 
-## 사전 준비
+## Prerequisites
 
-### 1. Chrome Extension 설치
+### 1. Chrome Extension Installation
 
 ```bash
 npm run build
 ```
 
-1. Chrome에서 `chrome://extensions` 접속
-2. "개발자 모드" 활성화
-3. "압축해제된 확장 프로그램을 로드합니다" 클릭
-4. `dist/` 폴더 선택
+1. Navigate to `chrome://extensions` in Chrome
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `dist/` folder
 
-### 2. API Token 설정
+### 2. API Token Configuration
 
-1. Extension 아이콘 클릭
-2. GitHub/GitLab Personal Access Token 입력
-3. "연결 테스트" 버튼으로 인증 확인
+1. Click the Extension icon
+2. Enter GitHub/GitLab Personal Access Token
+3. Verify authentication with "Test Connection" button
 
-**필요한 권한:**
-- GitHub: `repo` (전체 레포지토리 접근)
-- GitLab: `api` (전체 API 접근)
+**Required Permissions:**
+- GitHub: `repo` (full repository access)
+- GitLab: `api` (full API access)
 
-## 테스트 시나리오
+## Test Scenarios
 
-### 시나리오 1: 새 Instruction 생성 (GitHub)
+### Scenario 1: Create New Instruction (GitHub)
 
-**목표:** GitHub PR 코멘트에서 새로운 instruction 파일을 생성하고 PR을 생성합니다.
+**Goal:** Generate a new instruction file from a GitHub PR comment and create a PR.
 
-**준비:**
-1. 테스트용 GitHub 레포지토리 생성
-2. `.claude/instructions/` 디렉토리 생성 (선택사항)
-3. 테스트 PR 생성
+**Preparation:**
+1. Create a test GitHub repository
+2. Create `.claude/rules/` directory (optional)
+3. Create a test PR
 
-**실행 단계:**
+**Execution Steps:**
 
-1. PR 페이지 접속
-2. 다음과 같은 컨벤션 코멘트 작성:
+1. Navigate to the PR page
+2. Write a convention-related comment:
    ```
-   우리 팀의 컴포넌트 네이밍 컨벤션입니다.
+   Our team's component naming convention.
 
-   컴포넌트 파일명은 PascalCase를 사용해야 합니다.
+   Component file names must use PascalCase.
 
-   올바른 예시:
+   Correct example:
    ```tsx
    // ✅ UserProfile.tsx
    export function UserProfile() {
@@ -55,7 +55,7 @@ npm run build
    }
    ```
 
-   잘못된 예시:
+   Incorrect example:
    ```tsx
    // ❌ userProfile.tsx
    export function userProfile() {
@@ -64,23 +64,23 @@ npm run build
    ```
    ```
 
-3. 코멘트 하단의 "Convert to AI Instruction" 버튼 클릭
-4. 버튼 상태가 "Processing..." → "Converted!"로 변경되는지 확인
+3. Click the "Convert to AI Instruction" button below the comment
+4. Verify the button status changes from "Processing..." to "Converted!"
 
-**검증:**
+**Verification:**
 
-1. 새로운 PR이 생성되었는지 확인
-   - PR 제목: "Add AI instruction: Naming Conventions" (또는 유사)
-   - 타겟 브랜치: 원본 PR의 브랜치
-   - 소스 브랜치: `ai-instruction/add-naming-convention` (또는 유사)
+1. Check that a new PR has been created
+   - PR title: "Add AI instruction: Naming Conventions" (or similar)
+   - Target branch: Original PR's branch
+   - Source branch: `ai-instruction/add-naming-convention` (or similar)
 
-2. PR 내용 확인
-   - 파일 경로: `.claude/instructions/naming-conventions.md` (또는 유사)
-   - YAML frontmatter 포함 여부
-   - 코드 예시 포함 여부
-   - 출처 정보 (PR 번호, 작성자, 링크) 포함 여부
+2. Verify PR contents
+   - File path: `.claude/rules/naming-conventions.md` (or similar)
+   - YAML frontmatter included
+   - Code examples included
+   - Source information (PR number, author, link) included
 
-3. 생성된 파일 내용 확인
+3. Verify generated file contents
    ```markdown
    ---
    title: "Naming Conventions"
@@ -93,22 +93,22 @@ npm run build
 
    # Naming Conventions
 
-   ## 규칙
-   우리 팀의 컴포넌트 네이밍 컨벤션입니다...
+   ## Rules
+   Our team's component naming convention...
 
-   ## 예시
+   ## Examples
    ...
 
-   ## 출처
-   이 컨벤션은 PR #1의 리뷰 과정에서 확립되었습니다.
+   ## Source
+   This convention was established during the review of PR #1.
    ```
 
-### 시나리오 2: 기존 Skill 업데이트 (GitHub)
+### Scenario 2: Update Existing Skill (GitHub)
 
-**목표:** 기존 skill 파일을 찾아 업데이트합니다.
+**Goal:** Find and update an existing skill file.
 
-**준비:**
-1. `.claude/skills/code-style.md` 파일 생성:
+**Preparation:**
+1. Create `.claude/skills/code-style.md` file:
    ```markdown
    ---
    title: "Code Style"
@@ -120,126 +120,126 @@ npm run build
 
    # Code Style
 
-   ## 설명
-   기본 코드 스타일 규칙
+   ## Description
+   Basic code style rules
    ```
 
-2. 새 PR에 스타일 관련 코멘트 작성:
+2. Write a style-related comment in a new PR:
    ```
-   함수는 최대 50줄을 넘지 않도록 합니다.
+   Functions should not exceed 50 lines.
 
-   이 규칙은 코드 가독성을 위한 스타일 컨벤션입니다.
+   This is a style convention for code readability.
    ```
 
-**실행 단계:**
-1. "Convert to AI Instruction" 버튼 클릭
-2. 버튼이 성공 상태로 변경되는지 확인
+**Execution Steps:**
+1. Click "Convert to AI Instruction" button
+2. Verify the button changes to success status
 
-**검증:**
-1. 기존 파일이 업데이트되었는지 확인 (새 파일이 아님)
-2. PR 제목: "Update AI instruction: Code Style"
-3. 파일 내용에 "추가 사례" 섹션이 추가되었는지 확인
-4. 키워드가 병합되었는지 확인
-5. `last_updated` 날짜가 갱신되었는지 확인
+**Verification:**
+1. Confirm the existing file was updated (not a new file created)
+2. PR title: "Update AI instruction: Code Style"
+3. Verify "Additional Examples" section was added to file contents
+4. Confirm keywords were merged
+5. Verify `last_updated` date was updated
 
-### 시나리오 3: GitLab MR 테스트
+### Scenario 3: GitLab MR Testing
 
-**목표:** GitLab에서도 동일하게 작동하는지 확인합니다.
+**Goal:** Verify the extension works the same on GitLab.
 
-**실행 단계:**
-1. GitLab MR 페이지 접속
-2. 컨벤션 관련 코멘트 작성
-3. "Convert to AI Instruction" 버튼 클릭
+**Execution Steps:**
+1. Navigate to a GitLab MR page
+2. Write a convention-related comment
+3. Click "Convert to AI Instruction" button
 
-**검증:**
-- GitHub와 동일한 동작
-- MR이 정상적으로 생성되는지 확인
+**Verification:**
+- Same behavior as GitHub
+- Verify MR is created successfully
 
-### 시나리오 4: 에러 처리
+### Scenario 4: Error Handling
 
-**목표:** 다양한 에러 케이스를 확인합니다.
+**Goal:** Verify various error cases.
 
-**테스트 케이스:**
+**Test Cases:**
 
-1. **컨벤션이 아닌 일반 코멘트**
-   - 입력: "This looks good!"
-   - 예상: 에러 메시지 "이 코멘트는 컨벤션 관련 내용이 아닙니다."
+1. **Non-convention General Comment**
+   - Input: "This looks good!"
+   - Expected: Error message "This comment does not contain convention-related content."
 
-2. **Token 미설정**
-   - Extension 설정에서 Token 제거
-   - 버튼 클릭
-   - 예상: 에러 메시지 "github token이 설정되지 않았습니다."
+2. **Missing Token**
+   - Remove Token from Extension settings
+   - Click button
+   - Expected: Error message "GitHub token is not configured."
 
-3. **권한 부족**
-   - 읽기 전용 레포지토리에서 시도
-   - 예상: API 에러 메시지
+3. **Insufficient Permissions**
+   - Try on a read-only repository
+   - Expected: API error message
 
-4. **네트워크 오류**
-   - 인터넷 연결 끊고 시도
-   - 예상: 네트워크 에러 메시지
+4. **Network Error**
+   - Disconnect internet and try
+   - Expected: Network error message
 
-## 성능 테스트
+## Performance Testing
 
-### 응답 시간
+### Response Time
 
-- 버튼 클릭부터 PR 생성까지: **약 5-10초**
-  - 코멘트 파싱: < 1초
-  - .claude/ 디렉토리 탐색: 1-3초
-  - 파일 생성: < 1초
-  - 브랜치 생성: 1-2초
-  - PR 생성: 1-2초
+- From button click to PR creation: **approximately 5-10 seconds**
+  - Comment parsing: < 1 second
+  - .claude/ directory exploration: 1-3 seconds
+  - File generation: < 1 second
+  - Branch creation: 1-2 seconds
+  - PR creation: 1-2 seconds
 
-### 대량 코멘트
+### High Volume Comments
 
-- 100개 코멘트가 있는 PR 페이지: 버튼 추가 < 2초
-- MutationObserver 디바운싱으로 성능 최적화됨
+- PR page with 100 comments: Button addition < 2 seconds
+- Performance optimized with MutationObserver debouncing
 
-## 회귀 테스트 체크리스트
+## Regression Test Checklist
 
-새로운 변경 사항이 있을 때마다 다음을 확인:
+Verify the following whenever there are new changes:
 
-- [ ] GitHub PR 페이지에서 버튼이 표시되는가?
-- [ ] GitLab MR 페이지에서 버튼이 표시되는가?
-- [ ] 컨벤션 코멘트에만 버튼이 작동하는가?
-- [ ] 새 instruction 파일이 올바르게 생성되는가?
-- [ ] 기존 skill 파일이 올바르게 업데이트되는가?
-- [ ] PR/MR이 올바른 브랜치로 생성되는가?
-- [ ] 커밋 메시지가 명료한가?
-- [ ] PR 본문에 파일 미리보기가 포함되는가?
-- [ ] 에러 메시지가 사용자 친화적인가?
-- [ ] API Token 테스트가 작동하는가?
+- [ ] Do buttons appear on GitHub PR pages?
+- [ ] Do buttons appear on GitLab MR pages?
+- [ ] Do buttons only work on convention-related comments?
+- [ ] Are new instruction files created correctly?
+- [ ] Are existing skill files updated correctly?
+- [ ] Are PRs/MRs created with the correct branches?
+- [ ] Are commit messages clear?
+- [ ] Does the PR body include a file preview?
+- [ ] Are error messages user-friendly?
+- [ ] Does the API Token test work?
 
-## 알려진 제한사항
+## Known Limitations
 
-1. **코드 블록이 없는 코멘트**
-   - 코드 예시가 없어도 작동하지만, 생성된 파일에 예시 섹션이 비어있을 수 있음
+1. **Comments Without Code Blocks**
+   - Works even without code examples, but the examples section in the generated file may be empty
 
-2. **복잡한 YAML frontmatter**
-   - 현재 간단한 key:value와 배열만 파싱
-   - 중첩 객체는 지원하지 않음
+2. **Complex YAML Frontmatter**
+   - Currently only parses simple key:value and arrays
+   - Nested objects not supported
 
-3. **매우 긴 코멘트**
-   - PR 본문 미리보기는 30줄까지만 표시
+3. **Very Long Comments**
+   - PR body preview shows only up to 30 lines
 
-4. **브랜치명 중복**
-   - 동일한 키워드로 여러 번 생성 시 브랜치명이 중복될 수 있음
-   - 이 경우 API에서 에러 발생
+4. **Duplicate Branch Names**
+   - Creating multiple instructions with the same keywords may result in duplicate branch names
+   - API will return an error in this case
 
-## 디버깅
+## Debugging
 
-문제가 발생하면:
+If issues occur:
 
-1. **Chrome DevTools Console 확인**
-   - F12 → Console 탭
-   - `[Review to Instruction]` 접두사가 있는 로그 확인
+1. **Check Chrome DevTools Console**
+   - F12 → Console tab
+   - Look for logs with `[Review to Instruction]` prefix
 
-2. **Background Service Worker 로그**
-   - `chrome://extensions` → Review to Instruction → "service worker" 링크 클릭
+2. **Background Service Worker Logs**
+   - Go to `chrome://extensions` → Review to Instruction → Click "service worker" link
 
-3. **네트워크 요청 확인**
-   - DevTools → Network 탭
-   - GitHub/GitLab API 요청 확인
+3. **Check Network Requests**
+   - DevTools → Network tab
+   - Check GitHub/GitLab API requests
 
-4. **설정 확인**
-   - Extension 팝업에서 Token이 올바르게 설정되었는지 확인
-   - "연결 테스트" 버튼으로 인증 확인
+4. **Verify Configuration**
+   - Check if Token is correctly configured in Extension popup
+   - Verify authentication with "Test Connection" button

@@ -1,155 +1,155 @@
 # User Flows
 
-이 문서는 Review to Instruction 익스텐션의 주요 사용자 시나리오와 상세한 흐름을 설명합니다.
+This document describes the main user scenarios and detailed flows of the Review to Instruction extension.
 
-## 목차
+## Table of Contents
 
-1. [초기 설정 플로우](#1-초기-설정-플로우)
-2. [개별 코멘트 변환 플로우](#2-개별-코멘트-변환-플로우)
-3. [Discussion Thread 변환 플로우](#3-discussion-thread-변환-플로우)
-4. [기술 아키텍처 플로우](#4-기술-아키텍처-플로우)
+1. [Initial Setup Flow](#1-initial-setup-flow)
+2. [Individual Comment Conversion Flow](#2-individual-comment-conversion-flow)
+3. [Discussion Thread Conversion Flow](#3-discussion-thread-conversion-flow)
+4. [Technical Architecture Flow](#4-technical-architecture-flow)
 
 ---
 
-## 1. 초기 설정 플로우
+## 1. Initial Setup Flow
 
-### 사용자 시나리오
-개발자가 처음으로 익스텐션을 설치하고 사용을 시작하는 과정
+### User Scenario
+Developer installs the extension for the first time and starts using it
 
-### 단계별 흐름
+### Step-by-Step Flow
 
 ```mermaid
 flowchart TD
-    A[Chrome Web Store에서 설치] --> B[익스텐션 아이콘 클릭]
-    B --> C[설정 팝업 열림]
-    C --> D{마스터 비밀번호 설정됨?}
-    D -->|아니오| E[마스터 비밀번호 모달 표시]
-    E --> F[비밀번호 입력 및 설정]
-    F --> G[암호화 서비스 초기화]
-    D -->|예| G
-    G --> H[GitHub/GitLab 토큰 입력]
-    H --> I[토큰 암호화 저장]
-    I --> J[LLM API 키 입력<br/>Claude/OpenAI]
-    J --> K[API 키 암호화 저장]
-    K --> L[연결 테스트]
-    L --> M{테스트 성공?}
-    M -->|예| N[설정 완료 - 사용 준비]
-    M -->|아니오| O[에러 메시지 표시]
+    A[Install from Chrome Web Store] --> B[Click extension icon]
+    B --> C[Settings popup opens]
+    C --> D{Master password set?}
+    D -->|No| E[Show master password modal]
+    E --> F[Enter and set password]
+    F --> G[Initialize encryption service]
+    D -->|Yes| G
+    G --> H[Enter GitHub/GitLab token]
+    H --> I[Encrypt and save token]
+    I --> J[Enter LLM API key<br/>Claude/OpenAI]
+    J --> K[Encrypt and save API key]
+    K --> L[Test connection]
+    L --> M{Test successful?}
+    M -->|Yes| N[Setup complete - Ready to use]
+    M -->|No| O[Show error message]
     O --> H
 ```
 
-### 상세 설명
+### Detailed Description
 
-#### 1.1 익스텐션 설치
+#### 1.1 Extension Installation
 ```
-1. Chrome 브라우저에서 chrome://extensions 접속
-2. "개발자 모드" 활성화
-3. "압축해제된 확장 프로그램을 로드합니다" 클릭
-4. dist/ 폴더 선택
-5. 익스텐션 활성화 확인
+1. Navigate to chrome://extensions in Chrome browser
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select dist/ folder
+5. Verify extension is activated
 ```
 
-#### 1.2 마스터 비밀번호 설정
-- **목적**: API 토큰과 키를 안전하게 암호화
-- **입력**: 8자 이상의 강력한 비밀번호
-- **저장**: 메모리에만 저장 (재시작 시 재입력 필요)
-- **보안**: AES-GCM 암호화 사용
+#### 1.2 Master Password Setup
+- **Purpose**: Securely encrypt API tokens and keys
+- **Input**: Strong password of 8+ characters
+- **Storage**: Stored in memory only (re-entry required after restart)
+- **Security**: Uses AES-GCM encryption
 
-#### 1.3 GitHub/GitLab 토큰 설정
+#### 1.3 GitHub/GitLab Token Configuration
 **GitHub Personal Access Token**
-- Scope: `repo` (전체 저장소 접근)
-- 발급: https://github.com/settings/tokens/new?scopes=repo
-- 저장: `githubToken` (암호화됨)
+- Scope: `repo` (full repository access)
+- Generate at: https://github.com/settings/tokens/new?scopes=repo
+- Stored as: `githubToken` (encrypted)
 
 **GitLab Personal Access Token**
-- Scope: `api` (API 접근)
-- 발급: https://gitlab.com/-/profile/personal_access_tokens
-- 저장: `gitlabToken` (암호화됨)
-- GitLab URL: 자체 호스팅 인스턴스 지원
+- Scope: `api` (API access)
+- Generate at: https://gitlab.com/-/profile/personal_access_tokens
+- Stored as: `gitlabToken` (encrypted)
+- GitLab URL: Supports self-hosted instances
 
-#### 1.4 LLM API 키 설정
+#### 1.4 LLM API Key Configuration
 **Claude API**
 - Provider: Anthropic
 - Model: Claude Sonnet 3.5+
-- 저장: `claudeApiKey` (암호화됨)
+- Stored as: `claudeApiKey` (encrypted)
 
 **OpenAI API**
 - Provider: OpenAI
 - Model: GPT-4+
-- 저장: `openaiApiKey` (암호화됨)
+- Stored as: `openaiApiKey` (encrypted)
 
-#### 1.5 연결 테스트
+#### 1.5 Connection Test
 ```javascript
-// GitHub API 테스트
+// GitHub API test
 GET https://api.github.com/user
 Authorization: token <githubToken>
 
-// GitLab API 테스트
+// GitLab API test
 GET <gitlabUrl>/api/v4/user
 PRIVATE-TOKEN: <gitlabToken>
 
-// 성공 시 사용자 정보 표시
+// Display user information on success
 ```
 
 ---
 
-## 2. 개별 코멘트 변환 플로우
+## 2. Individual Comment Conversion Flow
 
-### 사용자 시나리오
-PR 리뷰 중 컨벤션 관련 코멘트 하나를 AI instruction 파일로 변환
+### User Scenario
+Convert a single convention-related comment from PR review into an AI instruction file
 
-### 단계별 흐름
+### Step-by-Step Flow
 
 ```mermaid
 flowchart TD
-    A[GitHub/GitLab PR 페이지 접속] --> B[Content Script 자동 주입]
-    B --> C[코멘트 감지 시작]
-    C --> D{컨벤션 관련 키워드?}
-    D -->|예| E[Convert 버튼 표시]
-    D -->|아니오| C
-    E --> F[사용자 버튼 클릭]
-    F --> G[로딩 상태 표시]
-    G --> H[Background로 메시지 전송]
-    H --> I[설정 로드]
-    I --> J[코멘트 검증 및 파싱]
-    J --> K{답글 존재?}
-    K -->|예| L[답글 포함 컨텍스트 구성]
-    K -->|아니오| M[단일 코멘트 컨텍스트]
-    L --> N[LLM 강화 요청]
+    A[Navigate to GitHub/GitLab PR page] --> B[Inject content script automatically]
+    B --> C[Start comment detection]
+    C --> D{Convention-related keywords?}
+    D -->|Yes| E[Show Convert button]
+    D -->|No| C
+    E --> F[User clicks button]
+    F --> G[Show loading state]
+    G --> H[Send message to Background]
+    H --> I[Load settings]
+    I --> J[Validate and parse comment]
+    J --> K{Replies exist?}
+    K -->|Yes| L[Build context with replies]
+    K -->|No| M[Single comment context]
+    L --> N[Request LLM enhancement]
     M --> N
-    N --> O{캐시 존재?}
-    O -->|예| P[캐시된 결과 반환]
-    O -->|아니오| Q[LLM API 호출]
-    Q --> R[응답 캐싱]
-    R --> S[키워드 추출 및 요약 생성]
+    N --> O{Cache exists?}
+    O -->|Yes| P[Return cached result]
+    O -->|No| Q[Call LLM API]
+    Q --> R[Cache response]
+    R --> S[Extract keywords and generate summary]
     P --> S
-    S --> T[프로젝트 타입 감지<br/>Claude/Cursor/Windsurf]
-    T --> U[기존 파일 매칭 분석]
-    U --> V{매칭 파일 존재?}
-    V -->|예| W[기존 파일 업데이트]
-    V -->|아니오| X[AI 기반 파일명 생성]
-    W --> Y[새 브랜치 생성]
+    S --> T[Detect project type<br/>Claude/Cursor/Windsurf]
+    T --> U[Analyze existing file matching]
+    U --> V{Matching file exists?}
+    V -->|Yes| W[Update existing file]
+    V -->|No| X[Generate AI-based filename]
+    W --> Y[Create new branch]
     X --> Y
-    Y --> Z[파일 커밋]
-    Z --> AA[PR/MR 생성]
-    AA --> AB[성공 메시지 표시<br/>PR URL + 토큰 사용량]
-    AB --> AC[사용자 PR 리뷰]
+    Y --> Z[Commit file]
+    Z --> AA[Create PR/MR]
+    AA --> AB[Show success message<br/>PR URL + token usage]
+    AB --> AC[User reviews PR]
 ```
 
-### 상세 설명
+### Detailed Description
 
-#### 2.1 코멘트 감지 (Content Script)
+#### 2.1 Comment Detection (Content Script)
 
-**감지 로직**
+**Detection Logic**
 ```javascript
-// 컨벤션 관련 키워드 패턴
+// Convention-related keyword patterns
 const CONVENTION_KEYWORDS = [
   'convention', 'rule', 'pattern', 'standard',
   'should use', 'must use', 'always', 'never',
   '컨벤션', '규칙', '패턴', '표준'
 ];
 
-// 코멘트 내용 확인
+// Check comment content
 function isConventionComment(content: string): boolean {
   const lowerContent = content.toLowerCase();
   return CONVENTION_KEYWORDS.some(keyword =>
@@ -158,24 +158,24 @@ function isConventionComment(content: string): boolean {
 }
 ```
 
-**버튼 주입**
+**Button Injection**
 ```html
-<!-- 주입되는 버튼 -->
+<!-- Injected button -->
 <button class="review-to-instruction-button">
   🤖 Convert to AI Instruction
 </button>
 ```
 
-#### 2.2 코멘트 파싱
+#### 2.2 Comment Parsing
 
-**추출 정보**
-- **키워드**: 정규식 + 키워드 사전 기반
-- **카테고리**: conventions/patterns/style/architecture
-- **코드 예제**: ```로 감싸진 블록
-- **제안 파일명**: 코멘트 내 힌트 파싱
+**Extracted Information**
+- **Keywords**: Based on regex + keyword dictionary
+- **Category**: conventions/patterns/style/architecture
+- **Code Examples**: Blocks wrapped in ```
+- **Suggested Filename**: Parse hints from comment
 
 ```javascript
-// 파싱 결과 예시
+// Parsing result example
 {
   keywords: ['PascalCase', 'component', 'naming'],
   category: 'conventions',
@@ -186,9 +186,9 @@ function isConventionComment(content: string): boolean {
 }
 ```
 
-#### 2.3 LLM 강화
+#### 2.3 LLM Enhancement
 
-**프롬프트 구조**
+**Prompt Structure**
 ```
 You are analyzing a code review comment about conventions.
 
@@ -214,39 +214,39 @@ Output JSON format:
 }
 ```
 
-**캐싱 전략**
+**Caching Strategy**
 ```javascript
-// 캐시 키 생성
+// Generate cache key
 const cacheKey = hashContent(commentContent + repliesContext);
 
-// 캐시 조회 (chrome.storage.local)
+// Query cache (chrome.storage.local)
 const cached = await cache.get(cacheKey);
 if (cached && !isExpired(cached.timestamp)) {
   return cached.data;
 }
 
-// LLM 호출 및 캐싱
+// Call LLM and cache result
 const result = await llm.analyze(prompt);
 await cache.set(cacheKey, result, TTL_24_HOURS);
 ```
 
-#### 2.4 프로젝트 타입 감지
+#### 2.4 Project Type Detection
 
-**감지 순서**
-1. `.claude/` 디렉토리 존재 → Claude Code
-2. `.cursor/rules/` 디렉토리 존재 → Cursor
-3. `.windsurf/` 디렉토리 존재 → Windsurf
+**Detection Order**
+1. `.claude/` directory exists → Claude Code
+2. `.cursor/rules/` directory exists → Cursor
+3. `.windsurf/` directory exists → Windsurf
 
-**파일 생성 경로**
+**File Generation Paths**
 ```javascript
 const projectTypePaths = {
   'claude-code': {
-    instructions: '.claude/instructions/',
+    instructions: '.claude/rules/',
     skills: '.claude/skills/',
     rules: '.claude/rules/'
   },
   'cursor': {
-    rules: '.cursor/rules/'  // 다중 파일
+    rules: '.cursor/rules/'  // Multiple files
   },
   'windsurf': {
     rules: '.windsurf/rules/'
@@ -254,9 +254,9 @@ const projectTypePaths = {
 };
 ```
 
-#### 2.5 파일명 생성
+#### 2.5 Filename Generation
 
-**AI 기반 네이밍**
+**AI-based Naming**
 ```
 Analyze this convention to generate a filename:
 
@@ -274,14 +274,14 @@ Generate:
 }
 ```
 
-#### 2.6 PR 생성
+#### 2.6 PR Creation
 
-**PR 타이틀 (LLM 생성)**
+**PR Title (LLM Generated)**
 ```
 feat(conventions): add component naming guidelines
 ```
 
-**PR 본문**
+**PR Body**
 ```markdown
 ## Added Convention
 
@@ -305,44 +305,44 @@ Token Usage: 1,234 input / 567 output
 
 ---
 
-## 3. Discussion Thread 변환 플로우
+## 3. Discussion Thread Conversion Flow
 
-### 사용자 시나리오
-여러 코멘트로 구성된 Discussion Thread 전체를 하나의 통합 instruction으로 변환
+### User Scenario
+Convert an entire Discussion Thread consisting of multiple comments into a unified instruction
 
-### 단계별 흐름
+### Step-by-Step Flow
 
 ```mermaid
 flowchart TD
-    A[PR 페이지 접속] --> B[ThreadDetector 시작]
-    B --> C[Discussion 컨테이너 탐색]
-    C --> D{코멘트 2개 이상?}
-    D -->|아니오| E[개별 버튼만 표시]
-    D -->|예| F[Thread 버튼 표시<br/>보라색 그라데이션]
+    A[Navigate to PR page] --> B[Start ThreadDetector]
+    B --> C[Explore discussion containers]
+    C --> D{2+ comments?}
+    D -->|No| E[Show only individual buttons]
+    D -->|Yes| F[Show Thread button<br/>Purple gradient]
     F --> G[Convert Thread N comments]
-    G --> H[사용자 클릭]
-    H --> I[Thread 정보 수집]
-    I --> J[모든 코멘트 추출<br/>작성자/시간/내용]
-    J --> K[Markdown 형식으로 병합]
-    K --> L[Thread 컨텍스트 구성]
-    L --> M[LLM에 Thread 분석 요청]
-    M --> N[Discussion 진화 분석<br/>합의점 도출]
-    N --> O[Thread 주제 기반 파일명 생성]
-    O --> P[통합 Instruction 파일 생성]
-    P --> Q[PR 생성]
-    Q --> R[성공 메시지]
+    G --> H[User clicks]
+    H --> I[Collect thread information]
+    I --> J[Extract all comments<br/>author/time/content]
+    J --> K[Merge in Markdown format]
+    K --> L[Build thread context]
+    L --> M[Request thread analysis from LLM]
+    M --> N[Analyze discussion evolution<br/>Extract consensus]
+    N --> O[Generate filename based on thread topic]
+    O --> P[Create unified Instruction file]
+    P --> Q[Create PR]
+    Q --> R[Success message]
 ```
 
-### 상세 설명
+### Detailed Description
 
-#### 3.1 Thread 감지
+#### 3.1 Thread Detection
 
-**DOM 선택자 (GitHub)**
+**DOM Selectors (GitHub)**
 ```javascript
 const GITHUB_THREAD_SELECTORS = {
   container: [
-    '.timeline-comment-group',  // 일반 코멘트 그룹
-    '.review-thread',           // 리뷰 스레드
+    '.timeline-comment-group',  // General comment group
+    '.review-thread',           // Review thread
     '[data-discussion-id]'      // Discussion ID
   ],
   comment: '.timeline-comment, .review-comment',
@@ -352,7 +352,7 @@ const GITHUB_THREAD_SELECTORS = {
 };
 ```
 
-**DOM 선택자 (GitLab)**
+**DOM Selectors (GitLab)**
 ```javascript
 const GITLAB_THREAD_SELECTORS = {
   container: [
@@ -367,9 +367,9 @@ const GITLAB_THREAD_SELECTORS = {
 };
 ```
 
-#### 3.2 Thread 코멘트 병합
+#### 3.2 Thread Comment Merging
 
-**병합 형식**
+**Merge Format**
 ```markdown
 ### Comment 1 by @Alice (2025-01-27 10:30)
 
@@ -399,7 +399,7 @@ For utilities, let's use lowercase with "use" prefix:
 Perfect! Let's document this as our standard.
 ```
 
-#### 3.3 Thread 전용 LLM 프롬프트
+#### 3.3 Thread-specific LLM Prompt
 
 ```
 # Discussion Thread Analysis
@@ -442,9 +442,9 @@ Output JSON:
 }
 ```
 
-#### 3.4 Thread 파일명 생성
+#### 3.4 Thread Filename Generation
 
-**Thread 전용 네이밍 프롬프트**
+**Thread-specific Naming Prompt**
 ```
 Analyze this Discussion Thread to generate a filename.
 
@@ -473,9 +473,9 @@ Output:
 }
 ```
 
-#### 3.5 통합 Instruction 생성
+#### 3.5 Unified Instruction Generation
 
-**최종 파일 구조**
+**Final File Structure**
 ```markdown
 # Component Naming Consensus
 
@@ -541,9 +541,9 @@ Team consensus on naming conventions for React components and hooks.
 
 ---
 
-## 4. 기술 아키텍처 플로우
+## 4. Technical Architecture Flow
 
-### 전체 시스템 구조
+### Overall System Structure
 
 ```mermaid
 graph TB
@@ -611,9 +611,9 @@ graph TB
     N --> X
 ```
 
-### 메시지 플로우
+### Message Flow
 
-**개별 코멘트 변환**
+**Individual Comment Conversion**
 ```javascript
 // 1. Content Script → Background
 {
@@ -634,7 +634,7 @@ graph TB
   }
 }
 
-// 2. Background 처리
+// 2. Background Processing
 ConversionOrchestrator.convertComment()
   → CommentService.validateAndEnhance()
   → LLM.enhanceWithLLM()
@@ -656,7 +656,7 @@ ConversionOrchestrator.convertComment()
 }
 ```
 
-**Thread 변환**
+**Thread Conversion**
 ```javascript
 // 1. Content Script → Background
 {
@@ -675,18 +675,18 @@ ConversionOrchestrator.convertComment()
   }
 }
 
-// 2. Background 처리
+// 2. Background Processing
 ConversionOrchestrator.convertThread()
-  → mergeThreadComments()  // Markdown 병합
+  → mergeThreadComments()  // Markdown merge
   → CommentService.validateAndEnhanceThread()
   → LLM.enhanceWithLLM(thread context)
   → FileGenerationService.generateForAllTypes(thread)
   → PRService.create()
 
-// 3. Response (동일 구조)
+// 3. Response (same structure)
 ```
 
-### 데이터 흐름
+### Data Flow
 
 ```mermaid
 sequenceDiagram
@@ -697,54 +697,54 @@ sequenceDiagram
     participant API as GitHub/GitLab API
     participant Cache as Storage Cache
 
-    U->>CS: 버튼 클릭
+    U->>CS: Click button
     CS->>BG: CONVERT_COMMENT
-    BG->>BG: 설정 로드
-    BG->>BG: 코멘트 파싱
-    BG->>Cache: 캐시 확인
-    alt 캐시 존재
-        Cache-->>BG: 캐시 데이터 반환
-    else 캐시 없음
-        BG->>LLM: 강화 요청
-        LLM-->>BG: 강화된 데이터
-        BG->>Cache: 캐싱
+    BG->>BG: Load settings
+    BG->>BG: Parse comment
+    BG->>Cache: Check cache
+    alt Cache exists
+        Cache-->>BG: Return cached data
+    else No cache
+        BG->>LLM: Enhancement request
+        LLM-->>BG: Enhanced data
+        BG->>Cache: Cache result
     end
-    BG->>API: 프로젝트 구조 조회
-    API-->>BG: 파일 리스트
-    BG->>BG: 파일명 생성
-    BG->>API: 브랜치 생성
-    BG->>API: 파일 커밋
-    BG->>API: PR 생성
+    BG->>API: Query project structure
+    API-->>BG: File list
+    BG->>BG: Generate filename
+    BG->>API: Create branch
+    BG->>API: Commit file
+    BG->>API: Create PR
     API-->>BG: PR URL
-    BG-->>CS: 성공 응답
-    CS-->>U: 성공 메시지 표시
+    BG-->>CS: Success response
+    CS-->>U: Show success message
 ```
 
-### 상태 관리
+### State Management
 
-**Storage 구조**
+**Storage Structure**
 ```javascript
 // chrome.storage.local
 {
-  // 설정 (암호화됨)
+  // Settings (encrypted)
   'githubToken_enc': 'encrypted_data...',
   'gitlabToken_enc': 'encrypted_data...',
   'claudeApiKey_enc': 'encrypted_data...',
   'openaiApiKey_enc': 'encrypted_data...',
 
-  // LLM 설정
+  // LLM settings
   'llm': {
     provider: 'claude',  // or 'openai'
     enableCache: true
   },
 
-  // UI 설정
+  // UI settings
   'showButtons': {
     github: true,
     gitlab: true
   },
 
-  // LLM 캐시 (TTL: 24시간)
+  // LLM cache (TTL: 24 hours)
   'llm_cache_<hash>': {
     data: { ... },
     timestamp: 1706345678901,
@@ -752,96 +752,96 @@ sequenceDiagram
   }
 }
 
-// chrome.storage.session (메모리)
+// chrome.storage.session (memory)
 {
-  'master_password': 'user_entered_password'  // 세션 종료 시 삭제
+  'master_password': 'user_entered_password'  // Deleted on session end
 }
 ```
 
-### 에러 처리 플로우
+### Error Handling Flow
 
 ```mermaid
 flowchart TD
-    A[작업 시작] --> B{마스터 비밀번호 설정?}
-    B -->|아니오| C[비밀번호 모달 표시]
-    C --> D{입력 완료?}
-    D -->|아니오| E[작업 취소]
-    D -->|예| F{토큰 유효?}
-    B -->|예| F
-    F -->|아니오| G[토큰 에러 메시지]
-    G --> H[설정 페이지 링크 제공]
-    F -->|예| I{코멘트 유효?}
-    I -->|아니오| J[검증 에러 메시지]
-    J --> K[컨벤션 키워드 없음 안내]
-    I -->|예| L{LLM 호출 성공?}
-    L -->|아니오| M[LLM 에러 메시지]
-    M --> N[규칙 기반 폴백 처리]
-    L -->|예| O{API 호출 성공?}
-    O -->|아니오| P[API 에러 메시지]
-    P --> Q[권한 확인 안내]
-    O -->|예| R[성공]
+    A[Task start] --> B{Master password set?}
+    B -->|No| C[Show password modal]
+    C --> D{Input complete?}
+    D -->|No| E[Cancel task]
+    D -->|Yes| F{Token valid?}
+    B -->|Yes| F
+    F -->|No| G[Token error message]
+    G --> H[Provide settings page link]
+    F -->|Yes| I{Comment valid?}
+    I -->|No| J[Validation error message]
+    J --> K[Inform about missing convention keywords]
+    I -->|Yes| L{LLM call successful?}
+    L -->|No| M[LLM error message]
+    M --> N[Fallback to rule-based processing]
+    L -->|Yes| O{API call successful?}
+    O -->|No| P[API error message]
+    P --> Q[Guide to check permissions]
+    O -->|Yes| R[Success]
     N --> R
 ```
 
 ---
 
-## 5. 성능 최적화
+## 5. Performance Optimization
 
-### 캐싱 전략
+### Caching Strategy
 
-**LLM 응답 캐싱**
-- 키: SHA-256(코멘트 내용 + 답글 내용)
-- TTL: 24시간
-- 저장소: chrome.storage.local
-- 예상 절감: 50-70% API 비용
+**LLM Response Caching**
+- Key: SHA-256(comment content + replies content)
+- TTL: 24 hours
+- Storage: chrome.storage.local
+- Expected savings: 50-70% API costs
 
-**프로젝트 분석 캐싱**
-- 키: `${owner}/${repo}/${branch}`
-- TTL: 1시간
-- 내용: 파일 리스트, 네이밍 패턴, 디렉토리 구조
+**Project Analysis Caching**
+- Key: `${owner}/${repo}/${branch}`
+- TTL: 1 hour
+- Content: File list, naming patterns, directory structure
 
-### 병렬 처리
+### Parallel Processing
 
-**멀티 프로젝트 타입 생성**
+**Multi-Project Type Generation**
 ```javascript
-// 순차 (기존)
+// Sequential (old)
 for (const type of ['claude-code', 'cursor', 'windsurf']) {
   await generateFile(type);
 }
-// 시간: 3 x 평균 응답시간
+// Time: 3 x average response time
 
-// 병렬 (최적화)
+// Parallel (optimized)
 await Promise.all([
   generateFile('claude-code'),
   generateFile('cursor'),
   generateFile('windsurf')
 ]);
-// 시간: max(응답시간)
+// Time: max(response time)
 ```
 
-### 지연 로딩
+### Lazy Loading
 
-**버튼 주입 최적화**
+**Button Injection Optimization**
 ```javascript
-// MutationObserver로 동적 코멘트 감지
+// Detect dynamic comments with MutationObserver
 const observer = new MutationObserver(mutations => {
   // Debounce: 100ms
   debouncedDetectComments();
 });
 
-// 이미 처리된 코멘트 추적 (WeakSet)
+// Track processed comments (WeakSet)
 const processedComments = new WeakSet<HTMLElement>();
 ```
 
 ---
 
-## 6. 보안 고려사항
+## 6. Security Considerations
 
-### 토큰 보안
+### Token Security
 
-**암호화**
+**Encryption**
 ```javascript
-// AES-GCM 암호화
+// AES-GCM encryption
 const encrypt = async (plaintext: string, password: string) => {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await deriveKey(password, salt);
@@ -855,12 +855,12 @@ const encrypt = async (plaintext: string, password: string) => {
 };
 ```
 
-**권한 최소화**
+**Permission Minimization**
 ```json
 {
   "permissions": [
-    "storage",      // 설정 저장만
-    "activeTab"     // 현재 탭만
+    "storage",      // Settings storage only
+    "activeTab"     // Current tab only
   ],
   "host_permissions": [
     "https://github.com/*",
@@ -869,47 +869,47 @@ const encrypt = async (plaintext: string, password: string) => {
 }
 ```
 
-### API 키 관리
+### API Key Management
 
-**저장 위치**
-- ❌ `chrome.storage.sync` - 클라우드 동기화 보안 위험
-- ✅ `chrome.storage.local` - 로컬 암호화 저장
-- ✅ `chrome.storage.session` - 메모리 임시 저장 (마스터 비밀번호)
+**Storage Location**
+- ❌ `chrome.storage.sync` - Cloud sync security risk
+- ✅ `chrome.storage.local` - Local encrypted storage
+- ✅ `chrome.storage.session` - Memory temporary storage (master password)
 
-**접근 제어**
-- Content Script: API 키 접근 불가
-- Background Service Worker: 암호화된 키만 복호화 가능
-- Popup: 마스터 비밀번호 입력 후 접근
+**Access Control**
+- Content Script: No API key access
+- Background Service Worker: Can decrypt encrypted keys only
+- Popup: Access after master password entry
 
 ---
 
-## 부록: 주요 파일 역할
+## Appendix: Key File Roles
 
-| 파일 | 역할 |
+| File | Role |
 |------|------|
-| `src/content/main.ts` | Content Script 엔트리포인트 |
-| `src/content/github-injector.ts` | GitHub 버튼 주입 및 Thread 감지 |
-| `src/content/gitlab-injector.ts` | GitLab 버튼 주입 및 Thread 감지 |
-| `src/content/thread-detector.ts` | Discussion Thread 감지 클래스 |
-| `src/content/ui-builder.ts` | 버튼 UI 생성 및 관리 |
-| `src/background/service-worker.ts` | Background 엔트리포인트 |
-| `src/background/message-handler.ts` | 메시지 라우팅 |
-| `src/background/services/conversion-orchestrator.ts` | 변환 로직 조율 |
-| `src/background/services/comment-service.ts` | 코멘트 검증 및 강화 |
-| `src/background/services/file-generation-service.ts` | 파일 생성 서비스 |
-| `src/background/services/pr-service.ts` | PR/MR 생성 서비스 |
-| `src/background/llm/enhancer.ts` | LLM 강화 엔트리포인트 |
-| `src/background/llm/claude-client.ts` | Claude API 클라이언트 |
-| `src/background/llm/openai-client.ts` | OpenAI API 클라이언트 |
-| `src/background/llm/cache.ts` | LLM 응답 캐싱 |
-| `src/core/parser.ts` | 코멘트 파싱 로직 |
-| `src/core/smart-file-naming.ts` | AI 기반 파일명 생성 |
-| `src/core/project-detector.ts` | 프로젝트 타입 감지 |
-| `src/core/file-matcher.ts` | 기존 파일 매칭 |
-| `src/popup/popup.ts` | 설정 팝업 로직 |
-| `src/utils/crypto-service.ts` | 암호화 서비스 |
+| `src/content/main.ts` | Content Script entry point |
+| `src/content/github-injector.ts` | GitHub button injection and Thread detection |
+| `src/content/gitlab-injector.ts` | GitLab button injection and Thread detection |
+| `src/content/thread-detector.ts` | Discussion Thread detection class |
+| `src/content/ui-builder.ts` | Button UI creation and management |
+| `src/background/service-worker.ts` | Background entry point |
+| `src/background/message-handler.ts` | Message routing |
+| `src/background/services/conversion-orchestrator.ts` | Conversion logic orchestration |
+| `src/background/services/comment-service.ts` | Comment validation and enhancement |
+| `src/background/services/file-generation-service.ts` | File generation service |
+| `src/background/services/pr-service.ts` | PR/MR creation service |
+| `src/background/llm/enhancer.ts` | LLM enhancement entry point |
+| `src/background/llm/claude-client.ts` | Claude API client |
+| `src/background/llm/openai-client.ts` | OpenAI API client |
+| `src/background/llm/cache.ts` | LLM response caching |
+| `src/core/parser.ts` | Comment parsing logic |
+| `src/core/smart-file-naming.ts` | AI-based filename generation |
+| `src/core/project-detector.ts` | Project type detection |
+| `src/core/file-matcher.ts` | Existing file matching |
+| `src/popup/popup.ts` | Settings popup logic |
+| `src/utils/crypto-service.ts` | Encryption service |
 
 ---
 
-**문서 버전**: 1.3.0
-**최종 업데이트**: 2025-01-27
+**Document Version**: 1.3.0
+**Last Updated**: 2025-01-27

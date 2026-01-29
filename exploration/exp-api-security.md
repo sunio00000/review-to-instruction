@@ -1,17 +1,17 @@
-# API 및 LLM 통신 보안 분석
+# API and LLM Communication Security Analysis
 
-## 탐색 목표
-GitHub/GitLab API 및 LLM API 통신 보안 분석, Deprecated 함수 탐지, Server-side Proxy 필요성 검토
+## Exploration Goals
+GitHub/GitLab API and LLM API communication security analysis, deprecated function detection, server-side proxy necessity review
 
 ---
 
-## 1. API 인증 메커니즘 분석
+## 1. API Authentication Mechanism Analysis
 
-### 1.1 GitHub/GitLab API 인증
+### 1.1 GitHub/GitLab API Authentication
 
-**파일**: `src/background/api-client.ts`
+**File**: `src/background/api-client.ts`
 
-#### 인증 방식
+#### Authentication Method
 
 ```typescript
 // Line 508-515
@@ -27,8 +27,8 @@ private async fetch(url: string, options: RequestInit = {}): Promise<any> {
 }
 ```
 
-| Platform | Header | 형식 |
-|----------|--------|------|
+| Platform | Header | Format |
+|----------|--------|--------|
 | GitHub | `Authorization` | `Bearer {token}` |
 | GitLab | `PRIVATE-TOKEN` | `{token}` |
 
@@ -41,22 +41,22 @@ constructor(options: ApiClientOptions) {
   this.platform = options.platform;
 
   if (this.platform === 'github') {
-    this.baseUrl = 'https://api.github.com';  // ✅ HTTPS 강제
+    this.baseUrl = 'https://api.github.com';  // ✅ HTTPS enforced
   } else {
     const gitlabBaseUrl = options.gitlabUrl || 'https://gitlab.com';
     const cleanUrl = gitlabBaseUrl.replace(/\/$/, '');
-    this.baseUrl = `${cleanUrl}/api/v4`;  // ⚠️ 사용자 입력 URL
+    this.baseUrl = `${cleanUrl}/api/v4`;  // ⚠️ User input URL
   }
 }
 ```
 
-**보안 이슈**:
-- ✅ GitHub: 하드코딩된 HTTPS URL 사용 (안전)
-- ⚠️ GitLab: 사용자 입력 `gitlabUrl` 검증 부족
-  - HTTP URL 입력 가능 (중간자 공격 취약)
-  - 악의적 서버 URL 입력 가능
+**Security Issues**:
+- ✅ GitHub: Uses hardcoded HTTPS URL (safe)
+- ⚠️ GitLab: Insufficient validation of user input `gitlabUrl`
+  - HTTP URLs possible (vulnerable to man-in-the-middle attacks)
+  - Malicious server URLs possible
 
-### 1.2 LLM API 인증
+### 1.2 LLM API Authentication
 
 #### Claude API (`src/background/llm/claude-client.ts`)
 
@@ -66,18 +66,18 @@ const response = await fetch(this.apiUrl, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-api-key': this.apiKey,  // ⚠️ 브라우저에서 직접 전송
+    'x-api-key': this.apiKey,  // ⚠️ Sent directly from browser
     'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true'  // 🔴 위험한 헤더
+    'anthropic-dangerous-direct-browser-access': 'true'  // 🔴 Dangerous header
   }
 });
 ```
 
-**중대한 보안 문제**:
-- 🔴 `anthropic-dangerous-direct-browser-access`: Anthropic이 명시적으로 "위험"하다고 표시한 헤더
-- 🔴 API 키가 브라우저 메모리에 노출됨
-- 🔴 DevTools Network 탭에서 API 키 확인 가능
-- 🔴 XSS 공격 시 API 키 탈취 가능
+**Critical Security Issues**:
+- 🔴 `anthropic-dangerous-direct-browser-access`: Header explicitly marked as "dangerous" by Anthropic
+- 🔴 API key exposed in browser memory
+- 🔴 API key visible in DevTools Network tab
+- 🔴 API key can be stolen via XSS attacks
 
 #### OpenAI API (`src/background/llm/openai-client.ts`)
 
@@ -87,59 +87,59 @@ const response = await fetch(this.apiUrl, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${this.apiKey}`  // ⚠️ 브라우저에서 직접 전송
+    'Authorization': `Bearer ${this.apiKey}`  // ⚠️ Sent directly from browser
   }
 });
 ```
 
-**보안 문제**:
-- ⚠️ OpenAI API도 CORS 정책 상 브라우저 직접 호출 비권장
-- ⚠️ API 키 노출 위험 동일
+**Security Issues**:
+- ⚠️ OpenAI API also discourages direct browser calls due to CORS policy
+- ⚠️ Same API key exposure risk
 
-### 1.3 토큰 저장소
+### 1.3 Token Storage
 
-**파일**: `src/background/services/config-service.ts`
+**File**: `src/background/services/config-service.ts`
 
 ```typescript
 // Line 31
 const storage = await chrome.storage.sync.get([tokenKey, 'gitlabUrl', 'llm']);
 ```
 
-| 저장소 | 용도 | 보안 수준 |
+| Storage | Purpose | Security Level |
 |--------|------|----------|
-| `chrome.storage.sync` | GitHub/GitLab 토큰, LLM API 키 | ⚠️ 암호화되지 않음 |
-| `chrome.storage.local` | LLM 캐시 (Line 80, cache.ts) | ⚠️ 암호화되지 않음 |
+| `chrome.storage.sync` | GitHub/GitLab tokens, LLM API keys | ⚠️ Not encrypted |
+| `chrome.storage.local` | LLM cache (Line 80, cache.ts) | ⚠️ Not encrypted |
 
-**보안 이슈**:
-- Chrome Storage는 기본적으로 암호화되지 않음
-- 물리적 접근 시 토큰 추출 가능
-- Malware Extension이 다른 Extension 데이터 접근 가능 (Chrome의 격리 정책에 의존)
+**Security Issues**:
+- Chrome Storage not encrypted by default
+- Tokens can be extracted with physical access
+- Malware extensions can access other extensions' data (relies on Chrome's isolation policy)
 
 ---
 
-## 2. HTTPS 강제 및 검증
+## 2. HTTPS Enforcement and Validation
 
-### 2.1 API Endpoint HTTPS 사용 현황
+### 2.1 API Endpoint HTTPS Usage Status
 
-| API | URL | HTTPS | 검증 |
+| API | URL | HTTPS | Validation |
 |-----|-----|-------|------|
 | GitHub API | `https://api.github.com` | ✅ | Hardcoded |
-| GitLab API (기본) | `https://gitlab.com` | ✅ | Hardcoded default |
-| GitLab API (사용자 지정) | 사용자 입력 | ❌ | 미검증 |
+| GitLab API (default) | `https://gitlab.com` | ✅ | Hardcoded default |
+| GitLab API (custom) | User input | ❌ | Not validated |
 | Claude API | `https://api.anthropic.com` | ✅ | Hardcoded |
 | OpenAI API | `https://api.openai.com` | ✅ | Hardcoded |
 
-### 2.2 TLS/SSL 검증
+### 2.2 TLS/SSL Validation
 
-**현재 상태**: 브라우저의 `fetch()` API 사용 → 브라우저가 자동으로 TLS 검증 수행
+**Current State**: Uses browser's `fetch()` API → Browser automatically performs TLS validation
 
-**하지만**:
-- 사용자가 Self-signed 인증서 무시 가능 (브라우저 설정)
-- GitLab URL 검증 없음 → 악의적 서버로 유도 가능
+**However**:
+- Users can ignore self-signed certificates (browser settings)
+- No GitLab URL validation → Can be redirected to malicious servers
 
 ### 2.3 Manifest Host Permissions
 
-**파일**: `manifest.json`
+**File**: `manifest.json`
 
 ```json
 // Line 10-15
@@ -147,15 +147,15 @@ const storage = await chrome.storage.sync.get([tokenKey, 'gitlabUrl', 'llm']);
   "https://github.com/*",
   "https://gitlab.com/*",
   "https://git.projectbro.com/*",
-  "https://*/*"  // 🔴 모든 HTTPS 도메인 접근 허용
+  "https://*/*"  // 🔴 Allows access to all HTTPS domains
 ]
 ```
 
-**보안 문제**:
-- `https://*/*`: 필요 이상의 권한
-- 사용자 신뢰 저하 (Chrome Web Store 리뷰에서 지적될 가능성)
+**Security Issues**:
+- `https://*/*`: More permissions than necessary
+- Reduces user trust (likely to be flagged in Chrome Web Store reviews)
 
-**권장 사항**:
+**Recommendation**:
 ```json
 "optional_host_permissions": [
   "https://*/*/-/merge_requests/*"
@@ -164,39 +164,39 @@ const storage = await chrome.storage.sync.get([tokenKey, 'gitlabUrl', 'llm']);
 
 ---
 
-## 3. Deprecated 함수 및 안전하지 않은 API 사용
+## 3. Deprecated Functions and Unsafe API Usage
 
-### 3.1 `unescape()` 함수 (Deprecated)
+### 3.1 `unescape()` Function (Deprecated)
 
-**파일**: `src/background/api-client.ts`
+**File**: `src/background/api-client.ts`
 
 ```typescript
 // Line 260
 content: btoa(unescape(encodeURIComponent(content))),  // UTF-8 to Base64
 ```
 
-**문제**:
-- `unescape()`는 **ECMAScript 표준에서 deprecated**됨
+**Issues**:
+- `unescape()` is **deprecated in ECMAScript standard**
 - MDN: "Use `decodeURIComponent()` instead"
-- 향후 브라우저에서 제거될 가능성
+- May be removed in future browsers
 
-**수정 방법**:
+**Fix**:
 ```typescript
 // ❌ Before (Deprecated)
 content: btoa(unescape(encodeURIComponent(content)))
 
-// ✅ After (권장)
+// ✅ After (Recommended)
 content: btoa(String.fromCharCode(...new TextEncoder().encode(content)))
 
-// 또는 더 간단한 방법 (최신 브라우저)
+// Or simpler method (modern browsers)
 content: btoa(new TextEncoder().encode(content).reduce(
   (acc, byte) => acc + String.fromCharCode(byte), ''
 ))
 ```
 
-### 3.2 `escape()` 함수 (Deprecated)
+### 3.2 `escape()` Function (Deprecated)
 
-**파일**: `src/core/file-matcher.ts`
+**File**: `src/core/file-matcher.ts`
 
 ```typescript
 // Line 255-256
@@ -204,17 +204,17 @@ const decoded = atob(base64);
 return decodeURIComponent(escape(decoded));  // ⚠️ Deprecated
 ```
 
-**문제**:
-- `escape()`도 deprecated
-- UTF-8 디코딩 목적이지만 비표준 방식
+**Issues**:
+- `escape()` also deprecated
+- Non-standard method for UTF-8 decoding
 
-**수정 방법**:
+**Fix**:
 ```typescript
 // ❌ Before (Deprecated)
 const decoded = atob(base64);
 return decodeURIComponent(escape(decoded));
 
-// ✅ After (권장)
+// ✅ After (Recommended)
 function decodeBase64(base64: string): string {
   const binaryString = atob(base64);
   const bytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
@@ -222,9 +222,9 @@ function decodeBase64(base64: string): string {
 }
 ```
 
-### 3.3 `atob()` 사용 (보안 문제 없음, 하지만 주의 필요)
+### 3.3 `atob()` Usage (No security issue, but caution needed)
 
-**파일**:
+**Files**:
 - `src/core/file-matcher.ts:255`
 - `src/core/instruction-analyzer.ts:99`
 
@@ -233,11 +233,11 @@ function decodeBase64(base64: string): string {
 const decodedContent = atob(fileContent.content);
 ```
 
-**현재 상태**:
-- `atob()`는 deprecated 아님 (계속 사용 가능)
-- 하지만 UTF-8 지원 문제 있음 (ASCII만 지원)
+**Current State**:
+- `atob()` is not deprecated (can continue using)
+- But has UTF-8 support issues (ASCII only)
 
-**권장**: `TextDecoder` API 사용
+**Recommendation**: Use `TextDecoder` API
 
 ---
 
@@ -245,7 +245,7 @@ const decodedContent = atob(fileContent.content);
 
 ### 4.1 Retry Logic
 
-**파일**: `src/background/llm/base-client.ts`
+**File**: `src/background/llm/base-client.ts`
 
 ```typescript
 // Line 94-118
@@ -266,25 +266,25 @@ protected async retry<T>(
         throw lastError;
       }
 
-      // 지수 백오프 (1초, 2초)
+      // Exponential backoff (1s, 2s)
       await this.sleep(1000 * Math.pow(2, attempt));
     }
   }
 }
 ```
 
-**분석**:
-- ✅ 지수 백오프 구현 (Exponential Backoff)
-- ✅ 최대 3회 시도 (초기 + 2회 재시도)
-- ❌ **429 (Rate Limit) 응답 특별 처리 없음**
-  - 429 응답의 `Retry-After` 헤더 무시
-  - API 서버가 지정한 대기 시간 무시
+**Analysis**:
+- ✅ Implements exponential backoff
+- ✅ Maximum 3 attempts (initial + 2 retries)
+- ❌ **No special handling for 429 (Rate Limit) responses**
+  - Ignores `Retry-After` header in 429 responses
+  - Ignores wait time specified by API server
 
-### 4.2 Timeout 설정
+### 4.2 Timeout Settings
 
 ```typescript
 // Line 12, 82-89
-protected timeout: number = 30000; // 30초 타임아웃
+protected timeout: number = 30000; // 30 second timeout
 
 protected async withTimeout<T>(promise: Promise<T>, ms: number = this.timeout): Promise<T> {
   return Promise.race([
@@ -296,14 +296,14 @@ protected async withTimeout<T>(promise: Promise<T>, ms: number = this.timeout): 
 }
 ```
 
-**분석**:
-- ✅ 30초 타임아웃 설정
-- ✅ Promise.race() 패턴 사용
-- ⚠️ 타임아웃 시 네트워크 요청 취소 안 됨 (AbortController 미사용)
+**Analysis**:
+- ✅ 30 second timeout set
+- ✅ Uses Promise.race() pattern
+- ⚠️ Network request not cancelled on timeout (doesn't use AbortController)
 
 ### 4.3 API Error Handling
 
-**파일**: `src/background/api-client.ts`
+**File**: `src/background/api-client.ts`
 
 ```typescript
 // Line 525-529
@@ -314,22 +314,22 @@ if (!response.ok) {
 }
 ```
 
-**분석**:
-- ❌ 429 Rate Limit 특별 처리 없음
-- ❌ `Retry-After` 헤더 파싱 없음
-- ❌ 403 Forbidden vs 401 Unauthorized 구분 없음
+**Analysis**:
+- ❌ No special handling for 429 Rate Limit
+- ❌ No parsing of `Retry-After` header
+- ❌ No distinction between 403 Forbidden and 401 Unauthorized
 
-**권장 개선**:
+**Recommended Improvement**:
 ```typescript
 if (!response.ok) {
-  // 429 Rate Limit 특별 처리
+  // Special handling for 429 Rate Limit
   if (response.status === 429) {
     const retryAfter = response.headers.get('Retry-After');
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000;
     throw new RateLimitError(`Rate limit exceeded. Retry after ${waitTime}ms`, waitTime);
   }
 
-  // 401/403 구분
+  // Distinguish 401/403
   if (response.status === 401) {
     throw new AuthenticationError('Invalid or expired token');
   }
@@ -338,7 +338,7 @@ if (!response.ok) {
     throw new AuthorizationError('Insufficient permissions');
   }
 
-  // 기타 에러
+  // Other errors
   const errorText = await response.text();
   throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
 }
@@ -346,9 +346,9 @@ if (!response.ok) {
 
 ---
 
-## 5. LLM API Proxy 필요성
+## 5. LLM API Proxy Necessity
 
-### 5.1 현재 구조 (Browser Direct Access)
+### 5.1 Current Architecture (Browser Direct Access)
 
 ```
 ┌─────────────────┐
@@ -357,7 +357,7 @@ if (!response.ok) {
 │  (Content/BG)   │
 └────────┬────────┘
          │ API Key in Header
-         │ (브라우저 메모리에 노출)
+         │ (Exposed in browser memory)
          ↓
 ┌─────────────────┐
 │  Claude API     │  anthropic-dangerous-direct-browser-access: true
@@ -365,26 +365,26 @@ if (!response.ok) {
 └─────────────────┘
 ```
 
-**보안 위험**:
-1. **API 키 노출**: DevTools에서 키 확인 가능
-2. **XSS 공격**: 악의적 스크립트가 API 키 탈취
-3. **Rate Limit 우회 불가**: 서버 측 집계 없음
-4. **비용 제어 불가**: 사용자가 무제한 API 호출 가능
-5. **CORS 정책**: Claude는 `dangerous` 헤더 필요 (보안 경고)
+**Security Risks**:
+1. **API Key Exposure**: Key visible in DevTools
+2. **XSS Attacks**: Malicious scripts can steal API keys
+3. **Cannot bypass rate limits**: No server-side aggregation
+4. **No cost control**: Users can make unlimited API calls
+5. **CORS Policy**: Claude requires `dangerous` header (security warning)
 
-### 5.2 권장 구조 (Server-side Proxy)
+### 5.2 Recommended Architecture (Server-side Proxy)
 
 ```
 ┌─────────────────┐
 │  Chrome         │
 │  Extension      │
 └────────┬────────┘
-         │ Session Token (임시, 짧은 TTL)
+         │ Session Token (temporary, short TTL)
          ↓
 ┌─────────────────┐
-│  Proxy Server   │ ← API 키 안전 보관 (환경변수)
+│  Proxy Server   │ ← API keys securely stored (environment variables)
 │  (Node.js/CF)   │ ← Rate Limiting (per user)
-└────────┬────────┘ ← 사용량 모니터링/로깅
+└────────┬────────┘ ← Usage monitoring/logging
          │ API Key
          ↓
 ┌─────────────────┐
@@ -393,13 +393,13 @@ if (!response.ok) {
 └─────────────────┘
 ```
 
-#### 구현 예시 (Cloudflare Workers)
+#### Implementation Example (Cloudflare Workers)
 
 ```typescript
 // workers/llm-proxy.ts
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // 1. Session Token 검증
+    // 1. Validate Session Token
     const sessionToken = request.headers.get('X-Session-Token');
     if (!validateSession(sessionToken)) {
       return new Response('Unauthorized', { status: 401 });
@@ -414,20 +414,20 @@ export default {
       });
     }
 
-    // 3. API 호출 (API 키는 환경변수에서)
+    // 3. API call (API key from environment variables)
     const body = await request.json();
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': env.CLAUDE_API_KEY,  // ✅ 환경변수
+        'x-api-key': env.CLAUDE_API_KEY,  // ✅ Environment variable
         'anthropic-version': '2023-06-01'
-        // ❌ dangerous 헤더 불필요
+        // ❌ dangerous header unnecessary
       },
       body: JSON.stringify(body)
     });
 
-    // 4. 사용량 로깅
+    // 4. Usage logging
     await logUsage(userId, body.model, response.headers.get('anthropic-token-count'));
 
     return response;
@@ -435,36 +435,36 @@ export default {
 };
 ```
 
-### 5.3 마이그레이션 전략
+### 5.3 Migration Strategy
 
-#### Phase 1: Backward Compatible Proxy (선택적)
-- Extension에서 Proxy URL 설정 가능
-- Proxy 미설정 시 기존 방식 유지 (Direct Access)
-- 사용자가 자체 Proxy 서버 운영 가능
+#### Phase 1: Backward Compatible Proxy (Optional)
+- Configurable Proxy URL in Extension
+- Maintain existing method (Direct Access) when Proxy not configured
+- Users can run their own Proxy servers
 
-#### Phase 2: Proxy Mandatory (권장)
-- 모든 LLM API 호출 Proxy 강제
-- API 키를 Extension에서 제거
-- OAuth 또는 Session Token 인증
+#### Phase 2: Proxy Mandatory (Recommended)
+- Force all LLM API calls through Proxy
+- Remove API keys from Extension
+- OAuth or Session Token authentication
 
-#### Phase 3: SaaS Model (선택)
-- 유료 플랜: 무제한 LLM 호출
-- 무료 플랜: 월 N회 제한
-- 서버 측 API 키 관리
+#### Phase 3: SaaS Model (Optional)
+- Paid plan: Unlimited LLM calls
+- Free plan: Monthly N calls limit
+- Server-side API key management
 
 ---
 
-## 6. API 키 Rotation 전략
+## 6. API Key Rotation Strategy
 
-### 6.1 현재 문제점
-- API 키가 한 번 설정되면 영구적으로 유지
-- 키 노출 시 즉시 대응 불가
-- 키 갱신 프로세스 없음
+### 6.1 Current Issues
+- API keys maintained permanently once set
+- Cannot respond immediately when keys are exposed
+- No key renewal process
 
-### 6.2 권장 전략
+### 6.2 Recommended Strategy
 
-#### 단기 (Extension 개선)
-1. **키 만료 알림**:
+#### Short-term (Extension Improvement)
+1. **Key Expiration Alerts**:
    ```typescript
    // config-service.ts
    interface StoredToken {
@@ -476,14 +476,14 @@ export default {
    async loadConfig(platform: Platform): Promise<ConfigServiceResult> {
      const token = storage[tokenKey] as StoredToken;
 
-     // 90일 경과 시 경고
+     // Warn after 90 days
      if (Date.now() - token.createdAt > 90 * 24 * 60 * 60 * 1000) {
        console.warn('Token is older than 90 days. Consider rotation.');
      }
    }
    ```
 
-2. **키 검증 API**:
+2. **Key Validation API**:
    ```typescript
    // api-client.ts
    async validateToken(): Promise<boolean> {
@@ -491,33 +491,33 @@ export default {
        await this.testConnection();
        return true;
      } catch (error) {
-       // 401/403 시 false 반환
+       // Return false on 401/403
        return false;
      }
    }
    ```
 
-#### 중기 (Proxy 도입 후)
-1. **Session Token 발급**:
-   - Extension에서 GitHub/GitLab OAuth 로그인
-   - Proxy 서버가 Session Token 발급 (TTL: 7일)
-   - Refresh Token으로 갱신
+#### Medium-term (After Proxy Introduction)
+1. **Session Token Issuance**:
+   - GitHub/GitLab OAuth login from Extension
+   - Proxy server issues Session Token (TTL: 7 days)
+   - Renew with Refresh Token
 
-2. **API 키는 서버에서만 관리**:
-   - 환경변수 또는 KMS (Key Management Service)
-   - 정기적 자동 Rotation (30-90일)
+2. **API keys managed only on server**:
+   - Environment variables or KMS (Key Management Service)
+   - Regular automatic rotation (30-90 days)
 
 ---
 
-## 7. 추가 보안 권장 사항
+## 7. Additional Security Recommendations
 
 ### 7.1 Content Security Policy (CSP)
 
-**파일**: `manifest.json`
+**File**: `manifest.json`
 
-현재 CSP 미설정 → XSS 공격 취약
+Currently no CSP set → Vulnerable to XSS attacks
 
-**권장 추가**:
+**Recommended Addition**:
 ```json
 {
   "content_security_policy": {
@@ -526,16 +526,16 @@ export default {
 }
 ```
 
-### 7.2 Permissions 최소화
+### 7.2 Minimize Permissions
 
-**현재**:
+**Current**:
 ```json
 "host_permissions": [
-  "https://*/*"  // 🔴 너무 광범위
+  "https://*/*"  // 🔴 Too broad
 ]
 ```
 
-**권장**:
+**Recommended**:
 ```json
 "host_permissions": [
   "https://api.github.com/*",
@@ -543,23 +543,23 @@ export default {
   "https://git.projectbro.com/*"
 ],
 "optional_host_permissions": [
-  "https://*/*/-/merge_requests/*"  // 사용자 승인 후 허용
+  "https://*/*/-/merge_requests/*"  // Allow after user approval
 ]
 ```
 
-### 7.3 Sensitive Data Logging 제거
+### 7.3 Remove Sensitive Data Logging
 
-**파일**: `src/background/api-client.ts`
+**File**: `src/background/api-client.ts`
 
 ```typescript
-// Line 57 - ⚠️ Base URL 로깅 (GitLab 사용자 지정 URL 노출 가능)
+// Line 57 - ⚠️ Base URL logging (may expose GitLab custom URL)
 console.log('[ApiClient] Initialized with baseUrl:', this.baseUrl);
 
-// Line 506 - ⚠️ URL 전체 로깅 (토큰이 Query Param에 있을 경우 노출)
+// Line 506 - ⚠️ Full URL logging (exposes token if in Query Param)
 console.log(`[ApiClient] ${options.method || 'GET'} ${url}`);
 ```
 
-**권장**: Production 빌드에서 민감한 로그 제거
+**Recommendation**: Remove sensitive logs in Production builds
 ```typescript
 if (process.env.NODE_ENV === 'development') {
   console.log('[ApiClient] Initialized with baseUrl:', this.baseUrl);
@@ -568,25 +568,25 @@ if (process.env.NODE_ENV === 'development') {
 
 ---
 
-## 8. 보안 우선순위 및 Roadmap
+## 8. Security Priority and Roadmap
 
-| 우선순위 | 항목 | 위험도 | 작업량 |
+| Priority | Item | Risk Level | Effort |
 |---------|------|--------|--------|
-| 🔴 **P0** | Deprecated 함수 수정 (`unescape`, `escape`) | 중 | 소 |
-| 🔴 **P0** | GitLab URL HTTPS 검증 | 중 | 소 |
-| 🟡 **P1** | LLM API Proxy 도입 | 고 | 대 |
-| 🟡 **P1** | Rate Limit 429 특별 처리 | 중 | 소 |
-| 🟢 **P2** | Host Permissions 최소화 | 저 | 소 |
-| 🟢 **P2** | CSP 정책 추가 | 저 | 소 |
-| 🟢 **P3** | API 키 Rotation 알림 | 저 | 중 |
+| 🔴 **P0** | Fix deprecated functions (`unescape`, `escape`) | Medium | Small |
+| 🔴 **P0** | GitLab URL HTTPS validation | Medium | Small |
+| 🟡 **P1** | Introduce LLM API Proxy | High | Large |
+| 🟡 **P1** | Special handling for Rate Limit 429 | Medium | Small |
+| 🟢 **P2** | Minimize Host Permissions | Low | Small |
+| 🟢 **P2** | Add CSP policy | Low | Small |
+| 🟢 **P3** | API key rotation alerts | Low | Medium |
 
 ---
 
-## 9. 즉시 적용 가능한 Quick Wins
+## 9. Immediately Applicable Quick Wins
 
-### 9.1 Deprecated 함수 수정
+### 9.1 Fix Deprecated Functions
 
-**파일 1**: `src/background/api-client.ts:260`
+**File 1**: `src/background/api-client.ts:260`
 ```typescript
 // Before
 content: btoa(unescape(encodeURIComponent(content)))
@@ -600,7 +600,7 @@ content: (() => {
 })()
 ```
 
-**파일 2**: `src/core/file-matcher.ts:252-256`
+**File 2**: `src/core/file-matcher.ts:252-256`
 ```typescript
 // Before
 function decodeBase64(base64: string): string {
@@ -626,9 +626,9 @@ function decodeBase64(base64: string): string {
 }
 ```
 
-### 9.2 GitLab URL HTTPS 검증
+### 9.2 GitLab URL HTTPS Validation
 
-**파일**: `src/background/api-client.ts:43-55`
+**File**: `src/background/api-client.ts:43-55`
 ```typescript
 // Before
 if (this.platform === 'gitlab') {
@@ -641,7 +641,7 @@ if (this.platform === 'gitlab') {
 if (this.platform === 'gitlab') {
   const gitlabBaseUrl = options.gitlabUrl || 'https://gitlab.com';
 
-  // HTTPS 강제 검증
+  // Enforce HTTPS validation
   if (!gitlabBaseUrl.startsWith('https://')) {
     throw new Error('GitLab URL must use HTTPS protocol');
   }
@@ -651,13 +651,13 @@ if (this.platform === 'gitlab') {
 }
 ```
 
-### 9.3 Rate Limit 처리
+### 9.3 Rate Limit Handling
 
-**파일**: `src/background/api-client.ts:525-529`
+**File**: `src/background/api-client.ts:525-529`
 ```typescript
 // After
 if (!response.ok) {
-  // 429 Rate Limit 특별 처리
+  // Special handling for 429 Rate Limit
   if (response.status === 429) {
     const retryAfter = response.headers.get('Retry-After') || '60';
     throw new Error(`Rate limit exceeded. Retry after ${retryAfter} seconds`);
@@ -671,7 +671,7 @@ if (!response.ok) {
 
 ---
 
-## 10. API 통신 Flow Diagram
+## 10. API Communication Flow Diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -695,20 +695,20 @@ if (!response.ok) {
          │ ✅ HTTPS    │     │⚠️ User URL  │    │🔴Dangerous  │
          └─────────────┘     └─────────────┘    └─────────────┘
               ↓                     ↓                   ↓
-         ✅ 안전              ⚠️ 검증 필요        🔴 Proxy 필요
+         ✅ Safe              ⚠️ Needs validation  🔴 Proxy needed
 
-현재 문제점:
-1. GitLab: 사용자 입력 URL HTTPS 검증 없음
-2. LLM: 브라우저에서 API 키 직접 전송 (노출 위험)
-3. Rate Limit: 429 응답 특별 처리 없음
-4. Deprecated: unescape(), escape() 사용
+Current Issues:
+1. GitLab: No HTTPS validation for user input URL
+2. LLM: API key sent directly from browser (exposure risk)
+3. Rate Limit: No special handling for 429 responses
+4. Deprecated: Uses unescape(), escape()
 ```
 
 ---
 
 ## 11. Server-side Proxy Architecture
 
-### 옵션 A: Cloudflare Workers (권장)
+### Option A: Cloudflare Workers (Recommended)
 
 ```
 Extension → CF Workers → LLM APIs
@@ -716,17 +716,17 @@ Extension → CF Workers → LLM APIs
             └─ KV Store (Session/Rate Limit)
             └─ Env Vars (API Keys)
 
-장점:
-- Serverless (비용 효율)
-- Global Edge Network (낮은 Latency)
-- KV Store 내장 (Session 관리)
-- 무료 티어: 100K req/day
+Pros:
+- Serverless (cost-efficient)
+- Global Edge Network (low latency)
+- Built-in KV Store (session management)
+- Free tier: 100K req/day
 
-단점:
+Cons:
 - Vendor Lock-in
 ```
 
-### 옵션 B: Vercel Edge Functions
+### Option B: Vercel Edge Functions
 
 ```
 Extension → Vercel Edge → LLM APIs
@@ -734,15 +734,15 @@ Extension → Vercel Edge → LLM APIs
             └─ Vercel KV (Redis)
             └─ Env Vars
 
-장점:
-- Next.js 통합
-- 무료 티어 제공
+Pros:
+- Next.js integration
+- Free tier available
 
-단점:
-- CF Workers보다 제한적
+Cons:
+- More limited than CF Workers
 ```
 
-### 옵션 C: Self-hosted (최대 제어)
+### Option C: Self-hosted (Maximum Control)
 
 ```
 Extension → Nginx + Node.js → LLM APIs
@@ -750,32 +750,32 @@ Extension → Nginx + Node.js → LLM APIs
             └─ Redis (Session)
             └─ PostgreSQL (Usage Log)
 
-장점:
-- 완전한 제어
-- 커스텀 로직
+Pros:
+- Complete control
+- Custom logic
 
-단점:
-- 운영 비용
-- 인프라 관리 부담
+Cons:
+- Operational costs
+- Infrastructure management burden
 ```
 
 ---
 
-## 결론 및 권장 사항
+## Conclusion and Recommendations
 
-### 즉시 수정 필요 (P0)
-1. ✅ Deprecated 함수 수정 (`unescape` → `TextEncoder`)
-2. ✅ GitLab URL HTTPS 검증 추가
-3. ✅ Rate Limit 429 처리 개선
+### Immediate Fixes Required (P0)
+1. ✅ Fix deprecated functions (`unescape` → `TextEncoder`)
+2. ✅ Add GitLab URL HTTPS validation
+3. ✅ Improve Rate Limit 429 handling
 
-### 단기 개선 (P1)
-1. ⚠️ LLM API Proxy 서버 도입 검토 (보안 향상)
-2. ⚠️ Host Permissions 최소화
-3. ⚠️ CSP 정책 추가
+### Short-term Improvements (P1)
+1. ⚠️ Review LLM API Proxy server introduction (improved security)
+2. ⚠️ Minimize Host Permissions
+3. ⚠️ Add CSP policy
 
-### 장기 계획 (P2-P3)
-1. 🔄 API 키 Rotation 자동화
-2. 🔄 OAuth 기반 인증 도입
-3. 🔄 사용량 모니터링 대시보드
+### Long-term Plans (P2-P3)
+1. 🔄 Automate API key rotation
+2. 🔄 Introduce OAuth-based authentication
+3. 🔄 Usage monitoring dashboard
 
-현재 코드는 **기능적으로는 작동하지만, 보안 측면에서 개선이 필요**합니다. 특히 LLM API의 브라우저 직접 호출은 Anthropic이 명시적으로 "dangerous"라고 표시한 방식이므로, Server-side Proxy 도입을 강력히 권장합니다.
+The current code **works functionally but needs security improvements**. In particular, direct browser calls to LLM APIs use a method explicitly marked as "dangerous" by Anthropic, so introducing a server-side proxy is strongly recommended.

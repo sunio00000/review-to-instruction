@@ -1,101 +1,101 @@
-# 리뷰 코멘트 지원 가이드
+# Review Comment Support Guide
 
-## 문제 상황
+## Problem
 
-기존에는 일반 PR/MR 코멘트에서만 "Convert to AI Instruction" 버튼이 표시되고, 리뷰 코멘트(인라인 코드 리뷰, diff 노트)에서는 버튼이 표시되지 않았습니다.
+Previously, the "Convert to AI Instruction" button only appeared on general PR/MR comments, not on review comments (inline code reviews, diff notes).
 
-## 해결 방법
+## Solution
 
-### 1. GitHub 리뷰 코멘트 선택자 추가
+### 1. Added GitHub Review Comment Selectors
 
-GitHub PR 페이지에서 다음과 같은 리뷰 코멘트를 감지합니다:
+Detects the following review comments on GitHub PR pages:
 
-#### 일반 타임라인 코멘트
-- `.timeline-comment` - PR 대화 탭의 일반 코멘트
+#### General Timeline Comments
+- `.timeline-comment` - General comments in PR conversation tab
 
-#### 리뷰 코멘트
-- `.review-comment` - 리뷰 제출 후 코멘트
-- `.inline-comment` - 인라인 코드 리뷰 코멘트
-- `.js-comment` - JavaScript로 동적 생성된 코멘트
-- `.js-comment-container` - 코멘트 컨테이너
+#### Review Comments
+- `.review-comment` - Comments after review submission
+- `.inline-comment` - Inline code review comments
+- `.js-comment` - JavaScript-generated comments
+- `.js-comment-container` - Comment containers
 
-#### 디스커션 코멘트
-- `div[id^="discussion_r"]` - 디스커션 ID로 시작하는 코멘트
-- `div[id^="pullrequestreview"]` - PR 리뷰 ID로 시작하는 코멘트
+#### Discussion Comments
+- `div[id^="discussion_r"]` - Comments starting with discussion ID
+- `div[id^="pullrequestreview"]` - Comments starting with PR review ID
 
-#### 본문 선택자
-- `.comment-body` - 기본 코멘트 본문
-- `.js-comment-body` - JS 타겟 본문
-- `.review-comment-contents .comment-body` - 리뷰 코멘트 본문
-- `.edit-comment-hide` - 편집 가능 코멘트
+#### Body Selectors
+- `.comment-body` - Default comment body
+- `.js-comment-body` - JS target body
+- `.review-comment-contents .comment-body` - Review comment body
+- `.edit-comment-hide` - Editable comments
 
-### 2. GitLab 리뷰 코멘트 선택자 추가
+### 2. Added GitLab Review Comment Selectors
 
-GitLab MR 페이지에서 다음과 같은 리뷰 코멘트를 감지합니다:
+Detects the following review comments on GitLab MR pages:
 
-#### 일반 노트
-- `.note` - 모든 GitLab 노트
-- `[data-testid="note"]` - data-testid 속성
-- `.timeline-entry` - 타임라인 엔트리
-- `.discussion-note` - 디스커션 노트
+#### General Notes
+- `.note` - All GitLab notes
+- `[data-testid="note"]` - data-testid attribute
+- `.timeline-entry` - Timeline entries
+- `.discussion-note` - Discussion notes
 - `article[data-note-id]` - article with note id
 
-#### Diff 노트 (리뷰 코멘트)
-- `.diff-note` - diff 내부 노트
-- `.note-wrapper` - 노트 래퍼
-- `li.note` - li 태그 노트
-- `[data-note-type="DiffNote"]` - diff 노트 타입
-- `.discussion-reply-holder .note` - 답글 노트
+#### Diff Notes (Review Comments)
+- `.diff-note` - Notes inside diff
+- `.note-wrapper` - Note wrapper
+- `li.note` - li tag notes
+- `[data-note-type="DiffNote"]` - diff note type
+- `.discussion-reply-holder .note` - Reply notes
 
-#### 본문 선택자
-- `.note-text` - 기본 노트 텍스트
-- `[data-testid="note-text"]` - data-testid 속성
-- `.timeline-entry-body` - 타임라인 본문
-- `.note-body` - 노트 본문
-- `.js-note-text` - JS 타겟 클래스
-- `.note-text.md` - 마크다운 노트 텍스트
-- `.note-body .note-text` - 노트 본문 내부 텍스트
+#### Body Selectors
+- `.note-text` - Default note text
+- `[data-testid="note-text"]` - data-testid attribute
+- `.timeline-entry-body` - Timeline body
+- `.note-body` - Note body
+- `.js-note-text` - JS target class
+- `.note-text.md` - Markdown note text
+- `.note-body .note-text` - Text inside note body
 
-## 테스트 방법
+## Testing Methods
 
-### GitHub PR 페이지 테스트
+### GitHub PR Page Testing
 
-1. **일반 코멘트 테스트**
-   - PR 대화 탭에서 새 코멘트 작성
-   - 버튼이 코멘트 하단에 표시되는지 확인
+1. **General Comment Test**
+   - Write a new comment in PR conversation tab
+   - Verify button appears at bottom of comment
 
-2. **인라인 리뷰 코멘트 테스트**
-   - Files changed 탭에서 특정 라인에 코멘트 작성
-   - 버튼이 코멘트 하단에 표시되는지 확인
+2. **Inline Review Comment Test**
+   - Write a comment on a specific line in Files changed tab
+   - Verify button appears at bottom of comment
 
-3. **리뷰 제출 후 코멘트 테스트**
-   - Start a review로 여러 코멘트 작성
-   - Finish your review로 리뷰 제출
-   - 각 리뷰 코멘트에 버튼이 표시되는지 확인
+3. **Post-Review Comment Test**
+   - Write multiple comments with Start a review
+   - Submit review with Finish your review
+   - Verify button appears on each review comment
 
-4. **답글 코멘트 테스트**
-   - 기존 코멘트에 답글 작성
-   - 답글에도 버튼이 표시되는지 확인
+4. **Reply Comment Test**
+   - Write a reply to an existing comment
+   - Verify button appears on the reply as well
 
-### GitLab MR 페이지 테스트
+### GitLab MR Page Testing
 
-1. **일반 디스커션 노트 테스트**
-   - Overview 탭에서 새 코멘트 작성
-   - 버튼이 노트 하단에 표시되는지 확인
+1. **General Discussion Note Test**
+   - Write a new comment in Overview tab
+   - Verify button appears at bottom of note
 
-2. **Diff 노트 테스트**
-   - Changes 탭에서 특정 라인에 코멘트 작성
-   - 버튼이 diff 노트 하단에 표시되는지 확인
+2. **Diff Note Test**
+   - Write a comment on a specific line in Changes tab
+   - Verify button appears at bottom of diff note
 
-3. **Thread 답글 테스트**
-   - 기존 디스커션에 답글 작성
-   - 답글에도 버튼이 표시되는지 확인
+3. **Thread Reply Test**
+   - Write a reply to an existing discussion
+   - Verify button appears on the reply as well
 
-## 디버깅 방법
+## Debugging
 
-버튼이 표시되지 않는 경우 브라우저 개발자 도구(F12)로 확인:
+If buttons don't appear, check with browser developer tools (F12):
 
-### 1. 코멘트 엘리먼트 확인
+### 1. Check Comment Elements
 ```javascript
 // GitHub
 document.querySelectorAll('.review-comment, .inline-comment')
@@ -104,12 +104,12 @@ document.querySelectorAll('.review-comment, .inline-comment')
 document.querySelectorAll('.diff-note, [data-note-type="DiffNote"]')
 ```
 
-### 2. 버튼 컨테이너 확인
+### 2. Check Button Containers
 ```javascript
 document.querySelectorAll('.review-to-instruction-button-container')
 ```
 
-### 3. 코멘트 본문 확인
+### 3. Check Comment Bodies
 ```javascript
 // GitHub
 document.querySelectorAll('.comment-body, .js-comment-body')
@@ -118,17 +118,17 @@ document.querySelectorAll('.comment-body, .js-comment-body')
 document.querySelectorAll('.note-text, [data-testid="note-text"]')
 ```
 
-## 알려진 제약사항
+## Known Limitations
 
-1. **Pending 리뷰 코멘트**: GitHub에서 "Start a review" 상태의 pending 코멘트는 버튼이 표시되지 않을 수 있습니다 (리뷰 제출 후 표시됨)
+1. **Pending Review Comments**: On GitHub, pending comments in "Start a review" status may not show buttons (appears after review submission)
 
-2. **동적 로딩**: 무한 스크롤이나 동적 로딩으로 추가된 코멘트는 MutationObserver가 감지할 때까지 약간의 지연(~100ms)이 있을 수 있습니다
+2. **Dynamic Loading**: Comments added via infinite scroll or dynamic loading may have a slight delay (~100ms) until MutationObserver detects them
 
-3. **커스텀 GitLab 인스턴스**: GitLab Enterprise나 커스텀 인스턴스는 DOM 구조가 다를 수 있어 추가 선택자가 필요할 수 있습니다
+3. **Custom GitLab Instances**: GitLab Enterprise or custom instances may have different DOM structures requiring additional selectors
 
-## 향후 개선 사항
+## Future Improvements
 
-1. **선택자 자동 감지**: DOM 구조를 자동으로 분석하여 적절한 선택자 찾기
-2. **성능 최적화**: 선택자 우선순위 조정으로 빠른 매칭
-3. **에러 리포팅**: 버튼이 추가되지 않은 코멘트를 추적하고 리포트
-4. **A/B 테스트**: 여러 선택자 조합의 효과 측정
+1. **Automatic Selector Detection**: Automatically analyze DOM structure to find appropriate selectors
+2. **Performance Optimization**: Faster matching with selector priority adjustment
+3. **Error Reporting**: Track and report comments where buttons weren't added
+4. **A/B Testing**: Measure effectiveness of different selector combinations

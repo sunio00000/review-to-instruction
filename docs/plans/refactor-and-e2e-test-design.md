@@ -1,50 +1,50 @@
-# Review to Instruction - 리팩토링 및 E2E 테스트 추가
+# Review to Instruction - Refactoring and E2E Test Addition
 
-**작성일**: 2026-01-16
-**버전**: v1.2.0 기준
-**목표**: 코드 품질 개선 및 자동화된 E2E 테스트 인프라 구축
-
----
-
-## 1. 개요
-
-### 1.1 프로젝트 현황
-
-- **타입**: Chrome Extension (Manifest V3)
-- **언어**: TypeScript 5.9.3
-- **빌드**: Vite 7.3.1
-- **주요 기능**:
-  - GitHub/GitLab PR 리뷰 코멘트를 AI instruction으로 자동 변환
-  - 다중 AI 도구 지원 (Claude Code, Cursor, Windsurf)
-  - LLM 응답 캐싱 (50-70% 비용 절감)
-
-### 1.2 문제점 및 목표
-
-**현재 문제:**
-1. `message-handler.ts`의 `handleConvertComment` 함수가 157줄, 순환 복잡도 21
-2. 테스트 프레임워크 없음 (수동 테스트만)
-3. `chrome.runtime.lastError` 미확인
-
-**개선 목표:**
-1. ✅ message-handler 리팩토링 (복잡도 21 → 8-10)
-2. ✅ 핵심 E2E 테스트 자동화 (3-4개 시나리오)
-3. ✅ 필수 에러 처리 개선
+**Written**: 2026-01-16
+**Version**: Based on v1.2.0
+**Goal**: Improve code quality and build automated E2E test infrastructure
 
 ---
 
-## 2. 아키텍처 설계
+## 1. Overview
 
-### 2.1 현재 아키텍처
+### 1.1 Project Status
+
+- **Type**: Chrome Extension (Manifest V3)
+- **Language**: TypeScript 5.9.3
+- **Build**: Vite 7.3.1
+- **Main Features**:
+  - Automatically convert GitHub/GitLab PR review comments to AI instructions
+  - Support multiple AI tools (Claude Code, Cursor, Windsurf)
+  - LLM response caching (50-70% cost savings)
+
+### 1.2 Issues and Goals
+
+**Current Issues:**
+1. `handleConvertComment` function in `message-handler.ts` is 157 lines, cyclomatic complexity 21
+2. No test framework (manual testing only)
+3. `chrome.runtime.lastError` not checked
+
+**Improvement Goals:**
+1. ✅ Refactor message-handler (complexity 21 → 8-10)
+2. ✅ Automate core E2E tests (3-4 scenarios)
+3. ✅ Improve essential error handling
+
+---
+
+## 2. Architecture Design
+
+### 2.1 Current Architecture
 
 ```
 Content Script → chrome.runtime.sendMessage → Background Service Worker
                                                   ↓
                                             message-handler
                                                   ↓
-                                   (10가지 책임이 하나의 함수에)
+                                   (10 responsibilities in one function)
 ```
 
-### 2.2 개선된 아키텍처
+### 2.2 Improved Architecture
 
 ```
 Content Script → Message Router → ConversionOrchestrator
@@ -58,7 +58,7 @@ Content Script → Message Router → ConversionOrchestrator
                         PullRequestService
 ```
 
-### 2.3 서비스 계층 설계
+### 2.3 Service Layer Design
 
 #### ConfigService
 ```typescript
@@ -69,8 +69,8 @@ interface ConfigService {
   }>;
 }
 ```
-- **책임**: Chrome Storage에서 설정 로드 및 유효성 검증
-- **의존성**: chrome.storage.sync
+- **Responsibility**: Load and validate settings from Chrome Storage
+- **Dependencies**: chrome.storage.sync
 
 #### CommentService
 ```typescript
@@ -81,8 +81,8 @@ interface CommentService {
   ): Promise<EnhancedComment>;
 }
 ```
-- **책임**: 컨벤션 확인, 코멘트 파싱, LLM 강화
-- **의존성**: parser, enhancer
+- **Responsibility**: Check conventions, parse comments, LLM enhancement
+- **Dependencies**: parser, enhancer
 
 #### FileGenerationService
 ```typescript
@@ -94,8 +94,8 @@ interface FileGenerationService {
   ): Promise<FileGenerationResult[]>;
 }
 ```
-- **책임**: 프로젝트 타입 감지, 파일 매칭, Generator 실행
-- **의존성**: ProjectTypeDetector, GeneratorFactory, file-matcher
+- **Responsibility**: Detect project type, file matching, execute Generator
+- **Dependencies**: ProjectTypeDetector, GeneratorFactory, file-matcher
 
 #### PullRequestService
 ```typescript
@@ -108,38 +108,38 @@ interface PullRequestService {
   ): Promise<PullRequestResult>;
 }
 ```
-- **책임**: PR/MR 생성 및 결과 포장
-- **의존성**: pr-creator (기존 모듈 재사용)
+- **Responsibility**: Create PR/MR and wrap results
+- **Dependencies**: pr-creator (reuse existing module)
 
 ---
 
-## 3. 리팩토링 계획
+## 3. Refactoring Plan
 
-### 3.1 Phase 1: 서비스 추출 (2일)
+### 3.1 Phase 1: Extract Services (2 days)
 
-**Task 1.1: ConfigService 생성**
-- 파일: `src/background/services/config-service.ts` (신규)
-- 코드 이동: message-handler.ts 라인 137-145 (9줄)
-- 테스트 가능성: ✅ (chrome.storage 모킹)
+**Task 1.1: Create ConfigService**
+- File: `src/background/services/config-service.ts` (new)
+- Code movement: message-handler.ts lines 137-145 (9 lines)
+- Testability: ✅ (chrome.storage mocking)
 
-**Task 1.2: CommentService 생성**
-- 파일: `src/background/services/comment-service.ts` (신규)
-- 코드 이동: message-handler.ts 라인 132-177 (46줄)
-- 기존 모듈 통합: parser.ts, llm/enhancer.ts
+**Task 1.2: Create CommentService**
+- File: `src/background/services/comment-service.ts` (new)
+- Code movement: message-handler.ts lines 132-177 (46 lines)
+- Integrate existing modules: parser.ts, llm/enhancer.ts
 
-**Task 1.3: FileGenerationService 생성**
-- 파일: `src/background/services/file-generation-service.ts` (신규)
-- 코드 이동: message-handler.ts 라인 179-240 (62줄)
-- 기존 모듈 통합: project-detector.ts, generators/*
+**Task 1.3: Create FileGenerationService**
+- File: `src/background/services/file-generation-service.ts` (new)
+- Code movement: message-handler.ts lines 179-240 (62 lines)
+- Integrate existing modules: project-detector.ts, generators/*
 
-**Task 1.4: PullRequestService 래퍼**
-- 파일: `src/background/services/pr-service.ts` (신규)
-- 기존 pr-creator.ts를 서비스 인터페이스로 감싸기
-- 코드 이동: message-handler.ts 라인 244-259 (16줄)
+**Task 1.4: PullRequestService Wrapper**
+- File: `src/background/services/pr-service.ts` (new)
+- Wrap existing pr-creator.ts with service interface
+- Code movement: message-handler.ts lines 244-259 (16 lines)
 
-### 3.2 Phase 2: 의존성 주입 적용 (1일)
+### 3.2 Phase 2: Apply Dependency Injection (1 day)
 
-**Task 2.1: DI Container 구현**
+**Task 2.1: Implement DI Container**
 ```typescript
 // src/background/services/di-container.ts
 interface ServiceContainer {
@@ -159,7 +159,7 @@ function createServiceContainer(): ServiceContainer {
 }
 ```
 
-**Task 2.2: ConversionOrchestrator 생성**
+**Task 2.2: Create ConversionOrchestrator**
 ```typescript
 // src/background/services/conversion-orchestrator.ts
 class ConversionOrchestrator {
@@ -177,9 +177,9 @@ class ConversionOrchestrator {
 }
 ```
 
-**Task 2.3: message-handler 간소화**
+**Task 2.3: Simplify message-handler**
 ```typescript
-// src/background/message-handler.ts (리팩토링 후)
+// src/background/message-handler.ts (after refactoring)
 const orchestrator = new ConversionOrchestrator(createServiceContainer());
 
 async function handleConvertComment(payload, sendResponse) {
@@ -192,15 +192,15 @@ async function handleConvertComment(payload, sendResponse) {
 }
 ```
 
-예상 결과:
-- handleConvertComment: 157줄 → 10-15줄
-- 순환 복잡도: 21 → 3-4
+Expected results:
+- handleConvertComment: 157 lines → 10-15 lines
+- Cyclomatic complexity: 21 → 3-4
 
 ---
 
-## 4. E2E 테스트 인프라
+## 4. E2E Test Infrastructure
 
-### 4.1 테스트 스택
+### 4.1 Test Stack
 
 ```json
 {
@@ -211,7 +211,7 @@ async function handleConvertComment(payload, sendResponse) {
 }
 ```
 
-### 4.2 폴더 구조
+### 4.2 Folder Structure
 
 ```
 tests/
@@ -228,14 +228,14 @@ tests/
     └── llm-handlers.ts
 ```
 
-### 4.3 테스트 시나리오
+### 4.3 Test Scenarios
 
 #### Scenario 1: GitHub PR Comment Detection
 ```typescript
-test('GitHub PR 페이지에서 컨벤션 코멘트 감지', async ({ page }) => {
+test('Detect convention comment on GitHub PR page', async ({ page }) => {
   await page.goto('http://localhost:3000/test-pr');
 
-  // "Convert to AI Instruction" 버튼 표시 확인
+  // Verify "Convert to AI Instruction" button appears
   const button = page.locator('button:has-text("Convert to AI Instruction")');
   await expect(button).toBeVisible();
 });
@@ -243,14 +243,14 @@ test('GitHub PR 페이지에서 컨벤션 코멘트 감지', async ({ page }) =>
 
 #### Scenario 2: Instruction Creation
 ```typescript
-test('새로운 instruction 파일 생성 및 PR 생성', async ({ page }) => {
+test('Create new instruction file and PR', async ({ page }) => {
   await setupGitHubMocks(page);
 
   const button = page.locator('button:has-text("Convert to AI Instruction")');
   await button.click();
 
-  // 성공 메시지 및 PR 링크 확인
-  const successMsg = page.locator('text=/Instruction.*생성됨/');
+  // Verify success message and PR link
+  const successMsg = page.locator('text=/Instruction.*created/');
   await expect(successMsg).toBeVisible({ timeout: 15000 });
 
   const prLink = successMsg.locator('a[target="_blank"]');
@@ -260,7 +260,7 @@ test('새로운 instruction 파일 생성 및 PR 생성', async ({ page }) => {
 
 #### Scenario 3: PR Creation Flow
 ```typescript
-test('전체 PR 생성 플로우 (E2E)', async ({ page }) => {
+test('Full PR creation flow (E2E)', async ({ page }) => {
   // 1. Comment detection
   // 2. Button click
   // 3. API calls (mocked)
@@ -271,18 +271,18 @@ test('전체 PR 생성 플로우 (E2E)', async ({ page }) => {
 
 #### Scenario 4: Error Handling
 ```typescript
-test('Token 미설정 시 에러 메시지', async ({ page }) => {
+test('Error message when token not configured', async ({ page }) => {
   await clearStorageToken(page);
 
   const button = page.locator('button:has-text("Convert to AI Instruction")');
   await button.click();
 
-  const errorMsg = page.locator('text=/Token이 설정되지 않았습니다/');
+  const errorMsg = page.locator('text=/Token not configured/');
   await expect(errorMsg).toBeVisible();
 });
 ```
 
-### 4.4 Mock 설정
+### 4.4 Mock Setup
 
 #### GitHub API Mock (MSW)
 ```typescript
@@ -296,7 +296,7 @@ export const githubHandlers = [
 
   http.get('https://api.github.com/repos/:owner/:repo/contents/.claude', () => {
     return HttpResponse.json([
-      { name: 'instructions', type: 'dir', path: '.claude/instructions' }
+      { name: 'rules', type: 'dir', path: '.claude/rules' }
     ]);
   }),
 
@@ -313,7 +313,7 @@ export const githubHandlers = [
 ];
 ```
 
-### 4.5 Playwright 설정
+### 4.5 Playwright Configuration
 
 ```typescript
 // playwright.config.ts
@@ -343,9 +343,9 @@ export default defineConfig({
 
 ---
 
-## 5. 에러 처리 개선
+## 5. Error Handling Improvements
 
-### 5.1 chrome.runtime.lastError 체크
+### 5.1 chrome.runtime.lastError Check
 
 **Before:**
 ```typescript
@@ -373,20 +373,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 ```
 
-### 5.2 ErrorResponse 타입 추가
+### 5.2 Add ErrorResponse Type
 
 ```typescript
 // src/types/index.ts
 interface ErrorResponse {
   success: false;
   error: {
-    message: string;      // 사용자 메시지
-    code?: string;        // 에러 코드 (선택)
-    timestamp: number;    // 에러 발생 시각
+    message: string;      // User message
+    code?: string;        // Error code (optional)
+    timestamp: number;    // Error occurrence time
   };
 }
 
-// 에러 코드 (선택적)
+// Error codes (optional)
 enum ErrorCode {
   AUTH_FAILED = 'AUTH_FAILED',
   API_TIMEOUT = 'API_TIMEOUT',
@@ -395,7 +395,7 @@ enum ErrorCode {
 }
 ```
 
-### 5.3 buildErrorResponse 헬퍼
+### 5.3 buildErrorResponse Helper
 
 ```typescript
 // src/background/utils/error-builder.ts
@@ -416,111 +416,111 @@ function buildErrorResponse(error: unknown): ErrorResponse {
 
 ---
 
-## 6. 구현 순서 및 작업 분할
+## 6. Implementation Order and Task Division
 
-### Week 1: 리팩토링 (3일)
+### Week 1: Refactoring (3 days)
 
-**Day 1: 서비스 추출 (1/2)**
-- [ ] ConfigService 생성 및 테스트
-- [ ] CommentService 생성 및 테스트
+**Day 1: Extract Services (1/2)**
+- [ ] Create and test ConfigService
+- [ ] Create and test CommentService
 
-**Day 2: 서비스 추출 (2/2)**
-- [ ] FileGenerationService 생성 및 테스트
-- [ ] PullRequestService 래퍼 생성
+**Day 2: Extract Services (2/2)**
+- [ ] Create and test FileGenerationService
+- [ ] Create PullRequestService wrapper
 
-**Day 3: DI 통합 및 간소화**
-- [ ] DI Container 구현
-- [ ] ConversionOrchestrator 생성
-- [ ] message-handler 간소화
-- [ ] 수동 테스트로 검증
+**Day 3: DI Integration and Simplification**
+- [ ] Implement DI Container
+- [ ] Create ConversionOrchestrator
+- [ ] Simplify message-handler
+- [ ] Verify with manual testing
 
-### Week 2: E2E 테스트 (4일)
+### Week 2: E2E Tests (4 days)
 
-**Day 4: E2E 인프라 설정**
-- [ ] Playwright 설치 및 설정
-- [ ] MSW 설정
-- [ ] Test server 구현 (Express)
+**Day 4: Set up E2E Infrastructure**
+- [ ] Install and configure Playwright
+- [ ] Set up MSW
+- [ ] Implement test server (Express)
 
-**Day 5: 핵심 테스트 작성 (1/2)**
+**Day 5: Write Core Tests (1/2)**
 - [ ] Scenario 1: Comment detection
 - [ ] Scenario 2: Instruction creation
 
-**Day 6: 핵심 테스트 작성 (2/2)**
+**Day 6: Write Core Tests (2/2)**
 - [ ] Scenario 3: PR creation flow
 - [ ] Scenario 4: Error handling
 
-**Day 7: 에러 처리 개선**
-- [ ] chrome.runtime.lastError 체크 추가
-- [ ] ErrorResponse 타입 적용
-- [ ] buildErrorResponse 헬퍼 구현
+**Day 7: Improve Error Handling**
+- [ ] Add chrome.runtime.lastError checks
+- [ ] Apply ErrorResponse type
+- [ ] Implement buildErrorResponse helper
 
 ---
 
-## 7. 성공 기준
+## 7. Success Criteria
 
-### 7.1 리팩토링
+### 7.1 Refactoring
 
-- [x] handleConvertComment 순환 복잡도 ≤ 10
-- [x] 서비스별 단일 책임 원칙 준수
-- [x] 의존성 주입 패턴 적용
-- [x] 기존 기능 100% 유지
+- [x] handleConvertComment cyclomatic complexity ≤ 10
+- [x] Single Responsibility Principle per service
+- [x] Apply Dependency Injection pattern
+- [x] Maintain 100% existing functionality
 
-### 7.2 E2E 테스트
+### 7.2 E2E Tests
 
-- [x] 4개 핵심 시나리오 자동화
-- [x] 테스트 실행 시간 < 5분
-- [x] 테스트 안정성 > 95% (flakiness < 5%)
-- [x] CI/CD 통합 가능한 구조
+- [x] Automate 4 core scenarios
+- [x] Test execution time < 5 minutes
+- [x] Test stability > 95% (flakiness < 5%)
+- [x] CI/CD integrable structure
 
-### 7.3 에러 처리
+### 7.3 Error Handling
 
-- [x] chrome.runtime.lastError 모든 곳에서 확인
-- [x] 일관된 ErrorResponse 포맷
-- [x] 사용자 친화적 에러 메시지 유지
-
----
-
-## 8. 리스크 및 완화 전략
-
-### 8.1 리팩토링 리스크
-
-**리스크**: 기존 기능 회귀 버그
-**완화**: 각 서비스 추출 후 수동 전체 테스트 실행
-
-### 8.2 E2E 테스트 리스크
-
-**리스크**: Chrome extension 로드 실패
-**완화**: Playwright 공식 문서 참고, 단계별 검증
-
-### 8.3 시간 리스크
-
-**리스크**: 예상보다 오래 걸림
-**완화**: 우선순위별 작업 진행, 필수 기능만 구현
+- [x] Check chrome.runtime.lastError everywhere
+- [x] Consistent ErrorResponse format
+- [x] Maintain user-friendly error messages
 
 ---
 
-## 9. 마일스톤
+## 8. Risks and Mitigation Strategies
 
-| 날짜 | 마일스톤 | 산출물 |
-|------|---------|-------|
-| Day 1 | ConfigService, CommentService | 2개 서비스 파일, 테스트 |
-| Day 2 | FileGenerationService, PRService | 2개 서비스 파일 |
-| Day 3 | DI 통합 완료 | 리팩토링 완료, 수동 검증 |
-| Day 4 | E2E 인프라 | playwright.config.ts, MSW 설정 |
-| Day 5-6 | 핵심 테스트 4개 | 4개 .spec.ts 파일 |
-| Day 7 | 에러 처리 개선 | ErrorResponse 타입, 체크 로직 |
+### 8.1 Refactoring Risks
 
----
+**Risk**: Regression bugs in existing functionality
+**Mitigation**: Run manual full tests after each service extraction
 
-## 10. 후속 작업 (Optional)
+### 8.2 E2E Test Risks
 
-이번 작업 범위 밖:
-- [ ] GitLab 호환성 E2E 테스트
-- [ ] LLM 캐싱 성능 테스트
-- [ ] 전체 코드베이스 리팩토링 (pr-creator, cache 등)
-- [ ] 에러 코드 체계 전체 적용
-- [ ] 캐시 에러 통계 추적
+**Risk**: Chrome extension load failure
+**Mitigation**: Reference Playwright official documentation, step-by-step verification
+
+### 8.3 Timeline Risks
+
+**Risk**: Takes longer than expected
+**Mitigation**: Work by priority, implement only essential features
 
 ---
 
-이 디자인 문서는 최소한의 리팩토링과 핵심 E2E 테스트에 초점을 맞추어, **총 7일 이내에 완료 가능한 실행 가능한 계획**을 제시합니다.
+## 9. Milestones
+
+| Date | Milestone | Deliverables |
+|------|---------|--------------|
+| Day 1 | ConfigService, CommentService | 2 service files, tests |
+| Day 2 | FileGenerationService, PRService | 2 service files |
+| Day 3 | DI Integration Complete | Refactoring done, manual verification |
+| Day 4 | E2E Infrastructure | playwright.config.ts, MSW setup |
+| Day 5-6 | 4 Core Tests | 4 .spec.ts files |
+| Day 7 | Error Handling Improvements | ErrorResponse type, check logic |
+
+---
+
+## 10. Follow-up Tasks (Optional)
+
+Out of scope for this work:
+- [ ] GitLab compatibility E2E tests
+- [ ] LLM caching performance tests
+- [ ] Full codebase refactoring (pr-creator, cache, etc.)
+- [ ] Apply error code system across entire codebase
+- [ ] Track cache error statistics
+
+---
+
+This design document focuses on minimal refactoring and core E2E tests, presenting an **executable plan completable within 7 days total**.

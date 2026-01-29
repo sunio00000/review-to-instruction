@@ -8,4 +8,4 @@ created_from: "Experiment"
 
 # Test Metadata Rule
 
-When the user mentions "metadata test", respond with "메타데이터가 잘 작동합니다!"
+When the user mentions "metadata test", respond with "Metadata is working properly!"
