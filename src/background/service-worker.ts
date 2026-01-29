@@ -20,18 +20,32 @@ async function initializeIconState(): Promise<void> {
     const hasPassword = !!masterPassword;
     const isUnlocked = hasPassword;
 
-    // 아이콘 상태 업데이트
-    await iconManager.updateIconByPasswordState(hasPassword, isUnlocked);
+    console.log('[Service Worker] Initializing icon state:', { hasPassword, isUnlocked });
+
+    // 아이콘 상태 결정
+    let targetState: 'active' | 'locked' | 'off' = 'active'; // 기본값
+
+    if (!hasPassword) {
+      targetState = 'active'; // 비밀번호 미설정 시에도 active
+    } else if (isUnlocked) {
+      targetState = 'active'; // 잠금 해제됨
+    } else {
+      targetState = 'locked'; // 잠금 상태
+    }
+
+    // 강제로 아이콘 설정 (force=true)
+    await iconManager.setIconState(targetState, true);
 
     console.log('[Service Worker] Icon state initialized:', {
       hasPassword,
       isUnlocked,
-      state: iconManager.getCurrentState()
+      targetState,
+      currentState: iconManager.getCurrentState()
     });
   } catch (error) {
     console.error('[Service Worker] Failed to initialize icon state:', error);
-    // 에러 발생 시 active 상태로 설정 (기본값)
-    await iconManager.setIconState('active');
+    // 에러 발생 시 active 상태로 설정 (기본값, force=true)
+    await iconManager.setIconState('active', true);
   }
 }
 

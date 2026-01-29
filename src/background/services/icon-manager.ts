@@ -12,7 +12,7 @@ type IconPaths = Record<number, string>;
  * 아이콘 상태 관리자
  */
 export class IconManager {
-  private currentState: IconState = 'active';
+  private currentState: IconState | null = null; // 초기값 null로 설정
 
   private readonly iconPaths: Record<IconState, IconPaths> = {
     active: {
@@ -38,9 +38,13 @@ export class IconManager {
   /**
    * 아이콘 상태 설정
    */
-  async setIconState(state: IconState): Promise<void> {
-    if (this.currentState === state) {
-      return; // 이미 같은 상태면 변경하지 않음
+  async setIconState(state: IconState, force: boolean = false): Promise<void> {
+    console.log(`[IconManager] Attempting to change icon state from ${this.currentState} to ${state} (force: ${force})`);
+
+    // force가 true이거나, 상태가 다를 때만 업데이트
+    if (!force && this.currentState === state) {
+      console.log(`[IconManager] Icon state already ${state}, skipping update`);
+      return;
     }
 
     this.currentState = state;
@@ -48,7 +52,7 @@ export class IconManager {
 
     try {
       await chrome.action.setIcon({ path: paths });
-      console.log(`[IconManager] Icon state changed to: ${state}`);
+      console.log(`[IconManager] Icon state successfully changed to: ${state}`);
     } catch (error) {
       console.error('[IconManager] Failed to set icon:', error);
     }
@@ -57,7 +61,7 @@ export class IconManager {
   /**
    * 현재 아이콘 상태 가져오기
    */
-  getCurrentState(): IconState {
+  getCurrentState(): IconState | null {
     return this.currentState;
   }
 
