@@ -54,7 +54,7 @@ export class InstructionAnalyzer {
     repository: Repository
   ): Promise<AnalysisResult | null> {
     try {
-      // .claude/instructions 디렉토리 내용 가져오기
+      // .claude/rules 디렉토리 내용 가져오기
       const files = await this.fetchInstructionFiles(client, repository);
 
       if (files.length === 0) {
@@ -62,7 +62,7 @@ export class InstructionAnalyzer {
         return {
           pattern: this.getDefaultPattern(),
           existingFiles: [],
-          suggestedLocation: '.claude/instructions',
+          suggestedLocation: '.claude/rules',
           confidence: 50
         };
       }
@@ -92,7 +92,7 @@ export class InstructionAnalyzer {
     client: ApiClient,
     repository: Repository
   ): Promise<ClaudeFile[]> {
-    const instructionsPath = '.claude/instructions';
+    const instructionsPath = '.claude/rules';
     const files: ClaudeFile[] = [];
 
     try {
@@ -295,23 +295,23 @@ export class InstructionAnalyzer {
   private buildDirectoryTree(paths: string[]): DirectoryNode {
     // 루트 노드 생성
     const root: DirectoryNode = {
-      name: '.claude/instructions',
-      path: '.claude/instructions',
+      name: '.claude/rules',
+      path: '.claude/rules',
       children: []
     };
 
     // 경로별로 트리에 추가
     paths.forEach(path => {
-      if (path === '.claude/instructions') return; // 루트는 스킵
+      if (path === '.claude/rules') return; // 루트는 스킵
 
       const parts = path.split('/');
       let currentNode = root;
 
-      // .claude/instructions 이후 경로만 처리
+      // .claude/rules 이후 경로만 처리
       const relevantParts = parts.slice(2); // ['.claude', 'instructions', ...] 에서 마지막 부분들
 
       relevantParts.forEach((part, index) => {
-        const fullPath = parts.slice(0, 3 + index).join('/'); // .claude/instructions/...
+        const fullPath = parts.slice(0, 3 + index).join('/'); // .claude/rules/...
 
         // 기존 자식 노드 찾기
         let childNode = currentNode.children.find(child => child.name === part);
@@ -368,7 +368,7 @@ export class InstructionAnalyzer {
    */
   private getDefaultPattern(): InstructionPattern {
     return {
-      directories: ['.claude/instructions'],
+      directories: ['.claude/rules'],
       namingPattern: 'kebab-case',
       categoryDistribution: {},
       averageFileSize: 500,
@@ -385,7 +385,7 @@ export class InstructionAnalyzer {
     if (pattern.directories.length > 0) {
       return pattern.directories[0];
     }
-    return '.claude/instructions';
+    return '.claude/rules';
   }
 
   /**

@@ -14,7 +14,7 @@ import type { LLMConfig } from '../types';
  * 디렉토리 후보
  */
 export interface DirectoryCandidate {
-  path: string;           // 전체 경로 (예: .claude/instructions/api)
+  path: string;           // 전체 경로 (예: .claude/rules/api)
   score: number;          // 점수 (0-100)
   reasoning: string;      // 선택 이유
   strategy: 'keyword' | 'category' | 'similar' | 'fallback' | 'llm';  // 전략
@@ -56,7 +56,7 @@ export class DirectorySuggester {
     analysisResult: AnalysisResult | null,
     llmConfig?: LLMConfig
   ): Promise<string> {
-    const baseDir = '.claude/instructions';
+    const baseDir = '.claude/rules';
 
     // 1. 규칙 기반 후보 3개 생성
     const candidates = this.generateRuleBasedCandidates(comment, analysisResult, baseDir);

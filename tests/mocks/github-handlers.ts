@@ -32,8 +32,8 @@ export const githubHandlers = [
   http.get('https://api.github.com/repos/:owner/:repo/contents/.claude', () => {
     return HttpResponse.json([
       {
-        name: 'instructions',
-        path: '.claude/instructions',
+        name: 'rules',
+        path: '.claude/rules',
         type: 'dir',
         sha: 'abc123'
       },
@@ -46,12 +46,12 @@ export const githubHandlers = [
     ]);
   }),
 
-  // 4. .claude/instructions 디렉토리 조회
-  http.get('https://api.github.com/repos/:owner/:repo/contents/.claude/instructions', () => {
+  // 4. .claude/rules 디렉토리 조회
+  http.get('https://api.github.com/repos/:owner/:repo/contents/.claude/rules', () => {
     return HttpResponse.json([
       {
         name: 'naming.md',
-        path: '.claude/instructions/naming.md',
+        path: '.claude/rules/naming.md',
         type: 'file',
         sha: 'file123'
       }

@@ -19,8 +19,8 @@ export interface FileNamingOptions {
 
 export interface FileNamingResult {
   filename: string;         // 예: "component-naming-conventions.md"
-  directory: string;        // 예: ".claude/instructions"
-  fullPath: string;        // 예: ".claude/instructions/component-naming-conventions.md"
+  directory: string;        // 예: ".claude/rules"
+  fullPath: string;        // 예: ".claude/rules/component-naming-conventions.md"
   confidence: number;      // 0-100
   reasoning?: string;      // AI의 선택 이유
 }
@@ -170,7 +170,7 @@ This will be the first instruction file in the project. Use clear, ABSTRACT, and
 ## Response Format (JSON)
 {
   "filename": "suggested-filename.md",
-  "directory": ".claude/instructions",
+  "directory": ".claude/rules",
   "reasoning": "Brief explanation of why this abstract filename is appropriate and how it can accommodate related conventions"
 }
 
@@ -265,7 +265,7 @@ This will be the first instruction file in the project. Use clear, ABSTRACT, and
 ## Response Format (JSON)
 {
   "filename": "suggested-filename.md",
-  "directory": ".claude/instructions",
+  "directory": ".claude/rules",
   "reasoning": "Brief explanation of why this abstract filename is appropriate and how it can accommodate related conventions from this and future discussions"
 }
 
@@ -311,7 +311,7 @@ Respond ONLY with valid JSON, no additional text.`;
         throw new Error('Missing filename in AI response');
       }
 
-      const directory = parsed.directory || '.claude/instructions';
+      const directory = parsed.directory || '.claude/rules';
       const filename = parsed.filename;
 
       return {
@@ -339,7 +339,7 @@ Respond ONLY with valid JSON, no additional text.`;
   ): FileNamingResult {
     const pattern = analysisResult?.pattern || {
       namingPattern: 'kebab-case' as const,
-      directories: ['.claude/instructions']
+      directories: ['.claude/rules']
     };
 
     // 기본 파일명 생성
@@ -351,7 +351,7 @@ Respond ONLY with valid JSON, no additional text.`;
     }
 
     const filename = `${baseFilename}.md`;
-    const directory = pattern.directories[0] || '.claude/instructions';
+    const directory = pattern.directories[0] || '.claude/rules';
 
     return {
       filename,
