@@ -62,7 +62,7 @@ export class ConfigServiceImpl implements ConfigService {
     try {
       token = await this.crypto.decrypt(encryptedToken);
     } catch (error) {
-      throw new Error(`${platform} token 복호화에 실패했습니다. 토큰을 다시 입력해주세요.`);
+      throw new Error(`${platform} token 복호화에 실패했습니다. 마스터 비밀번호가 필요합니다. Extension Popup을 열어 다시 잠금 해제해주세요.`);
     }
 
     // 4. GitLab URL 추출 (선택적, 암호화 불필요)
