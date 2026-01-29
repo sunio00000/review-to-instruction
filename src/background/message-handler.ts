@@ -10,6 +10,7 @@ import { llmCache } from './llm/cache';
 import { createServiceContainer } from './services/di-container';
 import { ConversionOrchestrator } from './services/conversion-orchestrator';
 import { globalCrypto } from './global-crypto';
+import { iconManager } from './services/icon-manager';
 
 /**
  * 메시지 핸들러
@@ -343,6 +344,9 @@ async function handleSetMasterPassword(
 
     // 전역 CryptoService에 마스터 비밀번호 설정
     await globalCrypto.setMasterPassword(password);
+
+    // 아이콘 상태를 active로 변경
+    await iconManager.setIconState('active');
 
     sendResponse({
       success: true,
