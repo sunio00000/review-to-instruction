@@ -8,6 +8,7 @@ import type { BaseGenerator } from './base-generator';
 import { ClaudeCodeGenerator } from './claude-code-generator';
 import { CursorGenerator } from './cursor-generator';
 import { WindsurfGenerator } from './windsurf-generator';
+import { CodexGenerator } from './codex-generator';
 
 /**
  * Generator Factory
@@ -41,6 +42,8 @@ export class GeneratorFactory {
         return new CursorGenerator();
       case 'windsurf':
         return new WindsurfGenerator();
+      case 'codex':
+        return new CodexGenerator();
       default:
         return null;
     }

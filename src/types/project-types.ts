@@ -4,7 +4,7 @@
  */
 
 // 지원하는 AI 코딩 도구 타입
-export type ProjectType = 'claude-code' | 'cursor' | 'windsurf';
+export type ProjectType = 'claude-code' | 'cursor' | 'windsurf' | 'codex';
 
 // 각 타입별 설정
 export interface ProjectTypeConfig {

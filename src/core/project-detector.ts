@@ -40,7 +40,8 @@ export class ProjectTypeDetector {
     const detectionPromises = [
       this.detectClaudeCode(client, repository),
       this.detectCursor(client, repository),
-      this.detectWindsurf(client, repository)
+      this.detectWindsurf(client, repository),
+      this.detectCodex(client, repository)
     ];
 
     const results = await Promise.all(detectionPromises);
@@ -158,6 +159,38 @@ export class ProjectTypeDetector {
         config: {
           type: 'windsurf',
           detectionPath: '.windsurf/rules/',
+          enabled: false
+        }
+      };
+    }
+  }
+
+  /**
+   * Codex 감지 (AGENTS.md 파일)
+   */
+  private async detectCodex(
+    client: ApiClient,
+    repository: Repository
+  ): Promise<{ detected: boolean; type: ProjectType; config: ProjectTypeConfig }> {
+    try {
+      // AGENTS.md 파일 존재 확인
+      const fileContent = await client.getFileContent(repository, 'AGENTS.md');
+      return {
+        detected: fileContent !== null,
+        type: 'codex',
+        config: {
+          type: 'codex',
+          detectionPath: 'AGENTS.md',
+          enabled: true
+        }
+      };
+    } catch (error) {
+      return {
+        detected: false,
+        type: 'codex',
+        config: {
+          type: 'codex',
+          detectionPath: 'AGENTS.md',
           enabled: false
         }
       };
