@@ -341,8 +341,14 @@ export class UIBuilder {
     state: 'default' | 'loading' | 'success' | 'error',
     message?: string
   ) {
-    button.classList.remove('loading', 'success', 'error');
+    button.classList.remove('loading', 'success', 'error', 'progress');
     button.disabled = false;
+
+    // Progress bar 제거
+    const progressBar = button.querySelector('.button-progress-bar');
+    if (progressBar) {
+      progressBar.remove();
+    }
 
     switch (state) {
       case 'loading':
@@ -372,6 +378,41 @@ export class UIBuilder {
       case 'default':
         button.querySelector('span')!.textContent = 'Convert to AI Instruction';
         break;
+    }
+  }
+
+  /**
+   * 버튼에 progress 표시 (0-100)
+   */
+  setButtonProgress(
+    button: HTMLButtonElement,
+    percent: number,
+    message: string
+  ) {
+    button.classList.add('progress');
+    button.disabled = true;
+
+    // Progress bar가 없으면 생성
+    let progressBar = button.querySelector('.button-progress-bar') as HTMLElement;
+    if (!progressBar) {
+      progressBar = document.createElement('div');
+      progressBar.className = 'button-progress-bar';
+      progressBar.innerHTML = `
+        <div class="progress-fill"></div>
+        <span class="progress-text"></span>
+      `;
+      button.appendChild(progressBar);
+    }
+
+    // Progress 업데이트
+    const fill = progressBar.querySelector('.progress-fill') as HTMLElement;
+    const text = progressBar.querySelector('.progress-text') as HTMLElement;
+
+    if (fill) {
+      fill.style.width = `${percent}%`;
+    }
+    if (text) {
+      text.textContent = `${Math.round(percent)}% ${message}`;
     }
   }
 

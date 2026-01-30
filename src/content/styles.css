@@ -1035,3 +1035,101 @@ html[data-color-mode="dark"] .modal-btn-secondary:hover:not(:disabled) {
   background-color: #30363d;
   border-color: #484f58;
 }
+
+/* ==================== Progress Bar 스타일 ==================== */
+
+/* Progress 상태 버튼 */
+.review-to-instruction-button.progress {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  cursor: wait;
+}
+
+/* Progress bar 컨테이너 */
+.button-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background-color: #f6f8fa;
+  overflow: hidden;
+}
+
+/* Progress fill (채워지는 부분) */
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #0969da 0%, #0550ae 100%);
+  transition: width 0.3s ease;
+  border-radius: 6px 0 0 6px;
+}
+
+/* Progress text */
+.progress-text {
+  position: relative;
+  z-index: 1;
+  color: #24292f;
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+  transition: color 0.3s ease;
+}
+
+/* Progress가 50% 이상일 때 텍스트 색상 변경 */
+.button-progress-bar .progress-fill[style*="width: 5"][style*="%"] ~ .progress-text,
+.button-progress-bar .progress-fill[style*="width: 6"][style*="%"] ~ .progress-text,
+.button-progress-bar .progress-fill[style*="width: 7"][style*="%"] ~ .progress-text,
+.button-progress-bar .progress-fill[style*="width: 8"][style*="%"] ~ .progress-text,
+.button-progress-bar .progress-fill[style*="width: 9"][style*="%"] ~ .progress-text,
+.button-progress-bar .progress-fill[style*="width: 100%"] ~ .progress-text {
+  color: white;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 다크 모드 */
+@media (prefers-color-scheme: dark) {
+  .button-progress-bar {
+    background-color: #21262d;
+  }
+
+  .progress-fill {
+    background: linear-gradient(90deg, #539bf5 0%, #4184e4 100%);
+  }
+
+  .progress-text {
+    color: #c9d1d9;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  }
+}
+
+html[data-color-mode="dark"] .button-progress-bar {
+  background-color: #21262d;
+}
+
+html[data-color-mode="dark"] .progress-fill {
+  background: linear-gradient(90deg, #539bf5 0%, #4184e4 100%);
+}
+
+html[data-color-mode="dark"] .progress-text {
+  color: #c9d1d9;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+body.gl-dark .button-progress-bar {
+  background-color: #21262d;
+}
+
+body.gl-dark .progress-fill {
+  background: linear-gradient(90deg, #539bf5 0%, #4184e4 100%);
+}
+
+body.gl-dark .progress-text {
+  color: #c9d1d9;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}

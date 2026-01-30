@@ -126,25 +126,29 @@ export class GitHubInjector {
   }
 
   /**
-   * API Token 상태 확인
+   * API Token 상태 확인 (복호화 가능 여부)
    */
   private async checkApiTokenStatus() {
     try {
       // Chrome API 존재 여부 확인
-      if (typeof chrome === 'undefined' || !chrome.storage) {
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
         this.hasApiToken = false;
         return;
       }
 
-      const result = await chrome.storage.local.get(['githubToken_enc', 'claudeApiKey_enc', 'openaiApiKey_enc', 'llmProvider']);
+      // Background로 메시지 전송하여 토큰 유효성 확인
+      const response = await chrome.runtime.sendMessage({
+        type: 'CHECK_TOKEN_STATUS',
+        payload: { platform: 'github' }
+      });
 
-      // GitHub token과 LLM API key 모두 필요
-      const hasGithubToken = !!result.githubToken_enc;
-      const provider = result.llmProvider || 'claude';
-      const hasLlmKey = provider === 'claude' ? !!result.claudeApiKey_enc : !!result.openaiApiKey_enc;
-
-      this.hasApiToken = hasGithubToken && hasLlmKey;
+      if (response.success) {
+        this.hasApiToken = response.data.hasValidTokens;
+      } else {
+        this.hasApiToken = false;
+      }
     } catch (error) {
+      logger.warn('[GitHubInjector] Failed to check token status:', error);
       this.hasApiToken = false;
     }
   }
@@ -331,36 +335,46 @@ export class GitHubInjector {
     const button = this.uiBuilder.getButton(comment.id);
     if (!button) return;
 
+    // Progress 타이머 추적 (취소 가능하도록)
+    const progressTimers: number[] = [];
+
     try {
       // Chrome Extension API 체크
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
         throw new Error('Chrome Extension API is not available.');
       }
 
-      // 1. 로딩 상태 표시
-      this.uiBuilder.setButtonState(button, 'loading');
+      // 1. Progress 시뮬레이션 시작
+      this.simulateProgress(button, progressTimers);
 
-      // 2. 미리보기 요청
+      // 2. 미리보기 요청 (실제 LLM 호출)
       const previewResponse = await chrome.runtime.sendMessage({
         type: 'PREVIEW_INSTRUCTION',
         payload: { comment, repository: this.repository }
       });
 
+      // Progress 타이머 정리
+      progressTimers.forEach(timer => clearTimeout(timer));
+
       if (!previewResponse.success) {
         throw new Error(previewResponse.error || 'Preview failed');
       }
 
-      // 3. 로딩 완료
+      // 3. 완료: 100%
+      this.uiBuilder.setButtonProgress(button, 100, 'Complete!');
+      await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 표시
+
+      // 4. 버튼 상태 복원
       this.uiBuilder.setButtonState(button, 'default');
 
-      // 4. PreviewModal 표시
+      // 5. PreviewModal 표시
       const modal = new PreviewModal();
       const action = await modal.show({
         result: previewResponse.data.result,
         warnings: []
       });
 
-      // 5. 사용자 액션 처리
+      // 6. 사용자 액션 처리
       if (action === 'cancel') {
         return; // 취소 - 아무것도 안 함
       }
@@ -371,7 +385,7 @@ export class GitHubInjector {
         return;
       }
 
-      // 6. 확인 버튼: 실제 변환 수행
+      // 7. 확인 버튼: 실제 변환 수행
       if (action === 'confirm') {
         this.uiBuilder.setButtonState(button, 'loading');
 
@@ -393,9 +407,51 @@ export class GitHubInjector {
       }
 
     } catch (error) {
+      // Progress 타이머 정리
+      progressTimers.forEach(timer => clearTimeout(timer));
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.uiBuilder.showErrorMessage(button, errorMessage);
     }
+  }
+
+  /**
+   * Progress 시뮬레이션 (추정 기반)
+   */
+  private simulateProgress(button: HTMLButtonElement, timers: number[]) {
+    // 0ms: 0%
+    this.uiBuilder.setButtonProgress(button, 0, 'Starting...');
+
+    // 100ms: 10%
+    timers.push(setTimeout(() => {
+      this.uiBuilder.setButtonProgress(button, 10, 'Parsing comment...');
+    }, 100));
+
+    // 300ms: 20%
+    timers.push(setTimeout(() => {
+      this.uiBuilder.setButtonProgress(button, 20, 'Preparing analysis...');
+    }, 300));
+
+    // 500ms-5000ms: 20% → 90% (선형 증가)
+    const startPercent = 20;
+    const endPercent = 90;
+    const startTime = 500;
+    const endTime = 5000;
+    const steps = 20; // 20단계로 나눔
+
+    for (let i = 0; i <= steps; i++) {
+      const time = startTime + (endTime - startTime) * (i / steps);
+      const percent = startPercent + (endPercent - startPercent) * (i / steps);
+
+      timers.push(setTimeout(() => {
+        this.uiBuilder.setButtonProgress(button, percent, 'Analyzing with Claude...');
+      }, time));
+    }
+
+    // 5000ms: 95%
+    timers.push(setTimeout(() => {
+      this.uiBuilder.setButtonProgress(button, 95, 'Processing results...');
+    }, 5000));
   }
 
   /**
