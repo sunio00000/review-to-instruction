@@ -5,11 +5,13 @@
 
 import type { ILLMClient, LLMProvider, LLMResponse } from './types';
 import { llmCache } from './cache';
+import { RateLimiter } from '../../utils/rate-limiter';
 
 export abstract class BaseLLMClient implements ILLMClient {
   abstract provider: LLMProvider;
   protected apiKey: string;
   protected timeout: number = 30000; // 30초 타임아웃
+  protected rateLimiter: RateLimiter = new RateLimiter(10, 60000); // 분당 10회 제한
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -59,22 +61,31 @@ export abstract class BaseLLMClient implements ILLMClient {
       const cachedData = await llmCache.get(cacheKey);
 
       if (cachedData) {
-        // 캐시 HIT - LLMResponse 형식으로 반환
+        // 캐시 HIT - LLMResponse 형식으로 반환 (rate limit 체크 불필요)
         return {
           success: true,
           data: cachedData
         };
       }
 
-      // 3. 캐시 MISS - API 호출
+      // 3. Rate limiting 체크 (캐시 MISS인 경우만)
+      if (!this.rateLimiter.tryRequest()) {
+        const timeUntilReset = Math.ceil(this.rateLimiter.getTimeUntilReset() / 1000);
+        return {
+          success: false,
+          error: `Rate limit exceeded. Please wait ${timeUntilReset} seconds before trying again.`
+        };
+      }
+
+      // 4. 캐시 MISS - API 호출
       const response = await this.callAnalysisAPI(content, codeExamples, replies, existingKeywords);
 
-      // 4. 응답 캐싱 (성공한 경우만)
+      // 5. 응답 캐싱 (성공한 경우만)
       if (response.success && response.data) {
         await llmCache.set(cacheKey, response.data, this.provider);
       }
 
-      // 5. 반환
+      // 6. 반환
       return response;
 
     } catch (error) {

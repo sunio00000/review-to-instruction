@@ -339,24 +339,73 @@ async function handleSetMasterPassword(
     const { password } = payload;
 
     if (!password) {
-      throw new Error('비밀번호가 제공되지 않았습니다.');
+      throw new Error('Password was not provided.');
     }
 
     // 전역 CryptoService에 마스터 비밀번호 설정
     await globalCrypto.setMasterPassword(password);
 
-    // 아이콘 상태를 active로 변경
-    await iconManager.setIconState('active');
+    // 아이콘 상태 결정: token 복호화 가능 여부 확인
+    const iconState = await determineIconState();
+    await iconManager.setIconState(iconState);
 
     sendResponse({
       success: true,
-      data: { message: '마스터 비밀번호가 설정되었습니다.' }
+      data: { message: 'Master password has been set successfully.' }
     });
   } catch (error) {
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error)
     });
+  }
+}
+
+/**
+ * 아이콘 상태 결정 (token 존재 및 복호화 가능 여부 기반)
+ */
+async function determineIconState(): Promise<'active' | 'locked' | 'off'> {
+  try {
+    // 암호화된 token 확인
+    const storage = await chrome.storage.local.get([
+      'githubToken_enc',
+      'gitlabToken_enc'
+    ]);
+
+    const hasGitHub = !!storage.githubToken_enc;
+    const hasGitLab = !!storage.gitlabToken_enc;
+
+    // token이 하나도 없으면 'off'
+    if (!hasGitHub && !hasGitLab) {
+      return 'off';
+    }
+
+    // token 복호화 시도
+    let canDecrypt = false;
+
+    if (hasGitHub) {
+      try {
+        await globalCrypto.decrypt(storage.githubToken_enc as string);
+        canDecrypt = true;
+      } catch (error) {
+        // GitHub token 복호화 실패
+      }
+    }
+
+    if (!canDecrypt && hasGitLab) {
+      try {
+        await globalCrypto.decrypt(storage.gitlabToken_enc as string);
+        canDecrypt = true;
+      } catch (error) {
+        // GitLab token도 복호화 실패
+      }
+    }
+
+    // 복호화 가능하면 'active', 불가능하면 'locked'
+    return canDecrypt ? 'active' : 'locked';
+  } catch (error) {
+    console.error('[determineIconState] Failed to determine icon state:', error);
+    return 'off';
   }
 }
 
