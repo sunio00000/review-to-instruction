@@ -1,5 +1,5 @@
 /**
- * PreviewModal - Instruction 미리보기 모달 (Phase 1: 투명성 강화)
+ * PreviewModal - Instruction Preview Modal (Phase 1: Transparency Enhancement)
  */
 
 import type { InstructionResult, ReasoningInfo, CommentSource } from '../background/llm/types';
@@ -18,24 +18,24 @@ export interface PreviewModalOptions {
 }
 
 /**
- * Instruction 미리보기 모달 클래스
+ * Instruction Preview Modal Class
  */
 export class PreviewModal {
   private modalElement: HTMLElement | null = null;
   private resolveAction: ((action: ModalAction) => void) | null = null;
 
   /**
-   * 모달을 표시하고 사용자 액션을 기다림
+   * Show modal and wait for user action
    */
   async show(options: PreviewModalOptions): Promise<ModalAction> {
-    this.cleanup(); // 기존 모달 제거
+    this.cleanup(); // Remove existing modal
 
     return new Promise((resolve) => {
       this.resolveAction = resolve;
       this.createModal(options);
       document.body.appendChild(this.modalElement!);
 
-      // ESC 키로 닫기
+      // Close with ESC key
       const handleEscape = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           document.removeEventListener('keydown', handleEscape);
@@ -47,12 +47,12 @@ export class PreviewModal {
   }
 
   /**
-   * 모달 DOM 생성
+   * Create modal DOM
    */
   private createModal(options: PreviewModalOptions): void {
     const { result, warnings } = options;
 
-    // 모달 오버레이
+    // Modal overlay
     const overlay = document.createElement('div');
     overlay.className = 'review-to-instruction-modal-overlay';
     overlay.addEventListener('click', (e) => {
@@ -61,54 +61,54 @@ export class PreviewModal {
       }
     });
 
-    // 모달 컨테이너
+    // Modal container
     const modal = document.createElement('div');
     modal.className = 'review-to-instruction-modal';
 
-    // 헤더
+    // Header
     const header = document.createElement('div');
     header.className = 'modal-header';
     header.innerHTML = `
-      <h2>🔍 Instruction 미리보기</h2>
-      <button type="button" class="modal-close" title="닫기">✕</button>
+      <h2>🔍 Instruction Preview</h2>
+      <button type="button" class="modal-close" title="Close">✕</button>
     `;
     header.querySelector('.modal-close')?.addEventListener('click', () => {
       this.handleAction('cancel');
     });
 
-    // 본문
+    // Body
     const body = document.createElement('div');
     body.className = 'modal-body';
 
-    // Instruction 내용
+    // Instruction content
     const contentSection = this.createContentSection(result.content);
     body.appendChild(contentSection);
 
-    // 검증 경고/제안 (있는 경우)
+    // Validation warnings/suggestions (if any)
     if (warnings && warnings.length > 0) {
       const warningsSection = this.createWarningsSection(warnings);
       body.appendChild(warningsSection);
     }
 
-    // 분석 근거
+    // Analysis reasoning
     const reasoningSection = this.createReasoningSection(result.reasoning);
     body.appendChild(reasoningSection);
 
-    // 참조 코멘트
+    // Referenced comments
     const sourcesSection = this.createSourcesSection(result.sources);
     body.appendChild(sourcesSection);
 
-    // 푸터 (버튼)
+    // Footer (buttons)
     const footer = document.createElement('div');
     footer.className = 'modal-footer';
 
     const hasErrors = warnings?.some(w => w.type === 'error');
 
     footer.innerHTML = `
-      <button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">취소</button>
-      <button type="button" class="modal-btn modal-btn-primary" data-action="edit">수정</button>
+      <button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-primary" data-action="edit">Edit</button>
       <button type="button" class="modal-btn modal-btn-success" data-action="confirm" ${hasErrors ? 'disabled' : ''}>
-        확인 및 생성
+        Confirm and Create
       </button>
     `;
 
@@ -128,14 +128,14 @@ export class PreviewModal {
   }
 
   /**
-   * Instruction 내용 섹션
+   * Instruction content section
    */
   private createContentSection(content: string): HTMLElement {
     const section = document.createElement('div');
     section.className = 'modal-section';
 
     const title = document.createElement('h3');
-    title.textContent = '생성된 Instruction';
+    title.textContent = 'Generated Instruction';
 
     const contentBox = document.createElement('div');
     contentBox.className = 'instruction-content';
@@ -153,7 +153,7 @@ export class PreviewModal {
   }
 
   /**
-   * 검증 경고/제안 섹션
+   * Validation warnings/suggestions section
    */
   private createWarningsSection(warnings: ValidationWarning[]): HTMLElement {
     const section = document.createElement('div');
@@ -176,51 +176,51 @@ export class PreviewModal {
   }
 
   /**
-   * 분석 근거 섹션
+   * Analysis reasoning section
    */
   private createReasoningSection(reasoning: ReasoningInfo): HTMLElement {
     const section = document.createElement('div');
     section.className = 'modal-section reasoning-section';
 
     const title = document.createElement('h3');
-    title.textContent = '📊 분석 근거';
+    title.textContent = '📊 Analysis Reasoning';
 
     const content = document.createElement('div');
     content.className = 'reasoning-content';
 
-    // 감지된 의도
+    // Detected intent
     if (reasoning.detectedIntent.length > 0) {
       content.innerHTML += `
         <div class="reasoning-item">
-          <strong>의도:</strong> ${reasoning.detectedIntent.map(i => this.escapeHtml(i)).join(', ')}
+          <strong>Intent:</strong> ${reasoning.detectedIntent.map(i => this.escapeHtml(i)).join(', ')}
         </div>
       `;
     }
 
-    // 핵심 문구
+    // Key phrases
     if (reasoning.keyPhrases.length > 0) {
       content.innerHTML += `
         <div class="reasoning-item">
-          <strong>핵심 문구:</strong> "${reasoning.keyPhrases.map(p => this.escapeHtml(p)).join('", "')}"
+          <strong>Key Phrases:</strong> "${reasoning.keyPhrases.map(p => this.escapeHtml(p)).join('", "')}"
         </div>
       `;
     }
 
-    // 코드 참조
+    // Code references
     if (reasoning.codeReferences.length > 0) {
       content.innerHTML += `
         <div class="reasoning-item">
-          <strong>코드 참조:</strong> <code>${reasoning.codeReferences.map(r => this.escapeHtml(r)).join('</code>, <code>')}</code>
+          <strong>Code References:</strong> <code>${reasoning.codeReferences.map(r => this.escapeHtml(r)).join('</code>, <code>')}</code>
         </div>
       `;
     }
 
-    // 신뢰도
+    // Confidence score
     const confidenceLevel = this.getConfidenceLevel(reasoning.confidenceScore);
     const confidenceColor = this.getConfidenceColor(reasoning.confidenceScore);
     content.innerHTML += `
       <div class="reasoning-item">
-        <strong>신뢰도:</strong>
+        <strong>Confidence:</strong>
         <span class="confidence-badge" style="background-color: ${confidenceColor}">
           ${reasoning.confidenceScore}% (${confidenceLevel})
         </span>
@@ -234,20 +234,20 @@ export class PreviewModal {
   }
 
   /**
-   * 참조 코멘트 섹션
+   * Referenced comments section
    */
   private createSourcesSection(sources: CommentSource[]): HTMLElement {
     const section = document.createElement('div');
     section.className = 'modal-section sources-section';
 
     const title = document.createElement('h3');
-    title.textContent = '📝 참조한 코멘트';
+    title.textContent = '📝 Referenced Comments';
 
     const content = document.createElement('div');
     content.className = 'sources-content';
 
     if (sources.length === 0) {
-      content.innerHTML = '<p class="no-sources">참조한 코멘트가 없습니다.</p>';
+      content.innerHTML = '<p class="no-sources">No referenced comments.</p>';
     } else {
       sources.forEach((source, index) => {
         const weightPercent = Math.round(source.weight * 100);
@@ -256,7 +256,7 @@ export class PreviewModal {
         sourceEl.innerHTML = `
           <div class="source-header">
             <strong>${index + 1}. @${this.escapeHtml(source.author)}</strong>
-            <span class="source-weight">영향력: ${weightPercent}%</span>
+            <span class="source-weight">Weight: ${weightPercent}%</span>
           </div>
           <div class="source-excerpt">
             ${this.escapeHtml(source.excerpt)}
@@ -273,7 +273,7 @@ export class PreviewModal {
   }
 
   /**
-   * 액션 처리
+   * Handle action
    */
   private handleAction(action: ModalAction): void {
     if (this.resolveAction) {
@@ -284,7 +284,7 @@ export class PreviewModal {
   }
 
   /**
-   * 모달 제거
+   * Remove modal
    */
   private cleanup(): void {
     if (this.modalElement && this.modalElement.parentNode) {
@@ -294,7 +294,7 @@ export class PreviewModal {
   }
 
   /**
-   * HTML 이스케이프
+   * HTML escape
    */
   private escapeHtml(text: string): string {
     const div = document.createElement('div');
@@ -303,22 +303,22 @@ export class PreviewModal {
   }
 
   /**
-   * 신뢰도 레벨 텍스트
+   * Confidence level text
    */
   private getConfidenceLevel(score: number): string {
-    if (score >= 90) return '매우 높음';
-    if (score >= 75) return '높음';
-    if (score >= 60) return '보통';
-    if (score >= 40) return '낮음';
-    return '매우 낮음';
+    if (score >= 90) return 'Very High';
+    if (score >= 75) return 'High';
+    if (score >= 60) return 'Medium';
+    if (score >= 40) return 'Low';
+    return 'Very Low';
   }
 
   /**
-   * 신뢰도 색상
+   * Confidence color
    */
   private getConfidenceColor(score: number): string {
-    if (score >= 75) return '#2da44e';  // 녹색
-    if (score >= 50) return '#fb8500';  // 주황색
-    return '#cf222e';  // 빨강색
+    if (score >= 75) return '#2da44e';  // Green
+    if (score >= 50) return '#fb8500';  // Orange
+    return '#cf222e';  // Red
   }
 }

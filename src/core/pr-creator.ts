@@ -36,11 +36,14 @@ export async function createPullRequest(
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
 
-    // 2. 브랜치 생성
+    // 2. 타겟 브랜치 결정 (baseBranch가 있으면 우선 사용, 없으면 branch 사용)
+    const targetBranch = repository.baseBranch || repository.branch;
+
+    // 3. 브랜치 생성
     const branchCreated = await client.createBranch(
       repository,
       branchName,
-      repository.branch
+      targetBranch
     );
 
     if (!branchCreated) {
@@ -48,7 +51,7 @@ export async function createPullRequest(
     }
 
 
-    // 3. 파일 커밋
+    // 4. 파일 커밋
     const commitMessage = generateCommitMessage(parsedComment, originalComment, repository, isUpdate);
 
     const commitSuccess = await client.createOrUpdateFile(
@@ -64,7 +67,7 @@ export async function createPullRequest(
     }
 
 
-    // 4. PR/MR 생성
+    // 5. PR/MR 생성
     const prTitle = generatePrTitle(parsedComment, isUpdate);
     const prBody = generatePrBody(parsedComment, originalComment, repository, filePath, fileContent, isUpdate);
 
@@ -73,7 +76,7 @@ export async function createPullRequest(
       prTitle,
       prBody,
       branchName,
-      repository.branch
+      targetBranch
     );
 
     if (!prResult.success) {
@@ -309,11 +312,14 @@ export async function createPullRequestWithMultipleFiles(
     // 1. 브랜치명 생성
     const branchName = generateBranchName(parsedComment);
 
-    // 2. 브랜치 생성
+    // 2. 타겟 브랜치 결정 (baseBranch가 있으면 우선 사용, 없으면 branch 사용)
+    const targetBranch = repository.baseBranch || repository.branch;
+
+    // 3. 브랜치 생성
     const branchCreated = await client.createBranch(
       repository,
       branchName,
-      repository.branch
+      targetBranch
     );
 
     if (!branchCreated) {
@@ -321,7 +327,7 @@ export async function createPullRequestWithMultipleFiles(
     }
 
 
-    // 3. 각 파일 순차적으로 커밋
+    // 4. 각 파일 순차적으로 커밋
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
@@ -347,7 +353,7 @@ export async function createPullRequestWithMultipleFiles(
 
     }
 
-    // 4. PR/MR 생성
+    // 5. PR/MR 생성
     const prTitle = generateMultiFilePrTitle(parsedComment, files, llmSummary);
     const prBody = generateMultiFilePrBody(
       parsedComment,
@@ -361,7 +367,7 @@ export async function createPullRequestWithMultipleFiles(
       prTitle,
       prBody,
       branchName,
-      repository.branch
+      targetBranch
     );
 
     if (!prResult.success) {

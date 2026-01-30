@@ -16,6 +16,7 @@ import { CryptoService } from '../background/services/crypto-service';
 import { FormManager } from '../utils/form-manager';
 import { popupFormSchema } from './form-schema';
 import { calculateCost, formatCost } from '../utils/token-pricing';
+import { logger } from '../utils/logger';
 
 // CryptoService 인스턴스
 const crypto = new CryptoService();
@@ -46,16 +47,16 @@ const cacheStatus = document.getElementById('cache-status') as HTMLDivElement;
 // 설정 로드 (FormManager 사용)
 async function loadConfig() {
   try {
-    console.log('[LoadConfig] Starting to load config...');
+    logger.log('[LoadConfig] Starting to load config...');
     await formManager.load();
-    console.log('[LoadConfig] FormManager loaded successfully');
+    logger.log('[LoadConfig] FormManager loaded successfully');
     updateLLMUI();
-    console.log('[LoadConfig] LLM UI updated');
+    logger.log('[LoadConfig] LLM UI updated');
   } catch (error) {
-    console.error('[LoadConfig] Error during config load:', error);
+    logger.error('[LoadConfig] Error during config load:', error);
     // 첫 실행시나 저장된 설정이 없을 때는 에러를 무시하고 기본값 사용
     // 중대한 에러가 아니므로 throw하지 않음
-    console.warn('[LoadConfig] Using default values due to error');
+    logger.warn('[LoadConfig] Using default values due to error');
   }
 }
 
@@ -65,16 +66,16 @@ async function saveConfig() {
     const result = await formManager.save();
 
     if (result.isValid) {
-      showStatus(saveStatus, '✅ 설정이 암호화되어 저장되었습니다.', 'success');
+      showStatus(saveStatus, '✅ Settings saved and encrypted successfully.', 'success');
     } else {
       // 검증 오류 표시
       const errorMessages = Array.from(result.errors.entries())
         .map(([, message]) => `• ${message}`)
         .join('\n');
-      showStatus(saveStatus, `❌ 검증 실패:\n${errorMessages}`, 'error');
+      showStatus(saveStatus, `❌ Validation failed:\n${errorMessages}`, 'error');
     }
   } catch (error) {
-    showStatus(saveStatus, `❌ 저장 실패: ${error}`, 'error');
+    showStatus(saveStatus, `❌ Save failed: ${error}`, 'error');
   }
 }
 
@@ -84,7 +85,7 @@ async function testGithubApi() {
   const statusElement = document.getElementById('github-status')!;
 
   if (!token || token.trim() === '') {
-    showStatus(statusElement, 'Token을 입력하세요.', 'error');
+    showStatus(statusElement, 'Please enter your token.', 'error');
     return;
   }
 
@@ -103,16 +104,16 @@ async function testGithubApi() {
     });
 
     if (response.success) {
-      showStatus(statusElement, `연결 성공! (사용자: ${response.data.user})`, 'success');
+      showStatus(statusElement, `Connection successful! (User: ${response.data.user})`, 'success');
     } else {
-      showStatus(statusElement, `연결 실패: ${response.error}`, 'error');
+      showStatus(statusElement, `Connection failed: ${response.error}`, 'error');
     }
   } catch (error) {
-    showStatus(statusElement, `에러: ${error}`, 'error');
+    showStatus(statusElement, `Error: ${error}`, 'error');
   } finally {
     testGithubButton.disabled = false;
     testGithubButton.classList.remove('loading');
-    testGithubButton.textContent = originalText || '연결 테스트';
+    testGithubButton.textContent = originalText || 'Test Connection';
   }
 }
 
@@ -123,7 +124,7 @@ async function testGitlabApi() {
   const statusElement = document.getElementById('gitlab-status')!;
 
   if (!token || token.trim() === '') {
-    showStatus(statusElement, 'Token을 입력하세요.', 'error');
+    showStatus(statusElement, 'Please enter your token.', 'error');
     return;
   }
 
@@ -143,16 +144,16 @@ async function testGitlabApi() {
     });
 
     if (response.success) {
-      showStatus(statusElement, `연결 성공! (사용자: ${response.data.user})`, 'success');
+      showStatus(statusElement, `Connection successful! (User: ${response.data.user})`, 'success');
     } else {
-      showStatus(statusElement, `연결 실패: ${response.error}`, 'error');
+      showStatus(statusElement, `Connection failed: ${response.error}`, 'error');
     }
   } catch (error) {
-    showStatus(statusElement, `에러: ${error}`, 'error');
+    showStatus(statusElement, `Error: ${error}`, 'error');
   } finally {
     testGitlabButton.disabled = false;
     testGitlabButton.classList.remove('loading');
-    testGitlabButton.textContent = originalText || '연결 테스트';
+    testGitlabButton.textContent = originalText || 'Test Connection';
   }
 }
 
@@ -209,11 +210,11 @@ async function loadCacheStats() {
         );
         totalCostSpan.textContent = formatCost(cost);
       } else {
-        totalCostSpan.textContent = '데이터 없음';
+        totalCostSpan.textContent = 'No data';
       }
 
     } else {
-      showStatus(cacheStatus, '캐시 통계를 불러올 수 없습니다.', 'error');
+      showStatus(cacheStatus, 'Unable to load cache statistics.', 'error');
     }
   } catch (error) {
     showStatus(cacheStatus, `에러: ${error}`, 'error');
@@ -223,7 +224,7 @@ async function loadCacheStats() {
 // 캐시 초기화
 async function clearCache() {
   // 확인 대화상자
-  if (!confirm('캐시를 초기화하시겠습니까?\n\n저장된 모든 LLM 응답이 삭제되며, 다음 요청부터 다시 API를 호출합니다.')) {
+  if (!confirm('Are you sure you want to clear the cache?\n\nAll saved LLM responses will be deleted, and API calls will resume from the next request.')) {
     return;
   }
 
@@ -238,18 +239,18 @@ async function clearCache() {
     });
 
     if (response.success) {
-      showStatus(cacheStatus, '캐시가 초기화되었습니다.', 'success');
+      showStatus(cacheStatus, 'Cache has been cleared.', 'success');
       // 통계 갱신
       await loadCacheStats();
     } else {
-      showStatus(cacheStatus, `초기화 실패: ${response.error}`, 'error');
+      showStatus(cacheStatus, `Clear failed: ${response.error}`, 'error');
     }
   } catch (error) {
     showStatus(cacheStatus, `에러: ${error}`, 'error');
   } finally {
     clearCacheButton.disabled = false;
     clearCacheButton.classList.remove('loading');
-    clearCacheButton.textContent = originalText || '캐시 초기화';
+    clearCacheButton.textContent = originalText || 'Clear Cache';
   }
 }
 
@@ -317,11 +318,11 @@ function checkPasswordStrength(password: string): { score: number; text: string;
   if (/[^a-zA-Z0-9]/.test(password)) score++;
 
   if (score <= 2) {
-    return { score, text: '약함', className: 'weak' };
+    return { score, text: 'Weak', className: 'weak' };
   } else if (score <= 4) {
-    return { score, text: '보통', className: 'medium' };
+    return { score, text: 'Medium', className: 'medium' };
   } else {
-    return { score, text: '강함', className: 'strong' };
+    return { score, text: 'Strong', className: 'strong' };
   }
 }
 
@@ -354,20 +355,20 @@ async function setupMasterPassword(): Promise<void> {
 
   // 비밀번호 확인
   if (!password || !confirm) {
-    errorDiv.textContent = '비밀번호를 입력하세요.';
+    errorDiv.textContent = 'Please enter your password.';
     errorDiv.style.display = 'block';
     return;
   }
 
   if (password !== confirm) {
-    errorDiv.textContent = '비밀번호가 일치하지 않습니다.';
+    errorDiv.textContent = 'Passwords do not match.';
     errorDiv.style.display = 'block';
     return;
   }
 
   const strength = checkPasswordStrength(password);
   if (strength.score < 3) {
-    errorDiv.textContent = '비밀번호가 너무 약합니다. 영문, 숫자, 특수문자를 조합하여 8자 이상 입력하세요.';
+    errorDiv.textContent = 'Password is too weak. Use a combination of letters, numbers, and special characters (minimum 8 characters).';
     errorDiv.style.display = 'block';
     return;
   }
@@ -377,49 +378,49 @@ async function setupMasterPassword(): Promise<void> {
   setButton.classList.add('loading');
 
   try {
-    console.log('[Setup] Starting master password setup...');
+    logger.log('[Setup] Starting master password setup...');
 
     // 비밀번호 해시 저장 (검증용)
     const passwordHash = await hashPassword(password);
-    console.log('[Setup] Password hashed successfully');
+    logger.log('[Setup] Password hashed successfully');
 
     await chrome.storage.local.set({ masterPasswordHash: passwordHash });
-    console.log('[Setup] Password hash saved to storage');
+    logger.log('[Setup] Password hash saved to storage');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
-    console.log('[Setup] Password sent to background');
+    logger.log('[Setup] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     await crypto.setMasterPassword(password);
-    console.log('[Setup] Password set in crypto service');
+    logger.log('[Setup] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
     const modal = document.getElementById('master-password-modal')!;
     modal.style.display = 'none';
-    console.log('[Setup] Modal closed');
+    logger.log('[Setup] Modal closed');
 
     // FormManager 초기화
     try {
-      console.log('[Setup] Binding form elements...');
+      logger.log('[Setup] Binding form elements...');
       formManager.bindElements();
       formManager.bindVisibilityUpdates();
-      console.log('[Setup] Form elements bound successfully');
+      logger.log('[Setup] Form elements bound successfully');
     } catch (bindError) {
-      console.error('[Setup] Form binding error:', bindError);
+      logger.error('[Setup] Form binding error:', bindError);
       // 첫 실행시 폼 요소가 비어있을 수 있으므로 무시
     }
 
     // 설정 로드 (첫 실행시 데이터가 없을 수 있음)
     try {
-      console.log('[Setup] Loading config...');
+      logger.log('[Setup] Loading config...');
       await loadConfig();
-      console.log('[Setup] Config loaded successfully');
+      logger.log('[Setup] Config loaded successfully');
     } catch (configError) {
-      console.warn('[Setup] Config load failed (might be first run):', configError);
+      logger.warn('[Setup] Config load failed (might be first run):', configError);
       // 첫 실행시 저장된 설정이 없을 수 있으므로 무시
     }
 
@@ -427,14 +428,14 @@ async function setupMasterPassword(): Promise<void> {
     try {
       await loadCacheStats();
     } catch (error) {
-      console.warn('[Setup] Failed to load cache stats:', error);
+      logger.warn('[Setup] Failed to load cache stats:', error);
     }
 
-    showStatus(saveStatus, '✅ 마스터 비밀번호가 설정되었습니다.', 'success');
-    console.log('[Setup] Setup completed successfully');
+    showStatus(saveStatus, '✅ Master password has been set successfully.', 'success');
+    logger.log('[Setup] Setup completed successfully');
   } catch (error) {
-    console.error('[Setup] Fatal error during setup:', error);
-    errorDiv.textContent = `설정 실패: ${error instanceof Error ? error.message : String(error)}`;
+    logger.error('[Setup] Fatal error during setup:', error);
+    errorDiv.textContent = `Setup failed: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
   } finally {
     setButton.disabled = false;
@@ -451,7 +452,7 @@ async function unlockWithPassword(): Promise<boolean> {
   const password = passwordInput.value;
 
   if (!password) {
-    errorDiv.textContent = '비밀번호를 입력하세요.';
+    errorDiv.textContent = 'Please enter your password.';
     errorDiv.style.display = 'block';
     return false;
   }
@@ -461,54 +462,54 @@ async function unlockWithPassword(): Promise<boolean> {
   unlockButton.classList.add('loading');
 
   try {
-    console.log('[Unlock] Starting unlock process...');
+    logger.log('[Unlock] Starting unlock process...');
 
     const passwordHash = await hashPassword(password);
     const result = await chrome.storage.local.get(['masterPasswordHash']);
-    console.log('[Unlock] Password hashed and stored hash retrieved');
+    logger.log('[Unlock] Password hashed and stored hash retrieved');
 
     if (result.masterPasswordHash !== passwordHash) {
-      console.log('[Unlock] Password mismatch');
-      errorDiv.textContent = '비밀번호가 일치하지 않습니다.';
+      logger.log('[Unlock] Password mismatch');
+      errorDiv.textContent = 'Passwords do not match.';
       errorDiv.style.display = 'block';
       return false;
     }
-    console.log('[Unlock] Password verified successfully');
+    logger.log('[Unlock] Password verified successfully');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
-    console.log('[Unlock] Password sent to background');
+    logger.log('[Unlock] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     await crypto.setMasterPassword(password);
-    console.log('[Unlock] Password set in crypto service');
+    logger.log('[Unlock] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
     const modal = document.getElementById('unlock-modal')!;
     modal.style.display = 'none';
-    console.log('[Unlock] Modal closed');
+    logger.log('[Unlock] Modal closed');
 
     // FormManager 초기화
     try {
-      console.log('[Unlock] Binding form elements...');
+      logger.log('[Unlock] Binding form elements...');
       formManager.bindElements();
       formManager.bindVisibilityUpdates();
-      console.log('[Unlock] Form elements bound successfully');
+      logger.log('[Unlock] Form elements bound successfully');
     } catch (bindError) {
-      console.error('[Unlock] Form binding error:', bindError);
+      logger.error('[Unlock] Form binding error:', bindError);
       // 폼 바인딩 실패해도 계속 진행
     }
 
     // 설정 로드
     try {
-      console.log('[Unlock] Loading config...');
+      logger.log('[Unlock] Loading config...');
       await loadConfig();
-      console.log('[Unlock] Config loaded successfully');
+      logger.log('[Unlock] Config loaded successfully');
     } catch (configError) {
-      console.warn('[Unlock] Config load failed:', configError);
+      logger.warn('[Unlock] Config load failed:', configError);
       // 설정 로드 실패해도 계속 진행
     }
 
@@ -516,14 +517,14 @@ async function unlockWithPassword(): Promise<boolean> {
     try {
       await loadCacheStats();
     } catch (error) {
-      console.warn('[Unlock] Failed to load cache stats:', error);
+      logger.warn('[Unlock] Failed to load cache stats:', error);
     }
 
-    console.log('[Unlock] Unlock completed successfully');
+    logger.log('[Unlock] Unlock completed successfully');
     return true;
   } catch (error) {
-    console.error('[Unlock] Fatal error during unlock:', error);
-    errorDiv.textContent = `잠금 해제 실패: ${error instanceof Error ? error.message : String(error)}`;
+    logger.error('[Unlock] Fatal error during unlock:', error);
+    errorDiv.textContent = `Unlock failed: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
     return false;
   } finally {
@@ -534,7 +535,7 @@ async function unlockWithPassword(): Promise<boolean> {
 
 // 비밀번호 재설정
 async function resetMasterPassword(): Promise<void> {
-  if (!confirm('비밀번호를 재설정하시겠습니까?\n\n⚠️ 경고: 기존에 저장된 모든 API 키가 삭제됩니다.')) {
+  if (!confirm('Are you sure you want to reset your password?\n\n⚠️ Warning: All saved API keys will be deleted.')) {
     return;
   }
 
@@ -559,7 +560,7 @@ async function resetMasterPassword(): Promise<void> {
     (document.getElementById('master-password') as HTMLInputElement).value = '';
     (document.getElementById('master-password-confirm') as HTMLInputElement).value = '';
   } catch (error) {
-    alert(`비밀번호 재설정 실패: ${error}`);
+    alert(`Password reset failed: ${error}`);
   }
 }
 
@@ -729,8 +730,8 @@ function updateSectionStatus(sectionName: string, status: 'configured' | 'requir
   const statusElement = document.querySelector(`[data-status="${sectionName}"]`) as HTMLElement;
   if (statusElement) {
     statusElement.className = `section-status ${status}`;
-    statusElement.textContent = status === 'configured' ? '설정됨' :
-                                 status === 'required' ? '필수' : '선택';
+    statusElement.textContent = status === 'configured' ? 'Configured' :
+                                 status === 'required' ? 'Required' : 'Optional';
   }
 }
 
@@ -767,7 +768,7 @@ function toggleExpandAll() {
   });
 
   allExpanded = !allExpanded;
-  expandBtn.textContent = allExpanded ? '📁 전체 접기' : '📂 전체 펼치기';
+  expandBtn.textContent = allExpanded ? '📁 Collapse All' : '📂 Expand All';
 }
 
 // 이벤트 리스너

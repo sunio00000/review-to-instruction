@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,21 +10,21 @@
   <div class="container">
     <header>
       <h1>Review to Instruction</h1>
-      <p class="subtitle">리뷰를 AI Instruction으로 자동 변환</p>
+      <p class="subtitle">Automatically convert reviews to AI Instructions</p>
       <div class="quick-links">
-        <button id="quick-setup-btn" class="quick-link-btn" title="최소 설정으로 빠르게 시작">⚡ 빠른 설정</button>
-        <button id="expand-all-btn" class="quick-link-btn" title="모든 섹션 펼치기">📂 전체 펼치기</button>
+        <button id="quick-setup-btn" class="quick-link-btn" title="Quick start with minimal settings">⚡ Quick Setup</button>
+        <button id="expand-all-btn" class="quick-link-btn" title="Expand all sections">📂 Expand All</button>
       </div>
     </header>
 
     <main>
-      <!-- GitHub 설정 -->
+      <!-- GitHub Settings -->
       <section class="settings-section" data-section="github">
         <div class="section-header">
           <div class="section-header-left">
             <div class="section-title">
               <h2>🐙 GitHub</h2>
-              <span class="section-status required" data-status="github">필수</span>
+              <span class="section-status required" data-status="github">Required</span>
             </div>
           </div>
           <span class="section-toggle">▼</span>
@@ -33,7 +33,7 @@
         <div class="input-group">
           <label for="github-token">
             Personal Access Token
-            <span class="label-hint">ghp_로 시작하는 토큰</span>
+            <span class="label-hint">Token starting with ghp_</span>
           </label>
           <div class="input-with-action">
             <input
@@ -42,35 +42,35 @@
               placeholder="ghp_xxxxx..."
               autocomplete="off"
             />
-            <button type="button" class="input-action-btn" data-toggle-visibility="github-token" title="토큰 보기/숨기기">
+            <button type="button" class="input-action-btn" data-toggle-visibility="github-token" title="Show/Hide token">
               👁️
             </button>
           </div>
           <small class="error-text" data-error-for="github-token"></small>
           <small class="help-text">
-            <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">토큰 발급받기</a> |
-            권한: <code>repo</code> (필수)
+            <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">Get token</a> |
+            Permissions: <code>repo</code> (required)
           </small>
         </div>
-        <button id="test-github" class="btn btn-secondary">연결 테스트</button>
+        <button id="test-github" class="btn btn-secondary">Test Connection</button>
         <div id="github-status" class="status"></div>
         </div>
       </section>
 
-      <!-- GitLab 설정 -->
+      <!-- GitLab Settings -->
       <section class="settings-section collapsed" data-section="gitlab">
         <div class="section-header">
           <div class="section-header-left">
             <div class="section-title">
               <h2>🦊 GitLab</h2>
-              <span class="section-status optional" data-status="gitlab">선택</span>
+              <span class="section-status optional" data-status="gitlab">Optional</span>
             </div>
           </div>
           <span class="section-toggle">▼</span>
         </div>
         <div class="section-content">
         <div class="input-group">
-          <label for="gitlab-url">GitLab URL (선택):</label>
+          <label for="gitlab-url">GitLab URL (Optional):</label>
           <input
             type="text"
             id="gitlab-url"
@@ -79,13 +79,13 @@
           />
           <small class="error-text" data-error-for="gitlab-url"></small>
           <small class="help-text">
-            Self-hosted GitLab의 경우 URL을 입력하세요. 기본값: https://gitlab.com
+            For self-hosted GitLab, enter your URL. Default: https://gitlab.com
           </small>
         </div>
         <div class="input-group">
           <label for="gitlab-token">
             Personal Access Token
-            <span class="label-hint">glpat- 또는 gldt-로 시작</span>
+            <span class="label-hint">Starts with glpat- or gldt-</span>
           </label>
           <div class="input-with-action">
             <input
@@ -94,47 +94,47 @@
               placeholder="glpat-xxxxx..."
               autocomplete="off"
             />
-            <button type="button" class="input-action-btn" data-toggle-visibility="gitlab-token" title="토큰 보기/숨기기">
+            <button type="button" class="input-action-btn" data-toggle-visibility="gitlab-token" title="Show/Hide token">
               👁️
             </button>
           </div>
           <small class="error-text" data-error-for="gitlab-token"></small>
           <small class="help-text">
-            <a href="https://gitlab.com/-/user_settings/personal_access_tokens?name=Review+to+Instruction&scopes=api" target="_blank" rel="noopener">토큰 발급받기</a> |
-            권한: <code>api</code> (필수)
+            <a href="https://gitlab.com/-/user_settings/personal_access_tokens?name=Review+to+Instruction&scopes=api" target="_blank" rel="noopener">Get token</a> |
+            Permissions: <code>api</code> (required)
           </small>
         </div>
-        <button id="test-gitlab" class="btn btn-secondary">연결 테스트</button>
+        <button id="test-gitlab" class="btn btn-secondary">Test Connection</button>
         <div id="gitlab-status" class="status"></div>
 
         <div class="input-group" style="margin-top: 16px;">
           <label class="checkbox-label">
             <input type="checkbox" id="show-buttons" checked />
-            <span>PR/MR 코멘트에 "Convert to Instruction" 버튼 표시</span>
+            <span>Show "Convert to Instruction" button on PR/MR comments</span>
           </label>
         </div>
         </div>
       </section>
 
-      <!-- LLM 설정 -->
+      <!-- LLM Settings -->
       <section class="settings-section" data-section="llm">
         <div class="section-header">
           <div class="section-header-left">
             <div class="section-title">
-              <h2>🤖 LLM 분석</h2>
-              <span class="section-status required" data-status="llm">필수</span>
+              <h2>🤖 LLM Analysis</h2>
+              <span class="section-status required" data-status="llm">Required</span>
             </div>
           </div>
           <span class="section-toggle">▼</span>
         </div>
         <div class="section-content">
         <small class="help-text warning">
-          ⚠️ LLM API 호출 시 비용이 발생합니다. (코멘트당 평균 5-20원)
+          ⚠️ LLM API calls incur costs. (Average 5-20 KRW per comment)
         </small>
 
         <div id="llm-settings" class="llm-settings">
           <div class="input-group" style="margin-top: 12px;">
-            <label for="llm-provider">제공자:</label>
+            <label for="llm-provider">Provider:</label>
             <select id="llm-provider" class="select-input">
               <option value="claude">Anthropic Claude (Sonnet 4.5)</option>
               <option value="openai">OpenAI (GPT-4 Turbo)</option>
@@ -145,7 +145,7 @@
           <div id="claude-api-key-group" class="input-group api-key-group" style="display: none;">
             <label for="claude-api-key">
               Claude API Key
-              <span class="label-hint">sk-ant-로 시작</span>
+              <span class="label-hint">Starts with sk-ant-</span>
             </label>
             <div class="input-with-action">
               <input
@@ -154,102 +154,102 @@
                 placeholder="sk-ant-xxxxx..."
                 autocomplete="off"
               />
-              <button type="button" class="input-action-btn" data-toggle-visibility="claude-api-key" title="키 보기/숨기기">
+              <button type="button" class="input-action-btn" data-toggle-visibility="claude-api-key" title="Show/Hide key">
                 👁️
               </button>
             </div>
             <small class="error-text" data-error-for="claude-api-key"></small>
             <small class="help-text">
-              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">API 키 발급받기</a> |
-              모델: <code>claude-sonnet-4-5</code>
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get API key</a> |
+              Model: <code>claude-sonnet-4-5</code>
             </small>
           </div>
 
           <div id="openai-api-key-group" class="input-group api-key-group" style="display: none;">
             <label for="openai-api-key">
               OpenAI API Key
-              <span class="label-hint">sk- 또는 sk-proj-로 시작</span>
+              <span class="label-hint">Starts with sk- or sk-proj-</span>
             </label>
             <div class="input-with-action">
               <input
                 type="password"
                 id="openai-api-key"
-                placeholder="sk-xxxxx... 또는 sk-proj-xxxxx..."
+                placeholder="sk-xxxxx... or sk-proj-xxxxx..."
                 autocomplete="off"
               />
-              <button type="button" class="input-action-btn" data-toggle-visibility="openai-api-key" title="키 보기/숨기기">
+              <button type="button" class="input-action-btn" data-toggle-visibility="openai-api-key" title="Show/Hide key">
                 👁️
               </button>
             </div>
             <small class="error-text" data-error-for="openai-api-key"></small>
             <small class="help-text">
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">API 키 발급받기</a> |
-              모델: <code>gpt-4-turbo</code>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get API key</a> |
+              Model: <code>gpt-4-turbo</code>
             </small>
           </div>
         </div>
         </div>
       </section>
 
-      <!-- 캐시 관리 (Feature 2) -->
+      <!-- Cache Management (Feature 2) -->
       <section class="settings-section collapsed" data-section="cache">
         <div class="section-header">
           <div class="section-header-left">
             <div class="section-title">
-              <h2>📊 캐시 관리</h2>
-              <span class="section-status optional" data-status="cache">선택</span>
+              <h2>📊 Cache Management</h2>
+              <span class="section-status optional" data-status="cache">Optional</span>
             </div>
           </div>
           <span class="section-toggle">▼</span>
         </div>
         <div class="section-content">
         <small class="help-text">
-          LLM 응답을 캐싱하여 API 비용과 응답 시간을 절감합니다.
+          Cache LLM responses to reduce API costs and response times.
         </small>
 
         <div class="cache-stats" id="cache-stats">
           <div class="stat-item">
-            <span class="stat-label">캐시 항목:</span>
+            <span class="stat-label">Cache Entries:</span>
             <span class="stat-value" id="cache-entries">-</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">캐시 적중률:</span>
+            <span class="stat-label">Cache Hit Rate:</span>
             <span class="stat-value" id="cache-hit-rate">-</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">총 HIT:</span>
+            <span class="stat-label">Total HITs:</span>
             <span class="stat-value" id="cache-hits">-</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">총 MISS:</span>
+            <span class="stat-label">Total MISSes:</span>
             <span class="stat-value" id="cache-misses">-</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">캐시 크기:</span>
+            <span class="stat-label">Cache Size:</span>
             <span class="stat-value" id="cache-size">-</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">예상 누적 비용:</span>
-            <span class="stat-value" id="total-cost-span">계산 중...</span>
+            <span class="stat-label">Estimated Total Cost:</span>
+            <span class="stat-value" id="total-cost-span">Calculating...</span>
           </div>
         </div>
 
         <p class="help-text" style="margin-top: 10px; font-size: 0.9em; color: #57606a;">
-          💡 <strong>캐시 적중률</strong>이 높을수록 동일한 코멘트 재변환 시 API 호출을 건너뛰어 비용과 시간을 절약합니다.
+          💡 Higher <strong>cache hit rate</strong> means fewer API calls when reconverting the same comments, saving costs and time.
         </p>
 
         <div class="cache-actions">
-          <button id="refresh-cache-stats" class="btn btn-secondary">통계 갱신</button>
-          <button id="clear-cache" class="btn btn-danger">캐시 초기화</button>
+          <button id="refresh-cache-stats" class="btn btn-secondary">Refresh Stats</button>
+          <button id="clear-cache" class="btn btn-danger">Clear Cache</button>
         </div>
 
         <div id="cache-status" class="status"></div>
         </div>
       </section>
 
-      <!-- 저장 버튼 -->
+      <!-- Save Button -->
       <div class="actions">
-        <button id="save" class="btn btn-primary">저장</button>
+        <button id="save" class="btn btn-primary">Save</button>
       </div>
 
       <div id="save-status" class="status"></div>
@@ -260,14 +260,14 @@
     </footer>
   </div>
 
-  <!-- 마스터 비밀번호 설정 모달 (첫 실행 시) -->
+  <!-- Master Password Setup Modal (First Run) -->
   <div id="master-password-modal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h2>🔐 마스터 비밀번호 설정</h2>
-      <p>API 키를 암호화하기 위한 마스터 비밀번호를 설정하세요.</p>
+      <h2>🔐 Set Master Password</h2>
+      <p>Set a master password to encrypt your API keys.</p>
 
       <div class="form-group">
-        <label for="master-password">마스터 비밀번호</label>
+        <label for="master-password">Master Password</label>
         <div class="password-input-wrapper">
           <input type="password" id="master-password" required minlength="8" autocomplete="new-password" />
           <button type="button" class="toggle-password" data-target="master-password">
@@ -275,11 +275,11 @@
             <span class="hide-icon" style="display: none;">🙈</span>
           </button>
         </div>
-        <small class="help-text">최소 8자 이상, 영문/숫자/특수문자 조합 권장</small>
+        <small class="help-text">Minimum 8 characters, combination of letters/numbers/special characters recommended</small>
       </div>
 
       <div class="form-group">
-        <label for="master-password-confirm">비밀번호 확인</label>
+        <label for="master-password-confirm">Confirm Password</label>
         <div class="password-input-wrapper">
           <input type="password" id="master-password-confirm" required autocomplete="new-password" />
           <button type="button" class="toggle-password" data-target="master-password-confirm">
@@ -291,32 +291,32 @@
 
       <div class="password-strength">
         <div id="strength-bar" class="strength-bar"></div>
-        <span id="strength-text" class="strength-text">약함</span>
+        <span id="strength-text" class="strength-text">Weak</span>
       </div>
 
       <div class="warning-box">
-        ⚠️ <strong>주의사항</strong>
+        ⚠️ <strong>Important Notice</strong>
         <ul>
-          <li>마스터 비밀번호를 분실하면 저장된 API 키를 복구할 수 없습니다.</li>
-          <li>비밀번호는 안전한 곳에 보관하세요.</li>
-          <li>이 비밀번호는 로컬 기기에만 저장되며 외부로 전송되지 않습니다.</li>
+          <li>If you lose your master password, you cannot recover saved API keys.</li>
+          <li>Store your password in a safe place.</li>
+          <li>This password is only stored locally and never transmitted externally.</li>
         </ul>
       </div>
 
       <div id="master-password-error" class="error-message" style="display: none;"></div>
 
-      <button id="set-master-password-btn" class="btn btn-primary">설정 완료</button>
+      <button id="set-master-password-btn" class="btn btn-primary">Complete Setup</button>
     </div>
   </div>
 
-  <!-- 마스터 비밀번호 입력 모달 (사용 시) -->
+  <!-- Master Password Unlock Modal (In Use) -->
   <div id="unlock-modal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h2>🔓 마스터 비밀번호 입력</h2>
-      <p>API 키에 접근하려면 마스터 비밀번호를 입력하세요.</p>
+      <h2>🔓 Enter Master Password</h2>
+      <p>Enter your master password to access API keys.</p>
 
       <div class="form-group">
-        <label for="unlock-password">마스터 비밀번호</label>
+        <label for="unlock-password">Master Password</label>
         <div class="password-input-wrapper">
           <input type="password" id="unlock-password" required autocomplete="current-password" />
           <button type="button" class="toggle-password" data-target="unlock-password">
@@ -329,12 +329,12 @@
       <div id="unlock-error" class="error-message" style="display: none;"></div>
 
       <div class="modal-actions">
-        <button id="unlock-btn" class="btn btn-primary">잠금 해제</button>
-        <button id="reset-password-btn" class="btn btn-danger">비밀번호 재설정</button>
+        <button id="unlock-btn" class="btn btn-primary">Unlock</button>
+        <button id="reset-password-btn" class="btn btn-danger">Reset Password</button>
       </div>
 
       <small class="help-text warning">
-        ⚠️ 비밀번호 재설정 시 기존에 저장된 모든 API 키가 삭제됩니다.
+        ⚠️ Resetting password will delete all saved API keys.
       </small>
     </div>
   </div>

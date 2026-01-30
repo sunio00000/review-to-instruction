@@ -16,6 +16,7 @@ export class GitLabInjector {
   private uiBuilder: UIBuilder;
   private repository: Repository | null = null;
   private threadObserver: MutationObserver | null = null;
+  private hasApiToken: boolean = false;
 
   constructor() {
     this.uiBuilder = new UIBuilder();
@@ -140,6 +141,9 @@ export class GitLabInjector {
       return;
     }
 
+    // API Token 상태 확인
+    await this.checkApiTokenStatus();
+
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
     // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
@@ -152,6 +156,30 @@ export class GitLabInjector {
 
     // 새로운 Thread 감지 (MutationObserver)
     this.observeThreads();
+  }
+
+  /**
+   * API Token 상태 확인
+   */
+  private async checkApiTokenStatus() {
+    try {
+      // Chrome API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        this.hasApiToken = false;
+        return;
+      }
+
+      const result = await chrome.storage.local.get(['gitlabToken_enc', 'claudeApiKey_enc', 'openaiApiKey_enc', 'llmProvider']);
+
+      // GitLab token과 LLM API key 모두 필요
+      const hasGitlabToken = !!result.gitlabToken_enc;
+      const provider = result.llmProvider || 'claude';
+      const hasLlmKey = provider === 'claude' ? !!result.claudeApiKey_enc : !!result.openaiApiKey_enc;
+
+      this.hasApiToken = hasGitlabToken && hasLlmKey;
+    } catch (error) {
+      this.hasApiToken = false;
+    }
   }
 
   /**
@@ -180,10 +208,25 @@ export class GitLabInjector {
       return;
     }
 
-    // 컨벤션 코멘트 여부 체크
-    const isConvention = isConventionComment(comment.content);
+    // 비활성화 이유 결정
+    let disabled = false;
+    let disabledReason = '';
 
-    // 버튼 추가 (컨벤션이 아니면 disabled)
+    // 1. API Token 확인
+    if (!this.hasApiToken) {
+      disabled = true;
+      disabledReason = '⚠️ API tokens not configured\n\nPlease configure your GitLab token and LLM API key in the extension settings to use this feature.';
+    }
+    // 2. 컨벤션 코멘트 여부 체크 (API token이 있는 경우에만)
+    else {
+      const isConvention = isConventionComment(comment.content);
+      if (!isConvention) {
+        disabled = true;
+        disabledReason = '⚠️ Comment does not meet requirements\n\nThis comment needs at least one of:\n• 50+ characters\n• Convention keywords (e.g., "must", "should", "avoid")\n• Code examples\n• Emojis';
+      }
+    }
+
+    // 버튼 추가
     this.uiBuilder.addButton(
       commentElement.element,
       commentElement.contentElement,
@@ -191,7 +234,8 @@ export class GitLabInjector {
         platform: 'gitlab',
         comment,
         onClick: (comment) => this.onButtonClick(comment),
-        disabled: !isConvention
+        disabled,
+        disabledReason
       }
     );
   }
@@ -286,7 +330,7 @@ export class GitLabInjector {
     try {
       // Chrome Extension API 체크
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-        throw new Error('Chrome Extension API를 사용할 수 없습니다.');
+        throw new Error('Chrome Extension API is not available.');
       }
 
       // 1. 로딩 상태 표시
@@ -319,7 +363,7 @@ export class GitLabInjector {
 
       if (action === 'edit') {
         // Phase 2에서 구현
-        alert('수정 기능은 다음 단계에서 구현됩니다.');
+        alert('Edit feature will be implemented in the next phase.');
         return;
       }
 
@@ -404,7 +448,7 @@ export class GitLabInjector {
     try {
       // Chrome Extension API 존재 여부 확인
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-        throw new Error('Chrome Extension API를 사용할 수 없습니다. Extension이 제대로 로드되었는지 확인해주세요.');
+        throw new Error('Chrome Extension API is not available. Please check if the extension is properly loaded.');
       }
 
       // Background script로 메시지 전송

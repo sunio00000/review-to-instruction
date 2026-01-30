@@ -73,7 +73,8 @@ export interface Repository {
   owner: string;
   name: string;
   platform: Platform;
-  branch: string;               // 현재 PR/MR이 속한 브랜치
+  branch: string;               // 현재 PR/MR의 head 브랜치 (작업 브랜치)
+  baseBranch?: string;          // 현재 PR/MR의 base 브랜치 (타겟 브랜치)
   prNumber: number;             // PR/MR 번호
 }
 
