@@ -134,20 +134,20 @@ export class ProjectTypeDetector {
   }
 
   /**
-   * Windsurf 감지 (rules/ 디렉토리)
+   * Windsurf 감지 (.windsurf/rules/ 디렉토리)
    */
   private async detectWindsurf(
     client: ApiClient,
     repository: Repository
   ): Promise<{ detected: boolean; type: ProjectType; config: ProjectTypeConfig }> {
     try {
-      const contents = await client.getDirectoryContents(repository, 'rules');
+      const contents = await client.getDirectoryContents(repository, '.windsurf/rules');
       return {
         detected: contents !== null && contents.length > 0,
         type: 'windsurf',
         config: {
           type: 'windsurf',
-          detectionPath: 'rules/',
+          detectionPath: '.windsurf/rules/',
           enabled: true
         }
       };
@@ -157,7 +157,7 @@ export class ProjectTypeDetector {
         type: 'windsurf',
         config: {
           type: 'windsurf',
-          detectionPath: 'rules/',
+          detectionPath: '.windsurf/rules/',
           enabled: false
         }
       };
