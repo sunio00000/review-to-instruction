@@ -93,6 +93,58 @@ li.note .review-to-instruction-button-container,
   transition: transform 0.2s ease;
 }
 
+/* 경고 아이콘 (disabled 상태) */
+.review-to-instruction-button .warning-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  margin-left: 4px;
+  cursor: help;
+  position: relative;
+}
+
+.review-to-instruction-button .warning-icon:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background-color: #1c2128;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  max-width: 300px;
+  width: max-content;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: tooltipFadeIn 0.2s ease;
+  pointer-events: none;
+}
+
+.review-to-instruction-button .warning-icon:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: 12px;
+  border: 6px solid transparent;
+  border-top-color: #1c2128;
+  z-index: 1001;
+  pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 로딩 상태 */
 .review-to-instruction-button.loading {
   background-color: #0969da;
@@ -241,6 +293,16 @@ li.note .review-to-instruction-button-container,
     color: #f85149;
     border-color: rgba(248, 81, 73, 0.4);
   }
+
+  /* 경고 아이콘 툴팁 (다크모드) */
+  .review-to-instruction-button .warning-icon:hover::after {
+    background-color: #f6f8fa;
+    color: #24292f;
+  }
+
+  .review-to-instruction-button .warning-icon:hover::before {
+    border-top-color: #f6f8fa;
+  }
 }
 
 /* HTML에 data-color-mode 속성이 있는 경우 (GitHub) */
@@ -279,6 +341,16 @@ html[data-color-mode="dark"] .review-to-instruction-result.error {
   border-color: rgba(248, 81, 73, 0.4);
 }
 
+/* 경고 아이콘 툴팁 (GitHub 다크모드) */
+html[data-color-mode="dark"] .review-to-instruction-button .warning-icon:hover::after {
+  background-color: #f6f8fa;
+  color: #24292f;
+}
+
+html[data-color-mode="dark"] .review-to-instruction-button .warning-icon:hover::before {
+  border-top-color: #f6f8fa;
+}
+
 /* GitLab 다크 모드 지원 */
 body.gl-dark .review-to-instruction-button {
   background-color: #2f2f2f;
@@ -313,6 +385,16 @@ body.gl-dark .review-to-instruction-result.error {
   background-color: rgba(248, 81, 73, 0.15);
   color: #f85149;
   border-color: rgba(248, 81, 73, 0.4);
+}
+
+/* 경고 아이콘 툴팁 (GitLab 다크모드) */
+body.gl-dark .review-to-instruction-button .warning-icon:hover::after {
+  background-color: #fafafa;
+  color: #2f2f2f;
+}
+
+body.gl-dark .review-to-instruction-button .warning-icon:hover::before {
+  border-top-color: #fafafa;
 }
 
 /* 로딩 스피너 아이콘 */

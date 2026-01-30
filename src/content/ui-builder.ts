@@ -5,12 +5,14 @@
 
 import type { Platform, Comment, DiscussionThread } from '../types';
 import { calculateCost, formatCost } from '../utils/token-pricing';
+import { Debouncer } from '../utils/rate-limiter';
 
 export interface ButtonOptions {
   platform: Platform;
   comment: Comment;
   onClick: (comment: Comment) => void;
   disabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface ThreadButtonOptions {
@@ -22,6 +24,7 @@ export interface ThreadButtonOptions {
 export class UIBuilder {
   private buttons = new Map<string, HTMLButtonElement>();
   private threadButtons = new Map<string, HTMLButtonElement>();
+  private buttonDebouncer = new Debouncer(2000); // 2초 debounce
 
   /**
    * 코멘트에 버튼 추가
@@ -71,27 +74,42 @@ export class UIBuilder {
     button.setAttribute('data-comment-id', options.comment.id);
     button.setAttribute('type', 'button');
 
+    // Check if comment has replies
+    const hasReplies = options.comment.replies && options.comment.replies.length > 0;
+    const replyCount = hasReplies ? options.comment.replies!.length : 0;
+
     // disabled 상태 설정 및 툴팁
     if (options.disabled) {
       button.disabled = true;
       button.classList.add('disabled');
-      button.title = '이 코멘트는 변환 조건을 만족하지 않습니다\n(50자 이상, 컨벤션 키워드, 코드 예시, 이모지 중 하나 이상 필요)';
+      // Use custom reason if provided, otherwise use default
+      const defaultReason = 'This comment does not meet conversion requirements\n(Requires at least one of: 50+ characters, convention keywords, code examples, or emojis)';
+      button.title = options.disabledReason || defaultReason;
     } else {
-      // 정상 버튼 툴팁 (답글 여부에 따라 다른 메시지)
-      const hasReplies = options.comment.replies && options.comment.replies.length > 0;
+      // Tooltip message (different based on replies)
       if (hasReplies) {
-        button.title = `📋 Instruction 미리보기 및 생성\n\n이 코멘트와 ${options.comment.replies!.length}개의 답글을 모두 반영한 AI Instruction을 생성합니다.\n(클릭 시 LLM 분석 수행, 비용 발생)`;
+        button.title = `📋 Preview and Generate AI Instruction\n\n⚡ This comment includes ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}\nAll comments in this conversation will be analyzed together to create a comprehensive AI Instruction.\n(LLM analysis will be performed, costs may apply)`;
       } else {
-        button.title = '📋 Instruction 미리보기 및 생성\n\n이 코멘트 내용을 반영한 AI Instruction을 생성합니다.\n(클릭 시 LLM 분석 수행, 비용 발생)';
+        button.title = '📋 Preview and Generate AI Instruction\n\nCreates an AI Instruction based on this comment.\n(LLM analysis will be performed, costs may apply)';
       }
     }
 
-    // 아이콘 + 텍스트
+    // Button text with reply indicator
+    const buttonText = hasReplies
+      ? `Convert to AI Instruction (+${replyCount} ${replyCount === 1 ? 'reply' : 'replies'})`
+      : 'Convert to AI Instruction';
+
+    // 아이콘 + 텍스트 + 경고 아이콘 (disabled인 경우)
+    const warningIcon = options.disabled
+      ? `<span class="warning-icon" title="${this.escapeHtml(options.disabledReason || 'Button is disabled')}">⚠️</span>`
+      : '';
+
     button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
       </svg>
-      <span>Convert to AI Instruction</span>
+      <span>${buttonText}</span>
+      ${warningIcon}
     `;
 
     // 클릭 이벤트
@@ -102,6 +120,15 @@ export class UIBuilder {
     });
 
     return button;
+  }
+
+  /**
+   * HTML escape for tooltip and user-provided content
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   /**
@@ -239,6 +266,17 @@ export class UIBuilder {
    * 버튼 클릭 핸들러
    */
   private handleButtonClick(button: HTMLButtonElement, options: ButtonOptions) {
+    // Rate limiting check (2초 debounce)
+    if (!this.buttonDebouncer.canCall()) {
+      const timeRemaining = Math.ceil(this.buttonDebouncer.getTimeRemaining() / 1000);
+      this.showTemporaryMessage(
+        button,
+        `⏳ Please wait ${timeRemaining}s before trying again`,
+        'info'
+      );
+      return;
+    }
+
     // 버튼 상태를 loading으로 변경
     this.setButtonState(button, 'loading');
 
@@ -253,6 +291,46 @@ export class UIBuilder {
         this.setButtonState(button, 'default');
       }, 3000);
     }
+  }
+
+  /**
+   * 일시적인 메시지 표시 (rate limit 등)
+   */
+  private showTemporaryMessage(
+    button: HTMLButtonElement,
+    message: string,
+    type: 'info' | 'warning'
+  ) {
+    const container = button.parentElement;
+    if (!container) return;
+
+    // 기존 메시지 확인
+    const existingMessage = container.querySelector('.review-to-instruction-temp-message');
+    if (existingMessage) return; // 이미 표시 중
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `review-to-instruction-temp-message ${type}`;
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+      display: inline-block;
+      margin-left: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      background-color: ${type === 'info' ? '#ddf4ff' : '#fff8c5'};
+      color: ${type === 'info' ? '#0969da' : '#7d4e00'};
+      border: 1px solid ${type === 'info' ? '#54aeff66' : '#d4a72c'};
+      animation: fadeIn 0.2s ease;
+    `;
+
+    container.appendChild(messageDiv);
+
+    // 2초 후 제거
+    setTimeout(() => {
+      if (messageDiv.parentElement) {
+        messageDiv.remove();
+      }
+    }, 2000);
   }
 
   /**
@@ -318,30 +396,63 @@ export class UIBuilder {
       existingResult.remove();
     }
 
-    // 새 결과 메시지 추가
+    // 새 결과 메시지 추가 (안전한 DOM 조작 사용)
     const resultDiv = document.createElement('div');
     resultDiv.className = 'review-to-instruction-result success';
 
-    const actionText = isUpdate ? '업데이트' : '생성';
+    const actionText = isUpdate ? 'updated' : 'created';
 
-    // 토큰 사용량 및 비용 텍스트 (작게 표시)
-    const tokenText = tokenUsage
-      ? (() => {
-          const cost = calculateCost(
-            { inputTokens: tokenUsage.inputTokens, outputTokens: tokenUsage.outputTokens },
-            'claude' // TODO: 설정에서 provider 가져오기
-          );
-          return `<span class="token-usage" style="font-size: 0.85em; opacity: 0.8; margin-left: 8px;">(${tokenUsage.totalTokens} tokens, ${formatCost(cost)})</span>`;
-        })()
-      : '';
+    // SVG 아이콘
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('fill', 'currentColor');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z');
+    svg.appendChild(path);
 
-    resultDiv.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
-      </svg>
-      <span>Instruction ${actionText}됨! <a href="${prUrl}" target="_blank" rel="noopener noreferrer">PR 보기 →</a>${tokenText}</span>
-    `;
+    // 텍스트와 링크
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = `Instruction ${actionText}! `;
 
+    // PR 링크 (URL 검증 및 escaping)
+    const link = document.createElement('a');
+    try {
+      // URL 유효성 검증
+      const url = new URL(prUrl);
+      if (url.protocol === 'https:' && (url.hostname.includes('github.com') || url.hostname.includes('gitlab.com') || url.hostname === 'git.projectbro.com')) {
+        link.href = prUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'View PR →';
+      } else {
+        throw new Error('Invalid URL');
+      }
+    } catch {
+      // 잘못된 URL인 경우 링크 없이 텍스트만 표시
+      link.textContent = '(Invalid PR URL)';
+    }
+
+    messageSpan.appendChild(link);
+
+    // Token usage (있는 경우)
+    if (tokenUsage) {
+      const cost = calculateCost(
+        { inputTokens: tokenUsage.inputTokens, outputTokens: tokenUsage.outputTokens },
+        'claude' // TODO: Get provider from settings
+      );
+      const tokenSpan = document.createElement('span');
+      tokenSpan.className = 'token-usage';
+      tokenSpan.style.fontSize = '0.85em';
+      tokenSpan.style.opacity = '0.8';
+      tokenSpan.style.marginLeft = '8px';
+      tokenSpan.textContent = `(${tokenUsage.totalTokens} tokens, ${formatCost(cost)})`;
+      messageSpan.appendChild(tokenSpan);
+    }
+
+    resultDiv.appendChild(svg);
+    resultDiv.appendChild(messageSpan);
     container.appendChild(resultDiv);
 
     // 10초 후 자동 제거
@@ -371,16 +482,26 @@ export class UIBuilder {
       existingResult.remove();
     }
 
-    // 새 결과 메시지 추가
+    // 새 결과 메시지 추가 (안전한 DOM 조작 사용)
     const resultDiv = document.createElement('div');
     resultDiv.className = 'review-to-instruction-result error';
-    resultDiv.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/>
-      </svg>
-      <span>${friendlyMessage}</span>
-    `;
 
+    // SVG 아이콘
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('fill', 'currentColor');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z');
+    svg.appendChild(path);
+
+    // 에러 메시지 (textContent로 안전하게 설정)
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = friendlyMessage;
+
+    resultDiv.appendChild(svg);
+    resultDiv.appendChild(messageSpan);
     container.appendChild(resultDiv);
 
     // 8초 후 자동 제거
@@ -393,59 +514,59 @@ export class UIBuilder {
   }
 
   /**
-   * 에러 메시지를 사용자 친화적으로 변환
+   * Convert error messages to user-friendly format
    */
   private getFriendlyErrorMessage(error: string): string {
     const errorLower = error.toLowerCase();
 
-    // 토큰 관련 에러
-    if (errorLower.includes('token') || errorLower.includes('설정되지')) {
-      return 'API Token이 설정되지 않았습니다. Extension 설정에서 Token을 입력해주세요.';
+    // Token-related errors
+    if (errorLower.includes('token') || errorLower.includes('설정되지') || errorLower.includes('not configured')) {
+      return 'API Token is not configured. Please enter your token in the extension settings.';
     }
 
-    // 인증 에러
+    // Authentication errors
     if (errorLower.includes('401') || errorLower.includes('unauthorized') || errorLower.includes('authentication')) {
-      return '인증 실패: Token이 올바르지 않거나 만료되었습니다.';
+      return 'Authentication failed: Token is invalid or expired.';
     }
 
-    // 권한 에러
+    // Permission errors
     if (errorLower.includes('403') || errorLower.includes('forbidden') || errorLower.includes('permission')) {
-      return '권한 부족: 레포지토리에 쓰기 권한이 필요합니다.';
+      return 'Insufficient permissions: Write access to the repository is required.';
     }
 
-    // 네트워크 에러
+    // Network errors
     if (errorLower.includes('network') || errorLower.includes('fetch') || errorLower.includes('timeout')) {
-      return '네트워크 오류: 인터넷 연결을 확인해주세요.';
+      return 'Network error: Please check your internet connection.';
     }
 
-    // 컨벤션 감지 실패 (완화된 필터링)
+    // Convention detection failure
     if (errorLower.includes('컨벤션') || errorLower.includes('convention')) {
-      return '이 코멘트는 너무 짧거나 관련 내용이 없습니다. 최소 50자 이상 또는 코드 예시를 포함해주세요.';
+      return 'This comment is too short or not relevant. Please include at least 50 characters or code examples.';
     }
 
-    // 키워드 추출 실패 (더 이상 발생하지 않지만 안전장치로 유지)
+    // Keyword extraction failure (legacy safety net)
     if (errorLower.includes('키워드') || errorLower.includes('keyword')) {
-      return '키워드 추출에 실패했지만 LLM이 자동으로 처리합니다. 잠시 후 다시 시도해주세요.';
+      return 'Keyword extraction failed, but LLM will handle it automatically. Please try again later.';
     }
 
-    // API 에러
+    // API errors
     if (errorLower.includes('404')) {
-      // 404는 대부분 .claude/ 디렉토리가 없는 정상 상황
-      // 하지만 다른 404일 수도 있으므로 원본 에러 표시
-      return `일시적인 문제가 발생했습니다: ${error.substring(0, 100)}`;
+      // 404 is usually normal (no .claude/ directory exists yet)
+      // But could be other 404s, so show original error
+      return `Temporary issue occurred: ${error.substring(0, 100)}`;
     }
 
     if (errorLower.includes('422')) {
-      return 'API 요청 형식이 올바르지 않습니다. Extension을 업데이트해주세요.';
+      return 'API request format is invalid. Please update the extension.';
     }
 
-    // 브랜치 중복
+    // Branch duplication
     if (errorLower.includes('already exists') || errorLower.includes('duplicate')) {
-      return '이미 동일한 브랜치가 존재합니다. 기존 PR을 먼저 병합해주세요.';
+      return 'A branch with the same name already exists. Please merge the existing PR first.';
     }
 
-    // 기타 에러
-    return `에러: ${error.length > 100 ? error.substring(0, 100) + '...' : error}`;
+    // Other errors
+    return `Error: ${error.length > 100 ? error.substring(0, 100) + '...' : error}`;
   }
 
   /**
@@ -484,14 +605,14 @@ export class UIBuilder {
     const commentCount = options.thread.comments.length;
 
     // Thread 버튼 툴팁
-    button.title = `이 스레드의 ${commentCount}개 코멘트를 모두 통합 분석하여 AI Instruction을 생성합니다`;
+    button.title = `🧵 Convert Discussion Thread to AI Instruction\n\n⚡ This thread contains ${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}\nAll comments in this thread will be analyzed together to create a unified AI Instruction that captures the complete discussion context.\n(LLM analysis will be performed, costs may apply)`;
 
     button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0114.25 14H1.75A1.75 1.75 0 010 12.25v-9.5C0 1.784.784 1 1.75 1zM1.5 2.75v9.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25z"/>
         <path d="M3.5 6.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z"/>
       </svg>
-      <span>Convert Thread (${commentCount} comments)</span>
+      <span>Convert Thread (${commentCount} ${commentCount === 1 ? 'comment' : 'comments'})</span>
     `;
 
     // 클릭 이벤트
