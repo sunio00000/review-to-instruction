@@ -3,6 +3,8 @@
  * MutationObserver를 사용하여 PR/MR 페이지의 코멘트를 감지합니다.
  */
 
+import { logger } from '../utils/logger';
+
 export interface CommentElement {
   element: HTMLElement;
   id: string;
@@ -35,8 +37,11 @@ export class CommentDetector {
    * 코멘트 감지 시작
    */
   start() {
-    // 기존 코멘트 처리
+    // 즉시 스캔
     this.processExistingComments();
+
+    // 2초 후 재스캔 (안정성 보장)
+    this.scheduleRetry();
 
     // MutationObserver로 새 코멘트 감지
     this.observer = new MutationObserver((mutations) => {
@@ -67,6 +72,16 @@ export class CommentDetector {
 
     // WeakSet은 자동으로 가비지 컬렉션되므로 clear() 불필요
     this.pendingMutations = [];
+  }
+
+  /**
+   * 재시도 로직: 2초 후 자동 재스캔
+   */
+  private scheduleRetry() {
+    setTimeout(() => {
+      logger.log('[CommentDetector] Running retry scan...');
+      this.processExistingComments();
+    }, 2000);
   }
 
   /**

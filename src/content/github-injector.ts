@@ -9,6 +9,7 @@ import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import type { Comment, Repository, DiscussionThread } from '../types';
 import { isConventionComment } from '../core/parser';
+import { logger } from '../utils/logger';
 
 export class GitHubInjector {
   private detector: CommentDetector;
@@ -16,6 +17,7 @@ export class GitHubInjector {
   private uiBuilder: UIBuilder;
   private repository: Repository | null = null;
   private threadObserver: MutationObserver | null = null;
+  private hasApiToken: boolean = false;
 
   constructor() {
     this.uiBuilder = new UIBuilder();
@@ -98,20 +100,16 @@ export class GitHubInjector {
       return;
     }
 
+    // API Token 상태 확인
+    await this.checkApiTokenStatus();
+
     // 레포지토리 정보 추출
     this.repository = this.extractRepository();
     if (!this.repository) {
       return;
     }
 
-    // API를 통해 기본 브랜치 확인 및 업데이트
-    try {
-      await this.updateDefaultBranch();
-    } catch (error) {
-      // API 호출 실패해도 계속 진행 (추출한 branch 사용)
-    }
-
-    // 코멘트 감지 시작
+    // ✅ 즉시 버튼 감지 시작 (차단 없음)
     this.detector.start();
 
     // Thread 감지 및 버튼 추가
@@ -119,10 +117,40 @@ export class GitHubInjector {
 
     // 새로운 Thread 감지 (MutationObserver)
     this.observeThreads();
+
+    // ✅ 브랜치 정보는 백그라운드에서 업데이트
+    this.updateDefaultBranch().catch((error) => {
+      logger.warn('[GitHubInjector] Failed to update default branch:', error);
+      // 실패해도 버튼은 이미 표시되어 있음
+    });
   }
 
   /**
-   * API를 통해 PR의 head branch 가져오기
+   * API Token 상태 확인
+   */
+  private async checkApiTokenStatus() {
+    try {
+      // Chrome API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        this.hasApiToken = false;
+        return;
+      }
+
+      const result = await chrome.storage.local.get(['githubToken_enc', 'claudeApiKey_enc', 'openaiApiKey_enc', 'llmProvider']);
+
+      // GitHub token과 LLM API key 모두 필요
+      const hasGithubToken = !!result.githubToken_enc;
+      const provider = result.llmProvider || 'claude';
+      const hasLlmKey = provider === 'claude' ? !!result.claudeApiKey_enc : !!result.openaiApiKey_enc;
+
+      this.hasApiToken = hasGithubToken && hasLlmKey;
+    } catch (error) {
+      this.hasApiToken = false;
+    }
+  }
+
+  /**
+   * API를 통해 PR의 head branch와 base branch 가져오기
    */
   private async updateDefaultBranch() {
     if (!this.repository) return;
@@ -143,8 +171,15 @@ export class GitHubInjector {
         }
       });
 
-      if (response.success && response.data.head_branch) {
-        this.repository.branch = response.data.head_branch;
+      if (response.success) {
+        // head branch (작업 브랜치) 저장
+        if (response.data.head_branch) {
+          this.repository.branch = response.data.head_branch;
+        }
+        // base branch (타겟 브랜치) 저장
+        if (response.data.base_branch) {
+          this.repository.baseBranch = response.data.base_branch;
+        }
       }
     } catch (error) {
       // API 호출 실패는 무시 (DOM에서 추출한 branch 사용)
@@ -176,10 +211,25 @@ export class GitHubInjector {
       return;
     }
 
-    // 컨벤션 코멘트 여부 체크
-    const isConvention = isConventionComment(comment.content);
+    // 비활성화 이유 결정
+    let disabled = false;
+    let disabledReason = '';
 
-    // 버튼 추가 (컨벤션이 아니면 disabled)
+    // 1. API Token 확인
+    if (!this.hasApiToken) {
+      disabled = true;
+      disabledReason = '⚠️ API tokens not configured\n\nPlease configure your GitHub token and LLM API key in the extension settings to use this feature.';
+    }
+    // 2. 컨벤션 코멘트 여부 체크 (API token이 있는 경우에만)
+    else {
+      const isConvention = isConventionComment(comment.content);
+      if (!isConvention) {
+        disabled = true;
+        disabledReason = '⚠️ Comment does not meet requirements\n\nThis comment needs at least one of:\n• 50+ characters\n• Convention keywords (e.g., "must", "should", "avoid")\n• Code examples\n• Emojis';
+      }
+    }
+
+    // 버튼 추가
     this.uiBuilder.addButton(
       commentElement.element,
       commentElement.contentElement,
@@ -187,7 +237,8 @@ export class GitHubInjector {
         platform: 'github',
         comment,
         onClick: (comment) => this.onButtonClick(comment),
-        disabled: !isConvention
+        disabled,
+        disabledReason
       }
     );
   }
@@ -283,7 +334,7 @@ export class GitHubInjector {
     try {
       // Chrome Extension API 체크
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-        throw new Error('Chrome Extension API를 사용할 수 없습니다.');
+        throw new Error('Chrome Extension API is not available.');
       }
 
       // 1. 로딩 상태 표시
@@ -316,7 +367,7 @@ export class GitHubInjector {
 
       if (action === 'edit') {
         // Phase 2에서 구현
-        alert('수정 기능은 다음 단계에서 구현됩니다.');
+        alert('Edit feature will be implemented in the next phase.');
         return;
       }
 
@@ -401,7 +452,7 @@ export class GitHubInjector {
     try {
       // Chrome Extension API 존재 여부 확인
       if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-        throw new Error('Chrome Extension API를 사용할 수 없습니다. Extension이 제대로 로드되었는지 확인해주세요.');
+        throw new Error('Chrome Extension API is not available. Please check if the extension is properly loaded.');
       }
 
       // Background script로 메시지 전송

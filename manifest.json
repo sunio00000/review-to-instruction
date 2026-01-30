@@ -8,9 +8,14 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://github.com/*",
-    "https://gitlab.com/*",
-    "https://git.projectbro.com/*"
+    "https://github.com/*/pull/*",
+    "https://github.com/api/*",
+    "https://gitlab.com/*/-/merge_requests/*",
+    "https://gitlab.com/api/*",
+    "https://git.projectbro.com/*/-/merge_requests/*",
+    "https://git.projectbro.com/api/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -26,12 +31,16 @@
       ],
       "js": [
         "src/content/main.ts"
-      ]
+      ],
+      "run_at": "document_end"
     }
   ],
   "optional_host_permissions": [
     "https://*/*/-/merge_requests/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {
