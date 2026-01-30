@@ -69,6 +69,10 @@ export async function handleMessage(
       await handleSetMasterPassword(message.payload, sendResponse);
       break;
 
+    case 'CHECK_TOKEN_STATUS':
+      await handleCheckTokenStatus(message.payload, sendResponse);
+      break;
+
     default:
       sendResponse({ success: false, error: 'Unknown message type' });
   }
@@ -520,6 +524,76 @@ async function handleConfirmAndConvert(
     });
 
     sendResponse({ success: true, data: result });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * API Token 상태 확인 (복호화 가능 여부)
+ */
+async function handleCheckTokenStatus(
+  payload: { platform: Platform },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    const { platform } = payload;
+
+    // 암호화된 token 확인
+    const storage = await chrome.storage.local.get([
+      'githubToken_enc',
+      'gitlabToken_enc',
+      'claudeApiKey_enc',
+      'openaiApiKey_enc',
+      'llmProvider'
+    ]);
+
+    // Platform별 token 확인
+    const platformTokenKey = platform === 'github' ? 'githubToken_enc' : 'gitlabToken_enc';
+    const hasPlatformToken = !!storage[platformTokenKey];
+
+    // LLM API key 확인
+    const provider = storage.llmProvider || 'claude';
+    const llmKeyKey = provider === 'claude' ? 'claudeApiKey_enc' : 'openaiApiKey_enc';
+    const hasLlmKey = !!storage[llmKeyKey];
+
+    // 둘 다 없으면 바로 false 반환
+    if (!hasPlatformToken || !hasLlmKey) {
+      sendResponse({
+        success: true,
+        data: { hasValidTokens: false }
+      });
+      return;
+    }
+
+    // 복호화 시도
+    let canDecryptPlatformToken = false;
+    let canDecryptLlmKey = false;
+
+    try {
+      await globalCrypto.decrypt(storage[platformTokenKey] as string);
+      canDecryptPlatformToken = true;
+    } catch (error) {
+      // 복호화 실패
+    }
+
+    try {
+      await globalCrypto.decrypt(storage[llmKeyKey] as string);
+      canDecryptLlmKey = true;
+    } catch (error) {
+      // 복호화 실패
+    }
+
+    // 둘 다 복호화 가능해야 유효
+    const hasValidTokens = canDecryptPlatformToken && canDecryptLlmKey;
+
+    sendResponse({
+      success: true,
+      data: { hasValidTokens }
+    });
   } catch (error) {
     sendResponse({
       success: false,
