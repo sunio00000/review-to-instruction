@@ -18,7 +18,7 @@ export class CodexGenerator extends BaseGenerator {
    * 파일 생성
    */
   generate(options: GeneratorOptions): GenerationResult {
-    const { parsedComment, existingContent } = options;
+    const { existingContent } = options;
 
     // 기존 파일이 있으면 append, 없으면 새로 생성
     const content = existingContent
@@ -53,8 +53,6 @@ export class CodexGenerator extends BaseGenerator {
    * 새 AGENTS.md 파일 생성
    */
   private createAgentsFile(options: GeneratorOptions): string {
-    const { parsedComment, originalComment, repository } = options;
-
     const sections: string[] = [];
 
     // 헤더
