@@ -51,15 +51,16 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     // 1. 프로젝트 타입 감지
     const detectionResult = await this.projectDetector.detect(client, repository);
 
-    if (detectionResult.detectedTypes.length === 0) {
-      throw new Error('지원되는 AI 도구 형식(.claude/, .cursorrules, rules/)을 찾을 수 없습니다.');
-    }
+    // 프로젝트 타입이 감지되지 않으면 기본 타입들을 사용 (디렉토리 자동 생성)
+    const typesToGenerate: ProjectType[] = detectionResult.detectedTypes.length > 0
+      ? detectionResult.detectedTypes
+      : ['claude-code', 'cursor', 'windsurf'];
 
 
     // 2. AI 기반 프로젝트 분석 (Claude Code 타입일 때만)
     let analysisResult: AnalysisResult | null = null;
 
-    if (detectionResult.detectedTypes.includes('claude-code')) {
+    if (typesToGenerate.includes('claude-code')) {
 
       // 캐시 확인
       const cacheKey = `${repository.owner}/${repository.name}/${repository.branch}`;
@@ -73,7 +74,7 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     }
 
     // 3. Generator 생성
-    const generators = GeneratorFactory.createGenerators(detectionResult.detectedTypes);
+    const generators = GeneratorFactory.createGenerators(typesToGenerate);
 
     // 4. 각 타입별 파일 생성
     const files: FileGenerationResult[] = [];
