@@ -52,9 +52,10 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     const detectionResult = await this.projectDetector.detect(client, repository);
 
     // 프로젝트 타입이 감지되지 않으면 기본 타입들을 사용 (디렉토리 자동 생성)
+    // 기본: Claude Code, Cursor만 생성
     const typesToGenerate: ProjectType[] = detectionResult.detectedTypes.length > 0
       ? detectionResult.detectedTypes
-      : ['claude-code', 'cursor', 'windsurf', 'codex'];
+      : ['claude-code', 'cursor'];
 
 
     // 2. AI 기반 프로젝트 분석 (Claude Code 타입일 때만)
