@@ -76,11 +76,27 @@ export class GitHubInjector {
           branch = 'main';  // 임시값
         }
 
+        // PR의 타겟 브랜치(base branch) 정보 추출
+        // 1. base-ref 시도 (PR의 target/base branch - 머지 대상 브랜치)
+        let baseBranch = document.querySelector('.base-ref')?.textContent?.trim();
+
+        // 2. branch-name 클래스 시도
+        if (!baseBranch) {
+          const baseBranchElement = document.querySelector('.commit-ref.base-ref .css-truncate-target');
+          baseBranch = baseBranchElement?.textContent?.trim();
+        }
+
+        // 3. fallback to 'main'
+        if (!baseBranch) {
+          baseBranch = 'main';
+        }
+
         return {
           owner,
           name,
           platform: 'github',
           branch,
+          baseBranch,
           prNumber
         };
       }
