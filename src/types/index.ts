@@ -1,11 +1,11 @@
 /**
- * Review to Instruction - 공통 타입 정의
+ * Review to Instruction - common type definitions
  */
 
-// GitHub/GitLab 플랫폼 타입
+// GitHub/GitLab platform type
 export type Platform = 'github' | 'gitlab';
 
-// 코멘트 정보
+// Comment info
 export interface Comment {
   id: string;
   author: string;
@@ -14,10 +14,10 @@ export interface Comment {
   url: string;
   createdAt: string;
   platform: Platform;
-  replies?: CommentReply[];  // 스레드의 답글들 (optional)
+  replies?: CommentReply[];  // Replies in the thread (optional)
 }
 
-// 코멘트 답글
+// Comment reply
 export interface CommentReply {
   id: string;
   author: string;
@@ -25,42 +25,42 @@ export interface CommentReply {
   createdAt: string;
 }
 
-// Discussion Thread (여러 코멘트로 구성)
+// Discussion Thread (multiple comments)
 export interface DiscussionThread {
   id: string;
   platform: Platform;
-  comments: Comment[];           // Thread 내 모든 코멘트
-  containerElement: HTMLElement; // Discussion 컨테이너 DOM
+  comments: Comment[];           // All comments in the thread
+  containerElement: HTMLElement; // Discussion container DOM
 }
 
-// 파싱된 코멘트
+// Parsed comment
 export interface ParsedComment {
-  content: string;              // 원본 코멘트 내용
-  keywords: string[];           // 추출된 키워드
-  category: string;             // 분류 (conventions, patterns, style, architecture 등)
-  codeExamples: string[];       // 코드 예시
-  suggestedFileName: string;    // 제안 파일명
+  content: string;              // Original comment content
+  keywords: string[];           // Extracted keywords
+  category: string;             // Category (conventions, patterns, style, architecture, etc.)
+  codeExamples: string[];       // Code examples
+  suggestedFileName: string;    // Suggested file name
 }
 
-// 코드 설명
+// Code explanation
 export interface CodeExplanation {
-  code: string;                 // 원본 코드
-  explanation: string;          // LLM 생성 설명
-  isGoodExample?: boolean;      // 올바른 예시 여부
+  code: string;                 // Original code
+  explanation: string;          // LLM-generated explanation
+  isGoodExample?: boolean;      // Whether it is a correct example
 }
 
-// LLM 강화 코멘트 (ParsedComment 확장)
+// LLM enhanced comment (extends ParsedComment)
 export interface EnhancedComment extends ParsedComment {
-  llmEnhanced: boolean;                    // LLM으로 강화되었는지 여부
-  summary?: string;                         // LLM 생성 요약
-  detailedExplanation?: string;            // LLM 생성 상세 설명
-  codeExplanations?: CodeExplanation[];    // 코드 예시 설명
-  additionalKeywords?: string[];           // LLM이 추출한 추가 키워드
-  suggestedCategory?: string;              // LLM이 제안한 카테고리
-  reasoning?: ReasoningInfo;               // 추론 정보 (Phase 1)
+  llmEnhanced: boolean;                    // Whether enhanced by LLM
+  summary?: string;                         // LLM-generated summary
+  detailedExplanation?: string;            // LLM-generated detailed explanation
+  codeExplanations?: CodeExplanation[];    // Code example explanations
+  additionalKeywords?: string[];           // Additional keywords extracted by LLM
+  suggestedCategory?: string;              // Category suggested by LLM
+  reasoning?: ReasoningInfo;               // Reasoning info (Phase 1)
 }
 
-// 추론 정보 (Phase 1: 투명성 강화)
+// Reasoning info (Phase 1: transparency)
 export interface ReasoningInfo {
   detectedIntent: string[];
   keyPhrases: string[];
@@ -68,59 +68,59 @@ export interface ReasoningInfo {
   confidenceScore: number;
 }
 
-// 레포지토리 정보
+// Repository info
 export interface Repository {
   owner: string;
   name: string;
   platform: Platform;
-  branch: string;               // 현재 PR/MR의 head 브랜치 (작업 브랜치)
-  baseBranch?: string;          // 현재 PR/MR의 base 브랜치 (타겟 브랜치)
-  prNumber: number;             // PR/MR 번호
+  branch: string;               // Current PR/MR head branch (working branch)
+  baseBranch?: string;          // Current PR/MR base branch (target branch)
+  prNumber: number;             // PR/MR number
 }
 
-// Claude Code instruction/skill 파일
+// Claude Code instruction/skill file
 export interface ClaudeFile {
-  path: string;                 // 파일 경로 (.claude/rules/ 또는 .claude/skills/)
+  path: string;                 // File path (.claude/rules/ or .claude/skills/)
   title: string;
   keywords: string[];
   category: string;
-  content: string;              // Markdown 내용
+  content: string;              // Markdown content
   frontmatter: Record<string, any>;  // YAML frontmatter
 }
 
-// 매칭 결과
+// Matching result
 export interface MatchResult {
   file: ClaudeFile | null;
   score: number;                // 0-100
   isMatch: boolean;             // score >= 70
 }
 
-// LLM 제공자 타입
+// LLM provider type
 export type LLMProvider = 'claude' | 'openai';
 
-// LLM 설정
+// LLM configuration
 export interface LLMConfig {
   provider: LLMProvider;      // 'claude' or 'openai' (required)
   claudeApiKey?: string;
   openaiApiKey?: string;
 }
 
-// API 설정
+// API configuration
 export interface ApiConfig {
   githubToken?: string;
   gitlabToken?: string;
-  gitlabUrl?: string;          // Self-hosted GitLab URL (선택)
+  gitlabUrl?: string;          // Self-hosted GitLab URL (optional)
   showButtons?: boolean;
-  llm?: LLMConfig;             // LLM 설정 추가
+  llm?: LLMConfig;             // LLM configuration
 }
 
-// 프로젝트 타입 관련 (Feature 1)
+// Project type exports (Feature 1)
 export type { ProjectType, ProjectTypeConfig, ProjectTypeDetectionResult, CachedDetectionResult } from './project-types';
 
-// FormManager 타입 관련
+// FormManager types
 export type { FormState, ValidationRule, FieldSchema } from './form-manager';
 
-// 파일 생성 결과 (Feature 1)
+// File generation result (Feature 1)
 export interface FileGenerationResult {
   projectType: string;  // ProjectType
   filePath: string;
@@ -128,22 +128,22 @@ export interface FileGenerationResult {
   isUpdate: boolean;
 }
 
-// 메시지 타입 (Content Script ↔ Background)
+// Message types (Content Script ↔ Background)
 export type MessageType =
   | 'GET_CONFIG'
   | 'SAVE_CONFIG'
   | 'CONVERT_COMMENT'
-  | 'CONVERT_THREAD'       // Discussion Thread 전체 변환
-  | 'PREVIEW_INSTRUCTION'  // Instruction 미리보기 생성 (LLM 분석만)
-  | 'CONFIRM_AND_CONVERT'  // 미리보기 확인 후 실제 변환
+  | 'CONVERT_THREAD'       // Convert entire discussion thread
+  | 'PREVIEW_INSTRUCTION'  // Generate instruction preview (LLM analysis only)
+  | 'CONFIRM_AND_CONVERT'  // Convert after preview confirmation
   | 'CREATE_PR'
   | 'TEST_API'
-  | 'GET_CACHE_STATS'      // Feature 2: 캐시 통계 조회
-  | 'CLEAR_CACHE'          // Feature 2: 캐시 초기화
-  | 'GET_REPOSITORY_INFO'  // Repository 기본 브랜치 조회
-  | 'GET_PR_INFO'          // PR head/base 브랜치 조회
-  | 'SET_MASTER_PASSWORD'  // 마스터 비밀번호 설정
-  | 'CHECK_TOKEN_STATUS';  // API Token 유효성 확인 (복호화 가능 여부)
+  | 'GET_CACHE_STATS'      // Feature 2: fetch cache stats
+  | 'CLEAR_CACHE'          // Feature 2: clear cache
+  | 'GET_REPOSITORY_INFO'  // Fetch repository default branch
+  | 'GET_PR_INFO'          // Fetch PR head/base branches
+  | 'SET_MASTER_PASSWORD'  // Set master password
+  | 'CHECK_TOKEN_STATUS';  // Check API token validity (decryptable)
 
 export interface Message {
   type: MessageType;
@@ -156,12 +156,12 @@ export interface MessageResponse {
   error?: string;
 }
 
-// 에러 응답 (표준화된 에러 형식)
+// Error response (standardized format)
 export interface ErrorResponse {
   success: false;
   error: {
-    message: string;      // 사용자에게 표시할 메시지
-    code?: string;        // 에러 코드 (선택)
-    timestamp: number;    // 에러 발생 시각
+    message: string;      // Message to display to the user
+    code?: string;        // Error code (optional)
+    timestamp: number;    // Error occurred timestamp
   };
 }
