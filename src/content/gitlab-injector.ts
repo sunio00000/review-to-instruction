@@ -74,11 +74,19 @@ export class GitLabInjector {
           branch = 'main';
         }
 
+        // 타겟 브랜치(base branch) 정보 추출
+        let baseBranch = this.extractBaseBranch();
+
+        if (!baseBranch) {
+          baseBranch = 'main';
+        }
+
         return {
           owner,
           name,
           platform: 'gitlab',
           branch,
+          baseBranch,
           prNumber
         };
       }
@@ -123,6 +131,39 @@ export class GitLabInjector {
     // 3. 페이지 제목에서 추출 시도 (최종 Fallback)
     // 페이지 제목 예: "Merge Request !123: Add new feature (branch-name → main)"
     const titleMatch = document.title.match(/\(([^)→]+)\s*→/);
+    if (titleMatch && titleMatch[1]) {
+      const branch = titleMatch[1].trim();
+      return branch;
+    }
+
+    return null;
+  }
+
+  /**
+   * GitLab MR 페이지에서 타겟 브랜치(base branch) 정보 추출
+   */
+  private extractBaseBranch(): string | null {
+    const BASE_BRANCH_SELECTORS = [
+      '.target-branch-link',              // 타겟 브랜치 링크
+      '[data-testid="target-branch"]',    // data-testid 속성
+      '.merge-request-target-branch',     // MR 타겟 브랜치
+      '.issuable-target-branch',          // Issuable 타겟 브랜치
+      '.target-branch .ref-name'          // ref-name 클래스
+    ];
+
+    // 1. DOM 선택자로 추출 시도
+    for (const selector of BASE_BRANCH_SELECTORS) {
+      const element = document.querySelector(selector);
+      const branch = element?.textContent?.trim();
+
+      if (branch) {
+        return branch;
+      }
+    }
+
+    // 2. 페이지 제목에서 추출 시도
+    // 페이지 제목 예: "Merge Request !123: Add new feature (branch-name → main)"
+    const titleMatch = document.title.match(/→\s*([^)]+)\)/);
     if (titleMatch && titleMatch[1]) {
       const branch = titleMatch[1].trim();
       return branch;

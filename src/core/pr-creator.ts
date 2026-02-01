@@ -39,15 +39,51 @@ export async function createPullRequest(
     // 2. 타겟 브랜치 결정 (baseBranch가 있으면 우선 사용, 없으면 branch 사용)
     const targetBranch = repository.baseBranch || repository.branch;
 
-    // 3. 브랜치 생성
-    const branchCreated = await client.createBranch(
+    // 3. 브랜치 생성 (실패 시 fallback 시도)
+    let branchCreated = await client.createBranch(
       repository,
       branchName,
       targetBranch
     );
 
+    // 3-1. 타겟 브랜치로 생성 실패 시, baseBranch로 재시도 (머지된 PR의 경우)
+    if (!branchCreated && targetBranch !== repository.baseBranch && repository.baseBranch) {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        repository.baseBranch
+      );
+    }
+
+    // 3-2. 여전히 실패하면 'develop'으로 재시도
+    if (!branchCreated && targetBranch !== 'develop') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'develop'
+      );
+    }
+
+    // 3-3. 'develop'도 실패하면 'main'으로 재시도
+    if (!branchCreated && targetBranch !== 'main') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'main'
+      );
+    }
+
+    // 3-4. 'main'도 실패하면 'master'로 최종 시도
+    if (!branchCreated && targetBranch !== 'master') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'master'
+      );
+    }
+
     if (!branchCreated) {
-      throw new Error('Failed to create branch');
+      throw new Error('Failed to create branch. Please check if the repository has a valid default branch (develop/main/master).');
     }
 
 
@@ -315,15 +351,51 @@ export async function createPullRequestWithMultipleFiles(
     // 2. 타겟 브랜치 결정 (baseBranch가 있으면 우선 사용, 없으면 branch 사용)
     const targetBranch = repository.baseBranch || repository.branch;
 
-    // 3. 브랜치 생성
-    const branchCreated = await client.createBranch(
+    // 3. 브랜치 생성 (실패 시 fallback 시도)
+    let branchCreated = await client.createBranch(
       repository,
       branchName,
       targetBranch
     );
 
+    // 3-1. 타겟 브랜치로 생성 실패 시, baseBranch로 재시도 (머지된 PR의 경우)
+    if (!branchCreated && targetBranch !== repository.baseBranch && repository.baseBranch) {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        repository.baseBranch
+      );
+    }
+
+    // 3-2. 여전히 실패하면 'develop'으로 재시도
+    if (!branchCreated && targetBranch !== 'develop') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'develop'
+      );
+    }
+
+    // 3-3. 'develop'도 실패하면 'main'으로 재시도
+    if (!branchCreated && targetBranch !== 'main') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'main'
+      );
+    }
+
+    // 3-4. 'main'도 실패하면 'master'로 최종 시도
+    if (!branchCreated && targetBranch !== 'master') {
+      branchCreated = await client.createBranch(
+        repository,
+        branchName,
+        'master'
+      );
+    }
+
     if (!branchCreated) {
-      throw new Error('Failed to create branch');
+      throw new Error('Failed to create branch. Please check if the repository has a valid default branch (develop/main/master).');
     }
 
 
