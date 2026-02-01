@@ -35,4 +35,4 @@ test-results/
 playwright-report/
 
 # Local settings
-.claude/settings.local.json
+.claude/
