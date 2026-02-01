@@ -3,6 +3,12 @@
 [![AI Generated](https://img.shields.io/badge/🤖_AI_Generated-Claude_Sonnet_4.5-8A2BE2.svg)](https://www.anthropic.com/claude)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
+
+
+https://github.com/user-attachments/assets/a78b3033-9021-4fa2-8a7e-e2c038182d31
+
+
+
 > Transform PR review comments into structured AI instructions with a single click
 
 A Chrome extension that automatically converts GitHub/GitLab review comments into instruction files for Claude Code, Cursor, and Windsurf. Simply click a button on any convention-related comment, and the extension generates properly formatted instructions, creates a PR, and keeps your AI agents aligned with your team's standards.
