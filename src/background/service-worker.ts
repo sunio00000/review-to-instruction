@@ -9,9 +9,6 @@ import { globalCrypto } from './global-crypto';
 import { logger } from '../utils/logger';
 import { sessionManager } from './services/session-manager';
 
-// 전역 CryptoService 인스턴스를 별도 파일에서 export
-export { globalCrypto };
-
 /**
  * 아이콘 상태 초기화
  */

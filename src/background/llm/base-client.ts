@@ -11,10 +11,11 @@ export abstract class BaseLLMClient implements ILLMClient {
   abstract provider: LLMProvider;
   protected apiKey: string;
   protected timeout: number = 30000; // 30초 타임아웃
-  protected rateLimiter: RateLimiter = new RateLimiter(10, 60000); // 분당 10회 제한
+  protected rateLimiter: RateLimiter;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+    this.rateLimiter = new RateLimiter(10, 60000); // 분당 10회 제한
   }
 
   abstract analyzeComment(
