@@ -192,19 +192,18 @@ export class GitLabInjector {
     this.repository = this.extractRepository();
     // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
 
+    // Wrapup 버튼 추가 (먼저 실행하여 collapsed discussions를 expand)
+    // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
+    await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
+
     // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
     this.detector.start();
 
-    // Thread 감지 및 버튼 추가
+    // Thread 감지 및 버튼 추가 (Wrapup 버튼이 discussions를 expand한 후 실행)
     this.detectAndAddThreadButtons();
 
     // 새로운 Thread 감지 (MutationObserver)
     this.observeThreads();
-
-    // Wrapup 버튼 추가
-
-    // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
-    this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
   }
 
   /**
@@ -344,11 +343,15 @@ export class GitLabInjector {
       const discussionContainer = noteElement.closest('.discussion-notes, .notes, [data-discussion-id]');
       if (!discussionContainer) return replies;
 
-      // 모든 note 요소 찾기
-      const allNotes = Array.from(discussionContainer.querySelectorAll('.note'));
+      // 모든 note 요소 찾기 (system-note 제외)
+      const allNotes = Array.from(discussionContainer.querySelectorAll('.note:not(.system-note)'));
 
-      // 첫 번째 요소(원본 노트) 제외하고 답글만 추출
-      for (let i = 1; i < allNotes.length; i++) {
+      // 현재 note의 인덱스 찾기
+      const currentIndex = allNotes.indexOf(noteElement as Element);
+      if (currentIndex === -1) return replies;
+
+      // 현재 note 다음부터만 답글로 추출 (현재 note 이후의 notes만)
+      for (let i = currentIndex + 1; i < allNotes.length; i++) {
         const replyElement = allNotes[i];
 
         const replyAuthor = replyElement.querySelector('.note-header-author-name')?.textContent?.trim() || 'Unknown';
@@ -457,6 +460,20 @@ export class GitLabInjector {
       progressTimers.forEach(timer => clearTimeout(timer));
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        this.uiBuilder.setButtonState(button, 'error');
+        alert(
+          `⚠️ Extension Connection Lost\n\n` +
+          `The extension was reloaded or updated.\n\n` +
+          `💡 Please reload this page (F5) and try again.`
+        );
+        return;
+      }
+
       this.uiBuilder.showErrorMessage(button, errorMessage, 'gitlab');
     }
   }
@@ -588,6 +605,20 @@ export class GitLabInjector {
     } catch (error) {
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        this.uiBuilder.setButtonState(button, 'error');
+        alert(
+          `⚠️ Extension Connection Lost\n\n` +
+          `The extension was reloaded or updated.\n\n` +
+          `💡 Please reload this page (F5) and try again.`
+        );
+        return;
+      }
+
       this.uiBuilder.showErrorMessage(button, errorMessage, 'gitlab');
     }
   }
@@ -649,7 +680,30 @@ export class GitLabInjector {
     } catch (error) {
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      console.error('[RTI Error] [GitLabInjector] Wrapup conversion failed:', errorMessage);
+
       this.wrapupManager.setButtonState('error', 'Failed');
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        setTimeout(() => {
+          alert(
+            `⚠️ Extension Connection Lost\n\n` +
+            `The extension was reloaded or updated while processing your request.\n\n` +
+            `💡 Solution:\n` +
+            `1. Reload this page (F5 or Ctrl+R)\n` +
+            `2. Try the operation again\n\n` +
+            `If the problem persists:\n` +
+            `• Go to chrome://extensions\n` +
+            `• Find "Review to Instruction"\n` +
+            `• Click the reload button`
+          );
+        }, 500);
+        return;
+      }
 
       // 3초 후 에러 메시지 표시
       setTimeout(() => {

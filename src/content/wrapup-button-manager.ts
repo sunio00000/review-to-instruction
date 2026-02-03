@@ -64,30 +64,30 @@ export class WrapupButtonManager {
   }
 
   /**
-   * Wrapup 버튼 추가 (항상 표시, convention 체크는 클릭 시)
+   * Wrapup 버튼 추가 (convention 코멘트 개수 표시)
    */
-  addWrapupButton(onClick: (comments: Comment[]) => void): void {
-
+  async addWrapupButton(onClick: (comments: Comment[]) => void): Promise<void> {
     // 이미 버튼이 있으면 제거
     if (this.button) {
       this.removeWrapupButton();
     }
 
-    // 전체 코멘트 수 확인 (convention 여부 무관)
-    const allCommentSelectors = this.getCommentSelectors();
-    let totalComments = 0;
-    for (const selector of allCommentSelectors) {
-      totalComments += document.querySelectorAll(selector).length;
+    // GitLab: Collapsed 토론 자동으로 펼치고 콘텐츠 로딩 대기
+    if (this.platform === 'gitlab') {
+      this.expandCollapsedDiscussions();
+      await this.waitForGitLabContent();
     }
 
-    if (totalComments === 0) {
+    // Convention 코멘트 수집 (버튼에 개수 표시하기 위해)
+    const conventionComments = this.collectAllConventionComments();
+
+    // Convention 코멘트가 0개면 버튼 추가하지 않음
+    if (conventionComments.length === 0) {
       return;
     }
 
-
-    // 버튼 생성 (초기에는 코멘트 수 표시 안 함)
-    this.button = this.createWrapupButton(0);
-    this.updateButtonText(); // 버튼 텍스트만 업데이트
+    // 버튼 생성 (convention 코멘트 개수 포함)
+    this.button = this.createWrapupButton(conventionComments.length);
 
     // 클릭 이벤트 (클릭 시 convention 코멘트 수집)
     this.button.addEventListener('click', (e) => {
@@ -152,18 +152,6 @@ export class WrapupButtonManager {
     }
   }
 
-  /**
-   * 버튼 텍스트만 업데이트
-   */
-  private updateButtonText(): void {
-    if (!this.button) return;
-
-    const span = this.button.querySelector('span');
-    if (span) {
-      const prMr = this.platform === 'github' ? 'PR' : 'MR';
-      span.textContent = `Convert All ${prMr} Conventions`;
-    }
-  }
 
   /**
    * Wrapup 버튼 제거
@@ -434,5 +422,102 @@ export class WrapupButtonManager {
    */
   getButton(): HTMLButtonElement | null {
     return this.button;
+  }
+
+  /**
+   * GitLab: Collapsed 토론 자동으로 펼치기
+   */
+  private expandCollapsedDiscussions(): void {
+    // Collapsed된 토론 찾기
+    const collapsedDiscussions = Array.from(
+      document.querySelectorAll<HTMLElement>('.discussion.collapsed, .timeline-content.collapsed')
+    );
+
+    if (collapsedDiscussions.length === 0) {
+      return;
+    }
+
+    collapsedDiscussions.forEach((discussion) => {
+      try {
+        // "collapsed" 클래스 제거
+        discussion.classList.remove('collapsed');
+
+        // 토론 헤더에서 expand 버튼 찾아서 클릭 (있으면)
+        const expandButton = discussion.querySelector<HTMLElement>('.discussion-toggle-button, .js-toggle-button, [aria-label*="Expand"]');
+        if (expandButton) {
+          expandButton.click();
+        }
+
+        // 강제로 display 스타일 변경 (fallback)
+        const discussionBody = discussion.querySelector<HTMLElement>('.discussion-body, .note-body');
+        if (discussionBody && discussionBody.style.display === 'none') {
+          discussionBody.style.display = '';
+        }
+      } catch (error) {
+        // Silently skip failed expansions
+      }
+    });
+  }
+
+  /**
+   * GitLab: 콘텐츠가 완전히 로드될 때까지 대기
+   * GitLab은 lazy-loading을 사용하여 댓글 콘텐츠를 "Loading..." 상태로 표시하다가 나중에 실제 내용을 로드합니다.
+   * 이 메서드는 "Loading" 텍스트가 너무 많으면 재시도합니다.
+   */
+  private async waitForGitLabContent(): Promise<void> {
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY_MS = 500;
+    const LOADING_THRESHOLD = 0.3; // 30% 이상이 "Loading"이면 재시도
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      // 약간의 딜레이 (첫 시도 제외)
+      if (attempt > 1) {
+        await this.delay(RETRY_DELAY_MS);
+      }
+
+      // 댓글 추출
+      const allComments: Comment[] = [];
+      const processedIds = new Set<string>();
+      const commentSelectors = this.getCommentSelectors();
+
+      for (const selector of commentSelectors) {
+        const elements = document.querySelectorAll<HTMLElement>(selector);
+        elements.forEach((element) => {
+          try {
+            const comment = this.extractCommentFromElement(element);
+            if (comment && !processedIds.has(comment.id)) {
+              allComments.push(comment);
+              processedIds.add(comment.id);
+            }
+          } catch (error) {
+            // Silently skip failed extractions
+          }
+        });
+      }
+
+      if (allComments.length === 0) {
+        continue;
+      }
+
+      // "Loading" 텍스트가 있는 댓글 카운트
+      const loadingComments = allComments.filter(comment => {
+        const content = comment.content.trim().toLowerCase();
+        return content === 'loading' || content === 'loading...' || content.startsWith('loading');
+      });
+
+      const loadingRatio = loadingComments.length / allComments.length;
+
+      // "Loading" 비율이 임계값 이하면 성공
+      if (loadingRatio < LOADING_THRESHOLD) {
+        return;
+      }
+    }
+  }
+
+  /**
+   * Promise 기반 delay 유틸리티
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
