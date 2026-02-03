@@ -10,6 +10,9 @@ import { GeneratorFactory } from '../../core/generators/generator-factory';
 import { findMatchingFileForProjectType } from '../../core/file-matcher';
 import { InstructionAnalyzer, type AnalysisResult } from '../../core/instruction-analyzer';
 import { SmartFileNaming } from '../../core/smart-file-naming';
+import { ClaudeClient } from '../llm/claude-client';
+import { OpenAIClient } from '../llm/openai-client';
+import type { ILLMClient } from '../llm/types';
 
 export interface FileGenerationService {
   generateForAllTypes(
@@ -149,6 +152,75 @@ export class FileGenerationServiceImpl implements FileGenerationService {
       projectType as ProjectType
     );
 
+    // 2.5. LLM 기반 중복 검사 (Phase 1: 중복 파일 방지)
+    let skipped = false;
+    let merged = false;
+    let similarityScore: number | undefined;
+    let reasoning: string | undefined;
+
+    if (matchResult.existingContent && llmConfig) {
+      try {
+        // LLM 클라이언트 생성
+        const llmClient: ILLMClient = llmConfig.provider === 'claude'
+          ? new ClaudeClient(llmConfig.claudeApiKey!)
+          : new OpenAIClient(llmConfig.openaiApiKey!);
+
+        // 새 내용 미리보기 생성 (경량)
+        const previewContent = this.generatePreviewContent(enhancedComment);
+
+        // 유사도 검사
+        const similarityResult = await (llmClient as any).checkSimilarityWithCache(
+          matchResult.existingContent,
+          previewContent
+        );
+
+        if (similarityResult.success && similarityResult.data) {
+          similarityScore = similarityResult.data.similarity;
+          reasoning = similarityResult.data.reasoning;
+
+          // 의사결정
+          switch (similarityResult.data.decision) {
+            case 'IDENTICAL':
+              // 스킵: 기존 파일 그대로 유지
+              skipped = true;
+              return {
+                projectType,
+                filePath: matchResult.filePath,
+                content: matchResult.existingContent,
+                isUpdate: false,
+                skipped: true,
+                similarityScore,
+                reasoning
+              };
+
+            case 'MERGE':
+              // 병합: LLM이 자동으로 병합
+              const mergedContent = await (llmClient as any).mergeInstructionsWithCache(
+                matchResult.existingContent,
+                previewContent
+              );
+              matchResult.existingContent = mergedContent;
+              merged = true;
+              break;
+
+            case 'DIFFERENT':
+              // 새 파일: 고유한 이름 생성
+              const uniquePath = await this.generateUniquePath(
+                client,
+                repository,
+                matchResult.filePath,
+                similarityResult.data.reasoning
+              );
+              matchResult.filePath = uniquePath;
+              matchResult.existingContent = undefined;
+              break;
+          }
+        }
+      } catch (error) {
+        // Fallback: LLM 실패 시 기존 로직 유지
+      }
+    }
+
     // 3. Generator로 파일 생성 (AI 제안 경로 전달, await 추가)
     const generationResult = await generator.generate({
       parsedComment: enhancedComment,
@@ -167,7 +239,65 @@ export class FileGenerationServiceImpl implements FileGenerationService {
       projectType,
       filePath: finalFilePath,
       content: generationResult.content,
-      isUpdate: generationResult.isUpdate
+      isUpdate: generationResult.isUpdate,
+      merged,
+      similarityScore,
+      reasoning
     };
+  }
+
+  /**
+   * 미리보기 내용 생성 (경량) - Phase 1: 중복 검사용
+   */
+  private generatePreviewContent(parsedComment: EnhancedComment): string {
+    return `---
+category: ${parsedComment.category}
+keywords: ${parsedComment.keywords.join(', ')}
+---
+
+${parsedComment.content}`;
+  }
+
+  /**
+   * 고유한 파일 경로 생성 (DIFFERENT 케이스) - Phase 1: 중복 검사
+   */
+  private async generateUniquePath(
+    client: ApiClient,
+    repository: Repository,
+    originalPath: string,
+    reasoning: string
+  ): Promise<string> {
+    // 1. LLM reasoning에서 키워드 추출
+    const suffix = this.extractSuffixFromReasoning(reasoning);
+
+    // 2. 파일명 변형: error-handling.md → error-handling-async.md
+    const baseName = originalPath.replace(/\.md$/, '');
+    let newPath = `${baseName}-${suffix}.md`;
+
+    // 3. 여전히 충돌하면 timestamp 추가
+    const fileExists = await client.getFileContent(repository, newPath);
+    if (fileExists) {
+      const timestamp = Date.now();
+      newPath = `${baseName}-${suffix}-${timestamp}.md`;
+    }
+
+    return newPath;
+  }
+
+  /**
+   * Reasoning에서 파일명 suffix 추출 - Phase 1: 중복 검사
+   */
+  private extractSuffixFromReasoning(reasoning: string): string {
+    // 예: "focuses on async patterns" → "async-patterns"
+    const keywords = reasoning
+      .toLowerCase()
+      .match(/\b(async|sync|pattern|example|advanced|basic|handler|helper|util|service|component)\b/g);
+
+    if (keywords && keywords.length > 0) {
+      return keywords.slice(0, 2).join('-');
+    }
+
+    // Fallback: timestamp
+    return `alt-${Date.now()}`;
   }
 }

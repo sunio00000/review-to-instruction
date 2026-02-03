@@ -120,12 +120,18 @@ export type { ProjectType, ProjectTypeConfig, ProjectTypeDetectionResult, Cached
 // FormManager 타입 관련
 export type { FormState, ValidationRule, FieldSchema } from './form-manager';
 
-// 파일 생성 결과 (Feature 1)
+// 파일 생성 결과 (Feature 1, Phase 1: 중복 검사 필드 추가)
 export interface FileGenerationResult {
   projectType: string;  // ProjectType
   filePath: string;
   content: string;
   isUpdate: boolean;
+
+  // Phase 1: 중복 검사 결과 (선택적)
+  skipped?: boolean;          // IDENTICAL 케이스: 기존 파일과 동일하여 스킵됨
+  merged?: boolean;           // MERGE 케이스: 기존 파일에 병합됨
+  similarityScore?: number;   // 유사도 점수 (0-100)
+  reasoning?: string;         // LLM 판단 이유
 }
 
 // 메시지 타입 (Content Script ↔ Background)
