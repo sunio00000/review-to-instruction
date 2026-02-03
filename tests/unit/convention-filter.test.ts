@@ -226,4 +226,111 @@ describe('ConventionFilter', () => {
       expect(filtered.length).toBe(2);
     });
   });
+
+  describe('isConventionThreadComment (Thread 전용 완화 기준)', () => {
+    it('10자 이상 짧은 코멘트도 컨벤션 키워드가 있으면 포함', () => {
+      const filter = new ConventionFilter();
+      const comments = [
+        createComment('use camelCase'), // 14자, 컨벤션 키워드
+        createComment('avoid var'), // 9자 - 제외 (10자 미만)
+        createComment('should refactor') // 16자, 컨벤션 키워드
+      ];
+
+      expect(filter.isConventionThreadComment(comments[0])).toBe(true);
+      expect(filter.isConventionThreadComment(comments[1])).toBe(false);
+      expect(filter.isConventionThreadComment(comments[2])).toBe(true);
+    });
+
+    it('코드 예시가 있으면 길이 무관하게 포함', () => {
+      const filter = new ConventionFilter();
+      const comments = [
+        createComment('`const x = 1`'), // 짧지만 코드 있음
+        createComment('```js\ntest\n```') // 코드 블록
+      ];
+
+      for (const c of comments) {
+        expect(filter.isConventionThreadComment(c)).toBe(true);
+      }
+    });
+
+    it('우선순위 태그가 있으면 길이 무관하게 포함', () => {
+      const filter = new ConventionFilter();
+      const comments = [
+        createComment('P1: Fix this'),
+        createComment('P2: 수정 필요'),
+        createComment('P3: Update'),
+        createComment('P4: Change')
+      ];
+
+      for (const c of comments) {
+        expect(filter.isConventionThreadComment(c)).toBe(true);
+      }
+    });
+
+    it('의미 있는 질문도 포함 (20자 이상)', () => {
+      const filter = new ConventionFilter();
+      const questions = [
+        createComment('How should we handle this case?'), // 의미 있는 질문
+        createComment('Why do we need this pattern?'), // 의미 있는 질문
+        createComment('이 경우에는 어떻게 해야 할까요?'), // 의미 있는 한글 질문
+        createComment('What?') // 너무 짧음 - 제외
+      ];
+
+      expect(filter.isConventionThreadComment(questions[0])).toBe(true);
+      expect(filter.isConventionThreadComment(questions[1])).toBe(true);
+      expect(filter.isConventionThreadComment(questions[2])).toBe(true);
+      expect(filter.isConventionThreadComment(questions[3])).toBe(false);
+    });
+
+    it('30자 이상이고 일반 패턴 설명하면 포함', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('When implementing this feature, we should consider edge cases');
+      expect(filter.isConventionThreadComment(comment)).toBe(true);
+    });
+
+    it('감사 인사는 여전히 제외', () => {
+      const filter = new ConventionFilter();
+      const thanks = [
+        createComment('Thanks for the suggestion!'),
+        createComment('LGTM, great work!')
+      ];
+
+      for (const t of thanks) {
+        expect(filter.isConventionThreadComment(t)).toBe(false);
+      }
+    });
+  });
+
+  describe('filterThreadComments', () => {
+    it('Thread 논의를 적절히 필터링해야 함', () => {
+      const filter = new ConventionFilter();
+      const threadComments = [
+        createComment('이 부분은 어떻게 해야 할까요?'), // 질문 - 포함 (20자 이상, 의미 있는 질문)
+        createComment('use camelCase'), // 짧지만 컨벤션 키워드 - 포함
+        createComment('네, 좋습니다'), // 너무 짧음 - 제외
+        createComment('P1: 영어로 작성'), // 우선순위 태그 - 포함
+        createComment('Thanks!') // 감사 인사 - 제외
+      ];
+
+      const filtered = filter.filterThreadComments(threadComments);
+
+      expect(filtered.length).toBe(3);
+      expect(filtered[0].content).toContain('어떻게');
+      expect(filtered[1].content).toContain('camelCase');
+      expect(filtered[2].content).toContain('P1');
+    });
+
+    it('모든 댓글이 의미 없으면 빈 배열 반환', () => {
+      const filter = new ConventionFilter();
+      const threadComments = [
+        createComment('Thanks!'),
+        createComment('LGTM'),
+        createComment('👍'),
+        createComment('OK') // 너무 짧음
+      ];
+
+      const filtered = filter.filterThreadComments(threadComments);
+      expect(filtered.length).toBe(0);
+    });
+  });
 });

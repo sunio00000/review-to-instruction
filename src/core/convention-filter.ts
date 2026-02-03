@@ -100,6 +100,66 @@ export class ConventionFilter {
   }
 
   /**
+   * Thread 내 컨벤션 코멘트인지 판별 (완화된 기준)
+   * Thread는 여러 댓글이 모여 컨벤션을 논의하므로, 개별 댓글에 대해 완화된 기준 적용
+   */
+  isConventionThreadComment(comment: Comment): boolean {
+    const content = comment.content.trim();
+    const contentLower = content.toLowerCase();
+
+    // 1. 너무 짧은 코멘트 제외 (10자 이하로 완화)
+    if (content.length < 10) {
+      return false;
+    }
+
+    // 2. 이모지만 있는 코멘트 제외
+    if (this.isOnlyEmojis(content)) {
+      return false;
+    }
+
+    // 3. 감사 인사는 제외 (Thread에서도 의미 없음)
+    if (this.isThanksComment(contentLower)) {
+      return false;
+    }
+
+    // 4. 컨벤션 키워드가 있으면 무조건 포함 (길이 무관)
+    if (this.hasConventionKeyword(contentLower)) {
+      return true;
+    }
+
+    // 5. 코드 예시가 있으면 포함 (길이 무관)
+    if (this.hasCodeExample(content)) {
+      return true;
+    }
+
+    // 6. 우선순위 태그가 있으면 포함 (길이 무관)
+    if (this.hasPriorityTag(contentLower)) {
+      return true;
+    }
+
+    // 7. 30자 이상이고 일반적인 규칙/패턴을 설명하면 포함
+    if (content.length >= 30 && this.isGeneralPattern(content)) {
+      return true;
+    }
+
+    // 8. 질문도 포함 (Thread 맥락에서는 컨벤션 논의의 일부)
+    // 단, 20자 이상이고 컨텍스트가 있어야 함
+    if (content.length >= 20 && this.hasQuestionContext(content)) {
+      return true;
+    }
+
+    // 기본: 제외
+    return false;
+  }
+
+  /**
+   * Thread용 컨벤션 코멘트 필터링 (완화된 기준)
+   */
+  filterThreadComments(comments: Comment[]): Comment[] {
+    return comments.filter(comment => this.isConventionThreadComment(comment));
+  }
+
+  /**
    * 이모지만 있는지 확인
    */
   private isOnlyEmojis(content: string): boolean {
@@ -177,5 +237,35 @@ export class ConventionFilter {
     ];
 
     return generalizationKeywords.some(keyword => contentLower.includes(keyword));
+  }
+
+  /**
+   * 우선순위 태그가 있는지 확인
+   */
+  private hasPriorityTag(contentLower: string): boolean {
+    const priorityTags = ['p1:', 'p2:', 'p3:', 'p4:'];
+    return priorityTags.some(tag => contentLower.includes(tag));
+  }
+
+  /**
+   * 질문이 컨텍스트를 가지고 있는지 확인
+   * Thread 내에서 의미 있는 질문인지 판별
+   */
+  private hasQuestionContext(content: string): boolean {
+    if (!content.includes('?')) {
+      return false;
+    }
+
+    const contentLower = content.toLowerCase();
+
+    // 의미 있는 질문 패턴
+    const meaningfulQuestions = [
+      'how', 'why', 'what', 'which', 'when', 'where',
+      '어떻게', '왜', '무엇', '어느', '언제', '어디',
+      'should we', 'can we', 'could we',
+      '해야', '할까', '하면'
+    ];
+
+    return meaningfulQuestions.some(pattern => contentLower.includes(pattern));
   }
 }

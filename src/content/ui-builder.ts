@@ -732,10 +732,10 @@ export class UIBuilder {
   }
 
   /**
-   * Convention 댓글만 필터링
+   * Convention 댓글만 필터링 (Thread용 - 완화된 기준)
    */
   private filterConventionComments(comments: Comment[]): Comment[] {
     const filter = new ConventionFilter();
-    return filter.filterConventionComments(comments);
+    return filter.filterThreadComments(comments);
   }
 }
