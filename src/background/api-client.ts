@@ -232,7 +232,10 @@ export class ApiClient {
       }
       return true;
     } catch (error) {
-      return false;
+      console.error(`[ApiClient] Failed to commit file: ${path}`, error);
+      // 에러를 다시 던져서 상위에서 처리할 수 있도록 함
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to commit file: ${path}\n\nReason: ${errorMessage}`);
     }
   }
 

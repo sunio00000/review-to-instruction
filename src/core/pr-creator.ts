@@ -113,16 +113,17 @@ export async function createPullRequest(
     // 4. 파일 커밋
     const commitMessage = generateCommitMessage(parsedComment, originalComment, repository, isUpdate);
 
-    const commitSuccess = await client.createOrUpdateFile(
-      repository,
-      filePath,
-      fileContent,
-      commitMessage,
-      branchName
-    );
-
-    if (!commitSuccess) {
-      throw new Error('Failed to commit file');
+    try {
+      await client.createOrUpdateFile(
+        repository,
+        filePath,
+        fileContent,
+        commitMessage,
+        branchName
+      );
+    } catch (error) {
+      // API 클라이언트에서 던진 에러를 그대로 전달
+      throw error;
     }
 
 
