@@ -148,3 +148,61 @@ Analyze the comment and respond with ONLY ONE WORD (no explanation):
 
 Answer:`;
 }
+
+/**
+ * 유사도 검사 프롬프트 (Phase 1: 중복 파일 방지)
+ *
+ * 기존 파일과 새 내용을 비교하여 IDENTICAL/MERGE/DIFFERENT 결정
+ */
+export function buildSimilarityCheckPrompt(
+  existingContent: string,
+  newContent: string
+): string {
+  return `You are a documentation similarity analyzer.
+
+EXISTING FILE:
+${existingContent}
+
+NEW CONTENT:
+${newContent}
+
+TASK: Compare semantic meaning and decide:
+1. Similarity score (0-100)
+2. Decision:
+   - IDENTICAL (≥95%): Same convention, skip
+   - MERGE (70-94%): Related, merge intelligently
+   - DIFFERENT (<70%): Distinct, create new file
+
+Output JSON:
+{
+  "similarity": 85,
+  "decision": "MERGE",
+  "reasoning": "Both discuss error handling, different aspects"
+}`;
+}
+
+/**
+ * 병합 프롬프트 (Phase 1: 파일 병합 로직)
+ *
+ * 기존 파일과 새 내용을 자연스럽게 병합
+ */
+export function buildMergeInstructionsPrompt(
+  existingContent: string,
+  newContent: string
+): string {
+  return `Intelligently merge these code review conventions.
+
+EXISTING FILE:
+${existingContent}
+
+NEW CONTENT:
+${newContent}
+
+MERGE STRATEGY:
+1. Preserve all valuable guidance from both
+2. Eliminate redundancy
+3. Combine examples from both
+4. Keep YAML frontmatter (merge keywords)
+
+Output the merged Markdown content directly (no JSON).`;
+}
