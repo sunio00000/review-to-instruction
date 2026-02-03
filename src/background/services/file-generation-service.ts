@@ -149,13 +149,14 @@ export class FileGenerationServiceImpl implements FileGenerationService {
       projectType as ProjectType
     );
 
-    // 3. Generator로 파일 생성 (AI 제안 경로 전달)
-    const generationResult = generator.generate({
+    // 3. Generator로 파일 생성 (AI 제안 경로 전달, await 추가)
+    const generationResult = await generator.generate({
       parsedComment: enhancedComment,
       originalComment: originalComment,
       repository,
       existingContent: matchResult.existingContent,
-      suggestedPath: smartFilePath || undefined  // SmartFileNaming 결과 전달
+      suggestedPath: smartFilePath || undefined,  // SmartFileNaming 결과 전달
+      llmConfig: llmConfig  // LLM 설정 전달 (Claude Code 분류에 사용)
     });
 
     // 4. 파일 경로 결정 (우선순위: Generator > Matcher)

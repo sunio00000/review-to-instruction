@@ -3,7 +3,7 @@
  * Generator 패턴의 추상 베이스 클래스
  */
 
-import type { ParsedComment, EnhancedComment, Comment, Repository } from '../../types';
+import type { ParsedComment, EnhancedComment, Comment, Repository, LLMConfig } from '../../types';
 import { summarizeComment } from '../parser';
 
 // Generator 옵션
@@ -13,6 +13,7 @@ export interface GeneratorOptions {
   repository: Repository;
   existingContent?: string;
   suggestedPath?: string;  // SmartFileNaming에서 제안된 전체 경로 (선택적)
+  llmConfig?: LLMConfig;  // LLM 설정 (분류 등에 사용)
 }
 
 // 파일 생성 결과
@@ -29,9 +30,9 @@ export interface GenerationResult {
  */
 export abstract class BaseGenerator {
   /**
-   * 파일 생성 (추상 메서드)
+   * 파일 생성 (추상 메서드, async로 변경)
    */
-  abstract generate(options: GeneratorOptions): GenerationResult;
+  abstract generate(options: GeneratorOptions): Promise<GenerationResult>;
 
   /**
    * 대상 디렉토리 반환 (추상 메서드)

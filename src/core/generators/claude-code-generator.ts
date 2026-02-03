@@ -6,6 +6,8 @@
 import { BaseGenerator, type GeneratorOptions, type GenerationResult } from './base-generator';
 import { generateInstruction } from '../instruction-generator';
 import { generateSkill } from '../skill-generator';
+import { buildClassificationPrompt } from '../../background/llm/prompts';
+import { ClaudeClient } from '../../background/llm/claude-client';
 
 /**
  * Claude Code 파일 생성기
@@ -21,13 +23,17 @@ export class ClaudeCodeGenerator extends BaseGenerator {
   }
 
   /**
-   * 파일 생성
+   * 파일 생성 (async로 변경)
    */
-  generate(options: GeneratorOptions): GenerationResult {
-    const { parsedComment, originalComment, suggestedPath } = options;
+  async generate(options: GeneratorOptions): Promise<GenerationResult> {
+    const { parsedComment, originalComment, suggestedPath, llmConfig } = options;
 
-    // 코멘트 내용 분석하여 instruction vs skill 결정
-    this.fileType = this.determineFileType(originalComment.content, parsedComment.keywords);
+    // 코멘트 내용 분석하여 instruction vs skill 결정 (LLM 사용)
+    this.fileType = await this.determineFileType(
+      originalComment.content,
+      parsedComment.keywords,
+      llmConfig
+    );
 
     // 적절한 생성기 호출
     const content = this.fileType === 'instruction'
@@ -63,36 +69,50 @@ export class ClaudeCodeGenerator extends BaseGenerator {
   }
 
   /**
-   * instruction vs skill 결정
+   * instruction vs skill 결정 (LLM 기반)
    *
-   * Skill 기준:
-   * - "how to", "pattern", "technique", "method", "approach" 등의 키워드
-   * - "방법", "패턴", "기법", "테크닉" 등의 한글 키워드
-   * - 반복 가능한 작업 수행 방법을 설명하는 내용
+   * Instruction: 규칙, 컨벤션, 가이드라인, 표준
+   * Skill: 단계별 방법, 기법, 하우투 가이드
    *
-   * Instruction 기준 (기본값):
-   * - "rule", "convention", "guideline", "standard" 등의 키워드
-   * - "규칙", "컨벤션", "가이드라인", "표준" 등의 한글 키워드
-   * - 일반적인 규칙이나 원칙을 설명하는 내용
+   * LLM이 없거나 실패하면 기본값(instruction) 반환
    */
-  private determineFileType(
+  private async determineFileType(
     content: string,
-    keywords: string[]
-  ): 'instruction' | 'skill' {
-    const lowerContent = content.toLowerCase();
-    const lowerKeywords = keywords.map(k => k.toLowerCase());
+    keywords: string[],
+    llmConfig?: any
+  ): Promise<'instruction' | 'skill'> {
+    // LLM이 없으면 기본값(instruction) 반환
+    if (!llmConfig?.apiKey) {
+      return 'instruction';
+    }
 
-    // Skill 키워드
-    const skillKeywords = [
-      'how to', 'pattern', 'technique', 'method', 'approach',
-      '방법', '패턴', '기법', '테크닉', '어떻게'
-    ];
+    try {
+      // LLM 클라이언트 생성
+      const client = new ClaudeClient(llmConfig.apiKey);
 
-    // Skill 키워드가 있으면 skill로 분류
-    const hasSkillKeyword =
-      skillKeywords.some(keyword => lowerContent.includes(keyword)) ||
-      lowerKeywords.some(keyword => skillKeywords.some(sk => keyword.includes(sk)));
+      // 분류 프롬프트 생성
+      const prompt = buildClassificationPrompt(content, keywords);
 
-    return hasSkillKeyword ? 'skill' : 'instruction';
+      // LLM 호출 (generateText 사용)
+      const response = await client.generateText(prompt, {
+        max_tokens: 10,
+        temperature: 0,
+        system: 'You are a classification assistant. Answer with only one word.'
+      });
+
+      // 응답 파싱 (소문자로 변환하여 "instruction" 또는 "skill" 확인)
+      const normalized = response.trim().toLowerCase();
+
+      if (normalized.includes('skill')) {
+        return 'skill';
+      }
+
+      // 기본값: instruction
+      return 'instruction';
+
+    } catch (error) {
+      console.error('[ClaudeCodeGenerator] LLM 분류 실패, 기본값(instruction) 사용:', error);
+      return 'instruction';
+    }
   }
 }

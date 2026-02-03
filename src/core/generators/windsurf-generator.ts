@@ -15,7 +15,7 @@ export class WindsurfGenerator extends BaseGenerator {
   /**
    * 파일 생성
    */
-  generate(options: GeneratorOptions): GenerationResult {
+  async generate(options: GeneratorOptions): Promise<GenerationResult> {
     const { parsedComment, existingContent } = options;
 
     // 기존 파일이 있으면 업데이트, 없으면 새로 생성

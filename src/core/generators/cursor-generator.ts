@@ -15,7 +15,7 @@ export class CursorGenerator extends BaseGenerator {
   /**
    * 파일 생성
    */
-  generate(options: GeneratorOptions): GenerationResult {
+  async generate(options: GeneratorOptions): Promise<GenerationResult> {
     const { parsedComment, existingContent, suggestedPath } = options;
 
     // 파일 경로 결정
