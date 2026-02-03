@@ -108,6 +108,105 @@ export abstract class BaseLLMClient implements ILLMClient {
   ): Promise<LLMResponse>;
 
   /**
+   * 캐시를 활용한 유사도 검사 (Phase 1: 중복 파일 방지)
+   */
+  protected async checkSimilarityWithCache(
+    existingContent: string,
+    newContent: string
+  ): Promise<import('./types').SimilarityCheckResult> {
+    try {
+      // 1. 캐시 키 생성: SHA256(existingContent + newContent + provider)
+      const cacheKey = await llmCache.generateCacheKey(
+        existingContent + ':similarity:' + newContent,
+        [],
+        this.provider
+      );
+
+      // 2. 캐시 조회
+      const cachedData = await llmCache.get(cacheKey);
+      if (cachedData) {
+        return { success: true, data: cachedData };
+      }
+
+      // 3. Rate limiting 체크
+      if (!this.rateLimiter.tryRequest()) {
+        const timeUntilReset = Math.ceil(this.rateLimiter.getTimeUntilReset() / 1000);
+        return {
+          success: false,
+          error: `Rate limit exceeded. Please wait ${timeUntilReset} seconds.`
+        };
+      }
+
+      // 4. API 호출
+      const response = await this.callSimilarityAPI(existingContent, newContent);
+
+      // 5. 캐싱 (30일 TTL, 성공한 경우만)
+      if (response.success && response.data) {
+        await llmCache.set(cacheKey, response.data, this.provider);
+      }
+
+      return response;
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Similarity check failed: ${(error as Error).message}`
+      };
+    }
+  }
+
+  /**
+   * 실제 유사도 검사 API 호출 (추상 메서드)
+   */
+  protected abstract callSimilarityAPI(
+    existingContent: string,
+    newContent: string
+  ): Promise<import('./types').SimilarityCheckResult>;
+
+  /**
+   * 캐시를 활용한 파일 병합 (Phase 1: 중복 파일 방지)
+   */
+  protected async mergeInstructionsWithCache(
+    existingContent: string,
+    newContent: string
+  ): Promise<string> {
+    // 1. 캐시 키 생성
+    const cacheKey = await llmCache.generateCacheKey(
+      'merge:' + existingContent + ':' + newContent,
+      [],
+      this.provider
+    );
+
+    // 2. 캐시 조회
+    const cachedData = await llmCache.get(cacheKey);
+    if (cachedData) {
+      return cachedData as string;
+    }
+
+    // 3. Rate limiting 체크
+    if (!this.rateLimiter.tryRequest()) {
+      const timeUntilReset = Math.ceil(this.rateLimiter.getTimeUntilReset() / 1000);
+      throw new Error(`Rate limit exceeded. Please wait ${timeUntilReset} seconds.`);
+    }
+
+    // 4. API 호출
+    const mergedContent = await this.callMergeAPI(existingContent, newContent);
+
+    // 5. 캐싱 (30일 TTL)
+    await llmCache.set(cacheKey, mergedContent, this.provider);
+
+    return mergedContent;
+  }
+
+  /**
+   * 실제 병합 API 호출 (추상 메서드)
+   */
+  protected abstract callMergeAPI(
+    existingContent: string,
+    newContent: string
+  ): Promise<string>;
+
+  /**
    * 타임아웃 래퍼
    */
   protected async withTimeout<T>(promise: Promise<T>, ms: number = this.timeout): Promise<T> {
