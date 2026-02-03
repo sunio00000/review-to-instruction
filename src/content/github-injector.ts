@@ -141,7 +141,7 @@ export class GitHubInjector {
     // Wrapup 버튼 추가
 
     // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
-    this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
+    await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
 
     // ✅ 브랜치 정보는 백그라운드에서 업데이트
     this.updateDefaultBranch().catch(() => {
@@ -436,6 +436,20 @@ export class GitHubInjector {
       progressTimers.forEach(timer => clearTimeout(timer));
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        this.uiBuilder.setButtonState(button, 'error');
+        alert(
+          `⚠️ Extension Connection Lost\n\n` +
+          `The extension was reloaded or updated.\n\n` +
+          `💡 Please reload this page (F5) and try again.`
+        );
+        return;
+      }
+
       this.uiBuilder.showErrorMessage(button, errorMessage, 'github');
     }
   }
@@ -568,6 +582,20 @@ export class GitHubInjector {
     } catch (error) {
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        this.uiBuilder.setButtonState(button, 'error');
+        alert(
+          `⚠️ Extension Connection Lost\n\n` +
+          `The extension was reloaded or updated.\n\n` +
+          `💡 Please reload this page (F5) and try again.`
+        );
+        return;
+      }
+
       this.uiBuilder.showErrorMessage(button, errorMessage, 'github');
     }
   }
@@ -629,7 +657,30 @@ export class GitHubInjector {
     } catch (error) {
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      console.error('[RTI Error] [GitHubInjector] Wrapup conversion failed:', errorMessage);
+
       this.wrapupManager.setButtonState('error', 'Failed');
+
+      // Extension context invalidated 에러 특별 처리
+      if (errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('message port closed') ||
+          errorMessage.includes('runtime.sendMessage')) {
+        setTimeout(() => {
+          alert(
+            `⚠️ Extension Connection Lost\n\n` +
+            `The extension was reloaded or updated while processing your request.\n\n` +
+            `💡 Solution:\n` +
+            `1. Reload this page (F5 or Ctrl+R)\n` +
+            `2. Try the operation again\n\n` +
+            `If the problem persists:\n` +
+            `• Go to chrome://extensions\n` +
+            `• Find "Review to Instruction"\n` +
+            `• Click the reload button`
+          );
+        }, 500);
+        return;
+      }
 
       // 3초 후 에러 메시지 표시
       setTimeout(() => {
