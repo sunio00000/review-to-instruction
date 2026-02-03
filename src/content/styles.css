@@ -410,54 +410,54 @@ body.gl-dark .review-to-instruction-button .warning-icon:hover::before {
 
 /* ==================== Thread 버튼 스타일 ==================== */
 
-/* Thread 버튼 컨테이너 */
+/* Thread 버튼 컨테이너 (최상단 배치) */
 .review-to-instruction-thread-button-container {
-  display: inline-flex;
-  margin-left: 12px;
-  align-items: center;
-  vertical-align: middle;
+  display: block;
+  padding: 12px;
+  margin-bottom: 12px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
 }
 
-/* GitHub 헤더 내부 Thread 버튼 */
-.timeline-comment-header .review-to-instruction-thread-button-container,
-.comment-header .review-to-instruction-thread-button-container {
-  margin-left: auto;  /* 헤더 우측에 배치 */
-  padding-left: 12px;
+/* 다크 모드 - Thread 버튼 컨테이너 */
+@media (prefers-color-scheme: dark) {
+  .review-to-instruction-thread-button-container {
+    background-color: #064e3b;
+    border-color: #065f46;
+  }
 }
 
-/* GitLab 헤더 내부 Thread 버튼 */
-.note-header .review-to-instruction-thread-button-container,
-[data-testid="note-header"] .review-to-instruction-thread-button-container {
-  margin-left: auto;
-  padding-left: 12px;
+html[data-color-mode="dark"] .review-to-instruction-thread-button-container {
+  background-color: #064e3b;
+  border-color: #065f46;
 }
 
-/* Actions 영역 내부 Thread 버튼 */
-.timeline-comment-actions .review-to-instruction-thread-button-container,
-.comment-actions .review-to-instruction-thread-button-container,
-.note-actions .review-to-instruction-thread-button-container {
-  margin-left: 8px;
+body.gl-dark .review-to-instruction-thread-button-container {
+  background-color: #064e3b;
+  border-color: #065f46;
 }
 
 /* Thread 버튼 - 그라데이션으로 개별 버튼과 구분 */
+/* Level 2: 스레드 묶음 버튼 (녹색) */
 .review-to-instruction-button.thread-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   border: none;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 .review-to-instruction-button.thread-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 
 .review-to-instruction-button.thread-button:active:not(:disabled) {
-  background: linear-gradient(135deg, #4a5bb8 0%, #533673 100%);
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 /* Thread 버튼 로딩 상태 */
@@ -475,37 +475,145 @@ body.gl-dark .review-to-instruction-button .warning-icon:hover::before {
   background: linear-gradient(135deg, #cf222e 0%, #a40e26 100%);
 }
 
-/* 다크 모드 - Thread 버튼 */
+/* 다크 모드 - Thread 버튼 (녹색 유지) */
 @media (prefers-color-scheme: dark) {
   .review-to-instruction-button.thread-button {
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
   }
 
   .review-to-instruction-button.thread-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
-    box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
   }
 }
 
 html[data-color-mode="dark"] .review-to-instruction-button.thread-button {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 html[data-color-mode="dark"] .review-to-instruction-button.thread-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
-  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
 }
 
 body.gl-dark .review-to-instruction-button.thread-button {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 body.gl-dark .review-to-instruction-button.thread-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
-  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+}
+
+/* ==================== Level 3: Wrapup 버튼 (보라색) ==================== */
+
+/* Wrapup 버튼 컨테이너 (사이드바 최상단) */
+.review-to-instruction-wrapup-container {
+  padding: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #d0d7de;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+}
+
+.review-to-instruction-wrapup-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+.review-to-instruction-wrapup-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+}
+
+.review-to-instruction-wrapup-button:active:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+.review-to-instruction-wrapup-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Wrapup 버튼 로딩/성공/에러 상태 */
+.review-to-instruction-wrapup-button.loading {
+  background: linear-gradient(135deg, #0969da 0%, #0550ae 100%);
+}
+
+.review-to-instruction-wrapup-button.success {
+  background: linear-gradient(135deg, #2da44e 0%, #1f7a37 100%);
+}
+
+.review-to-instruction-wrapup-button.error {
+  background: linear-gradient(135deg, #cf222e 0%, #a40e26 100%);
+}
+
+/* 다크 모드 - Wrapup 버튼 */
+@media (prefers-color-scheme: dark) {
+  .review-to-instruction-wrapup-container {
+    background-color: #161b22;
+    border-bottom-color: #30363d;
+  }
+
+  .review-to-instruction-wrapup-button {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+    box-shadow: 0 2px 4px rgba(168, 85, 247, 0.3);
+  }
+
+  .review-to-instruction-wrapup-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+    box-shadow: 0 4px 8px rgba(168, 85, 247, 0.4);
+  }
+}
+
+html[data-color-mode="dark"] .review-to-instruction-wrapup-container {
+  background-color: #161b22;
+  border-bottom-color: #30363d;
+}
+
+html[data-color-mode="dark"] .review-to-instruction-wrapup-button {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+  box-shadow: 0 2px 4px rgba(168, 85, 247, 0.3);
+}
+
+html[data-color-mode="dark"] .review-to-instruction-wrapup-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+  box-shadow: 0 4px 8px rgba(168, 85, 247, 0.4);
+}
+
+body.gl-dark .review-to-instruction-wrapup-container {
+  background-color: #1f1f1f;
+  border-bottom-color: #404040;
+}
+
+body.gl-dark .review-to-instruction-wrapup-button {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+  box-shadow: 0 2px 4px rgba(168, 85, 247, 0.3);
+}
+
+body.gl-dark .review-to-instruction-wrapup-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+  box-shadow: 0 4px 8px rgba(168, 85, 247, 0.4);
 }
 
 /* ==================== PreviewModal 스타일 ==================== */

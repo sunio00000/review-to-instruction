@@ -16,7 +16,6 @@ import { CryptoService } from '../background/services/crypto-service';
 import { FormManager } from '../utils/form-manager';
 import { popupFormSchema } from './form-schema';
 import { calculateCost, formatCost } from '../utils/token-pricing';
-import { logger } from '../utils/logger';
 
 // CryptoService 인스턴스
 const crypto = new CryptoService();
@@ -47,16 +46,11 @@ const cacheStatus = document.getElementById('cache-status') as HTMLDivElement;
 // 설정 로드 (FormManager 사용)
 async function loadConfig() {
   try {
-    logger.log('[LoadConfig] Starting to load config...');
     await formManager.load();
-    logger.log('[LoadConfig] FormManager loaded successfully');
     updateLLMUI();
-    logger.log('[LoadConfig] LLM UI updated');
   } catch (error) {
-    logger.error('[LoadConfig] Error during config load:', error);
     // 첫 실행시나 저장된 설정이 없을 때는 에러를 무시하고 기본값 사용
     // 중대한 에러가 아니므로 throw하지 않음
-    logger.warn('[LoadConfig] Using default values due to error');
   }
 }
 
@@ -378,49 +372,37 @@ async function setupMasterPassword(): Promise<void> {
   setButton.classList.add('loading');
 
   try {
-    logger.log('[Setup] Starting master password setup...');
 
     // 비밀번호 해시 저장 (검증용)
     const passwordHash = await hashPassword(password);
-    logger.log('[Setup] Password hashed successfully');
 
     await chrome.storage.local.set({ masterPasswordHash: passwordHash });
-    logger.log('[Setup] Password hash saved to storage');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
-    logger.log('[Setup] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     await crypto.setMasterPassword(password);
-    logger.log('[Setup] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
     const modal = document.getElementById('master-password-modal')!;
     modal.style.display = 'none';
-    logger.log('[Setup] Modal closed');
 
     // FormManager 초기화
     try {
-      logger.log('[Setup] Binding form elements...');
       formManager.bindElements();
       formManager.bindVisibilityUpdates();
-      logger.log('[Setup] Form elements bound successfully');
     } catch (bindError) {
-      logger.error('[Setup] Form binding error:', bindError);
       // 첫 실행시 폼 요소가 비어있을 수 있으므로 무시
     }
 
     // 설정 로드 (첫 실행시 데이터가 없을 수 있음)
     try {
-      logger.log('[Setup] Loading config...');
       await loadConfig();
-      logger.log('[Setup] Config loaded successfully');
     } catch (configError) {
-      logger.warn('[Setup] Config load failed (might be first run):', configError);
       // 첫 실행시 저장된 설정이 없을 수 있으므로 무시
     }
 
@@ -428,13 +410,10 @@ async function setupMasterPassword(): Promise<void> {
     try {
       await loadCacheStats();
     } catch (error) {
-      logger.warn('[Setup] Failed to load cache stats:', error);
     }
 
     showStatus(saveStatus, '✅ Master password has been set successfully.', 'success');
-    logger.log('[Setup] Setup completed successfully');
   } catch (error) {
-    logger.error('[Setup] Fatal error during setup:', error);
     errorDiv.textContent = `Setup failed: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
   } finally {
@@ -462,54 +441,41 @@ async function unlockWithPassword(): Promise<boolean> {
   unlockButton.classList.add('loading');
 
   try {
-    logger.log('[Unlock] Starting unlock process...');
 
     const passwordHash = await hashPassword(password);
     const result = await chrome.storage.local.get(['masterPasswordHash']);
-    logger.log('[Unlock] Password hashed and stored hash retrieved');
 
     if (result.masterPasswordHash !== passwordHash) {
-      logger.log('[Unlock] Password mismatch');
       errorDiv.textContent = 'Passwords do not match.';
       errorDiv.style.display = 'block';
       return false;
     }
-    logger.log('[Unlock] Password verified successfully');
 
     // Background에 마스터 비밀번호 전달 (세션 동안 유지)
     await chrome.runtime.sendMessage({
       type: 'SET_MASTER_PASSWORD',
       payload: { password }
     });
-    logger.log('[Unlock] Password sent to background');
 
     // CryptoService에도 설정 (Popup에서 저장할 때 사용)
     await crypto.setMasterPassword(password);
-    logger.log('[Unlock] Password set in crypto service');
 
     // 모달 닫기 (먼저 닫고 나중에 초기화)
     const modal = document.getElementById('unlock-modal')!;
     modal.style.display = 'none';
-    logger.log('[Unlock] Modal closed');
 
     // FormManager 초기화
     try {
-      logger.log('[Unlock] Binding form elements...');
       formManager.bindElements();
       formManager.bindVisibilityUpdates();
-      logger.log('[Unlock] Form elements bound successfully');
     } catch (bindError) {
-      logger.error('[Unlock] Form binding error:', bindError);
       // 폼 바인딩 실패해도 계속 진행
     }
 
     // 설정 로드
     try {
-      logger.log('[Unlock] Loading config...');
       await loadConfig();
-      logger.log('[Unlock] Config loaded successfully');
     } catch (configError) {
-      logger.warn('[Unlock] Config load failed:', configError);
       // 설정 로드 실패해도 계속 진행
     }
 
@@ -517,13 +483,10 @@ async function unlockWithPassword(): Promise<boolean> {
     try {
       await loadCacheStats();
     } catch (error) {
-      logger.warn('[Unlock] Failed to load cache stats:', error);
     }
 
-    logger.log('[Unlock] Unlock completed successfully');
     return true;
   } catch (error) {
-    logger.error('[Unlock] Fatal error during unlock:', error);
     errorDiv.textContent = `Unlock failed: ${error instanceof Error ? error.message : String(error)}`;
     errorDiv.style.display = 'block';
     return false;

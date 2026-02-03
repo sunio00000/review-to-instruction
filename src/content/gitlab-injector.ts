@@ -7,14 +7,15 @@ import { CommentDetector, type CommentElement } from './comment-detector';
 import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
+import { WrapupButtonManager } from './wrapup-button-manager';
 import type { Comment, Repository, DiscussionThread } from '../types';
 import { isConventionComment } from '../core/parser';
-import { logger } from '../utils/logger';
 
 export class GitLabInjector {
   private detector: CommentDetector;
   private threadDetector: ThreadDetector;
   private uiBuilder: UIBuilder;
+  private wrapupManager: WrapupButtonManager;
   private repository: Repository | null = null;
   private threadObserver: MutationObserver | null = null;
   private hasApiToken: boolean = false;
@@ -22,6 +23,7 @@ export class GitLabInjector {
   constructor() {
     this.uiBuilder = new UIBuilder();
     this.threadDetector = new ThreadDetector('gitlab');
+    this.wrapupManager = new WrapupButtonManager('gitlab');
 
     // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
     // MR discussion notes, 리뷰 코멘트, diff 노트, 답글을 모두 포함
@@ -198,6 +200,11 @@ export class GitLabInjector {
 
     // 새로운 Thread 감지 (MutationObserver)
     this.observeThreads();
+
+    // Wrapup 버튼 추가
+
+    // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
+    this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
   }
 
   /**
@@ -223,7 +230,6 @@ export class GitLabInjector {
         this.hasApiToken = false;
       }
     } catch (error) {
-      logger.warn('[GitLabInjector] Failed to check token status:', error);
       this.hasApiToken = false;
     }
   }
@@ -235,6 +241,7 @@ export class GitLabInjector {
     this.detector.stop();
     this.uiBuilder.removeAllButtons();
     this.uiBuilder.removeAllThreadButtons();
+    this.wrapupManager.removeWrapupButton();
 
     // Thread Observer 정지
     if (this.threadObserver) {
@@ -437,7 +444,8 @@ export class GitLabInjector {
             button,
             convertResponse.data.prUrl,
             convertResponse.data.isUpdate,
-            convertResponse.data.tokenUsage
+            convertResponse.data.tokenUsage,
+            'gitlab'
           );
         } else {
           throw new Error(convertResponse.error || 'Conversion failed');
@@ -449,7 +457,7 @@ export class GitLabInjector {
       progressTimers.forEach(timer => clearTimeout(timer));
 
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.uiBuilder.showErrorMessage(button, errorMessage);
+      this.uiBuilder.showErrorMessage(button, errorMessage, 'gitlab');
     }
   }
 
@@ -519,11 +527,18 @@ export class GitLabInjector {
       return;
     }
 
+    let debounceTimer: number | null = null;
+
     this.threadObserver = new MutationObserver(() => {
-      // 디바운싱: 100ms 후 Thread 재감지
-      setTimeout(() => {
+      // 디바운싱: 500ms 후 Thread 재감지 (성능 최적화)
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(() => {
         this.detectAndAddThreadButtons();
-      }, 100);
+        debounceTimer = null;
+      }, 500) as unknown as number;
     });
 
     // MR discussion 컨테이너 감시
@@ -531,7 +546,7 @@ export class GitLabInjector {
     if (discussionContainer) {
       this.threadObserver.observe(discussionContainer, {
         childList: true,
-        subtree: true
+        subtree: false // subtree를 false로 변경하여 성능 향상
       });
     }
   }
@@ -564,7 +579,8 @@ export class GitLabInjector {
           button,
           response.data.prUrl,
           response.data.isUpdate,
-          response.data.tokenUsage
+          response.data.tokenUsage,
+          'gitlab'
         );
       } else {
         throw new Error(response.error || 'Unknown error');
@@ -572,7 +588,73 @@ export class GitLabInjector {
     } catch (error) {
       // 에러 메시지 표시
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.uiBuilder.showErrorMessage(button, errorMessage);
+      this.uiBuilder.showErrorMessage(button, errorMessage, 'gitlab');
+    }
+  }
+
+  /**
+   * Wrapup 버튼 클릭 핸들러
+   */
+  private async onWrapupButtonClick(comments: Comment[]) {
+    const button = this.wrapupManager.getButton();
+    if (!button) return;
+
+
+    try {
+      // Chrome Extension API 존재 여부 확인
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+        throw new Error('Chrome Extension API is not available. Please check if the extension is properly loaded.');
+      }
+
+      // 버튼 상태를 loading으로 변경
+      this.wrapupManager.setButtonState('loading', 'Processing...');
+
+      // Background script로 메시지 전송
+      const response = await chrome.runtime.sendMessage({
+        type: 'CONVERT_PR_WRAPUP',
+        payload: {
+          comments,
+          repository: this.repository
+        }
+      });
+
+      if (response.success) {
+        // 성공 메시지 표시
+        this.wrapupManager.setButtonState('success', 'Converted!');
+
+        // 3초 후 성공 메시지를 alert로 표시
+        setTimeout(() => {
+          const prUrl = response.data.prUrl || 'N/A';
+          const fileCount = response.data.fileCount || 0;
+          const tokenUsage = response.data.tokenUsage;
+
+          let message = `✅ Successfully converted ${comments.length} comments to AI Instructions!\n\n`;
+          message += `📁 Files created/updated: ${fileCount}\n`;
+          message += `🔗 MR: ${prUrl}\n`;
+
+          if (tokenUsage) {
+            message += `\n💰 Tokens used: ${tokenUsage.totalTokens}`;
+          }
+
+          alert(message);
+
+          // MR 열기
+          if (prUrl && prUrl !== 'N/A') {
+            window.open(prUrl, '_blank');
+          }
+        }, 500);
+      } else {
+        throw new Error(response.error || 'Unknown error');
+      }
+    } catch (error) {
+      // 에러 메시지 표시
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.wrapupManager.setButtonState('error', 'Failed');
+
+      // 3초 후 에러 메시지 표시
+      setTimeout(() => {
+        alert(`❌ Failed to convert MR conventions:\n\n${errorMessage}`);
+      }, 500);
     }
   }
 

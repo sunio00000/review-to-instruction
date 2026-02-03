@@ -83,7 +83,30 @@ export async function createPullRequest(
     }
 
     if (!branchCreated) {
-      throw new Error('Failed to create branch. Please check if the repository has a valid default branch (develop/main/master).');
+      // 브랜치 생성 실패 - 이미 존재하는 브랜치일 가능성
+      // 기존 PR 찾기 시도
+      const existingPR = await client.findPullRequestByBranch(repository, branchName);
+
+      if (existingPR) {
+        throw new Error(
+          `⚠️ Branch "${branchName}" already exists with an open PR/MR!\n\n` +
+          `📌 Existing PR: ${existingPR.url}\n\n` +
+          `💡 Options:\n` +
+          `• View and update the existing PR\n` +
+          `• Close the existing PR first\n` +
+          `• Or wait - the PR might be merged soon`
+        );
+      } else {
+        throw new Error(
+          `⚠️ Branch "${branchName}" already exists!\n\n` +
+          `This usually means:\n` +
+          `• A PR/MR was already created for this comment\n` +
+          `• The branch exists but the PR might be closed/merged\n\n` +
+          `💡 You can:\n` +
+          `• Check your repository for existing branches\n` +
+          `• Delete the branch manually if it's no longer needed`
+        );
+      }
     }
 
 
@@ -326,6 +349,8 @@ export interface MultiFilePrCreationOptions {
   originalComment: Comment;
   files: FileGenerationResult[];  // 여러 파일
   llmClient?: ILLMClient;  // LLM 클라이언트 (optional, 요약 기능용)
+  isWrapup?: boolean;  // Wrapup 모드 여부
+  wrapupCommentCount?: number;  // Wrapup 모드일 때 총 코멘트 수
 }
 
 /**
@@ -336,7 +361,7 @@ export interface MultiFilePrCreationOptions {
 export async function createPullRequestWithMultipleFiles(
   options: MultiFilePrCreationOptions
 ): Promise<PrCreationResult> {
-  const { client, repository, parsedComment, originalComment, files, llmClient } = options;
+  const { client, repository, parsedComment, originalComment, files, llmClient, isWrapup, wrapupCommentCount } = options;
 
   try {
     // 0. LLM 요약 생성 (optional)
@@ -395,7 +420,30 @@ export async function createPullRequestWithMultipleFiles(
     }
 
     if (!branchCreated) {
-      throw new Error('Failed to create branch. Please check if the repository has a valid default branch (develop/main/master).');
+      // 브랜치 생성 실패 - 이미 존재하는 브랜치일 가능성
+      // 기존 PR 찾기 시도
+      const existingPR = await client.findPullRequestByBranch(repository, branchName);
+
+      if (existingPR) {
+        throw new Error(
+          `⚠️ Branch "${branchName}" already exists with an open PR/MR!\n\n` +
+          `📌 Existing PR: ${existingPR.url}\n\n` +
+          `💡 Options:\n` +
+          `• View and update the existing PR\n` +
+          `• Close the existing PR first\n` +
+          `• Or wait - the PR might be merged soon`
+        );
+      } else {
+        throw new Error(
+          `⚠️ Branch "${branchName}" already exists!\n\n` +
+          `This usually means:\n` +
+          `• A PR/MR was already created for this comment\n` +
+          `• The branch exists but the PR might be closed/merged\n\n` +
+          `💡 You can:\n` +
+          `• Check your repository for existing branches\n` +
+          `• Delete the branch manually if it's no longer needed`
+        );
+      }
     }
 
 
@@ -426,13 +474,12 @@ export async function createPullRequestWithMultipleFiles(
     }
 
     // 5. PR/MR 생성
-    const prTitle = generateMultiFilePrTitle(parsedComment, files, llmSummary);
-    const prBody = generateMultiFilePrBody(
-      parsedComment,
-      originalComment,
-      repository,
-      files
-    );
+    const prTitle = isWrapup
+      ? `docs: Add AI Instructions from ${wrapupCommentCount} PR/MR conventions`
+      : generateMultiFilePrTitle(parsedComment, files, llmSummary);
+    const prBody = isWrapup
+      ? generateWrapupPrBody(repository, files, wrapupCommentCount || 0)
+      : generateMultiFilePrBody(parsedComment, originalComment, repository, files);
 
     const prResult = await client.createPullRequest(
       repository,
@@ -549,69 +596,129 @@ function generateMultiFilePrBody(
 
   const sections = [
     '## Overview',
-    `Conventions established during PR #${repository.prNumber} review have been ${action} as instructions for multiple AI tools.`,
+    `Conventions from PR #${repository.prNumber} ${action} as AI instructions.`,
     '',
-    '## Changes',
-    '',
-    '### Common Information',
-    `- Category: ${parsedComment.category}`,
-    `- Keywords: ${parsedComment.keywords.join(', ')}`,
-    '',
-    '### Generated Files',
+    '## Files',
+    ''
   ];
 
-  // 각 파일 정보
-  files.forEach((file, index) => {
-    const typeMap: Record<string, string> = {
-      'claude-code': 'Claude Code',
-      'cursor': 'Cursor',
-      'windsurf': 'Windsurf'
-    };
-    const typeName = typeMap[file.projectType] || file.projectType;
-    const updateStatus = file.isUpdate ? '(Updated)' : '(New)';
+  const typeMap: Record<string, string> = {
+    'claude-code': 'Claude Code',
+    'cursor': 'Cursor',
+    'windsurf': 'Windsurf'
+  };
 
-    sections.push(`${index + 1}. **${typeName}** ${updateStatus}`);
-    sections.push(`   - File: \`${file.filePath}\``);
+  // 파일 목록 (간략)
+  files.forEach((file, index) => {
+    const typeName = typeMap[file.projectType] || file.projectType;
+    const status = file.isUpdate ? 'Updated' : 'New';
+    sections.push(`${index + 1}. **${typeName}** (${status}): \`${file.filePath}\``);
   });
 
   sections.push('');
-  sections.push('## Source');
-  sections.push(`- Original PR: #${repository.prNumber}`);
-  sections.push(`- Comment Author: @${originalComment.author}`);
-  sections.push(`- Comment Link: ${originalComment.url}`);
+  sections.push('## Metadata');
+  sections.push(`- **Category:** ${parsedComment.category}`);
+  sections.push(`- **Keywords:** ${parsedComment.keywords.join(', ')}`);
+  sections.push(`- **Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
   sections.push('');
 
-  // 각 파일 미리보기
-  sections.push('## File Previews');
-  sections.push('');
-
-  files.forEach((file, index) => {
-    const typeMap: Record<string, string> = {
-      'claude-code': 'Claude Code',
-      'cursor': 'Cursor',
-      'windsurf': 'Windsurf'
-    };
-    const typeName = typeMap[file.projectType] || file.projectType;
-
-    sections.push(`### ${index + 1}. ${typeName} (\`${file.filePath}\`)`);
+  // 첫 파일만 접힌 형태로 미리보기 (10줄)
+  if (files.length > 0) {
+    const firstFile = files[0];
+    const typeName = typeMap[firstFile.projectType] || firstFile.projectType;
+    sections.push('<details>');
+    sections.push(`<summary>Preview: ${typeName}</summary>`);
     sections.push('');
     sections.push('```markdown');
-
-    // 파일 내용 미리보기 (처음 20줄)
-    const previewLines = file.content.split('\n').slice(0, 20);
+    const previewLines = firstFile.content.split('\n').slice(0, 10);
     sections.push(...previewLines);
-
-    if (file.content.split('\n').length > 20) {
+    if (firstFile.content.split('\n').length > 10) {
       sections.push('...');
     }
-
     sections.push('```');
+    sections.push('</details>');
     sections.push('');
-  });
+  }
 
   sections.push('---');
+  sections.push('🤖 Auto-generated by [Review to Instruction](https://github.com/sunio00000/review-to-instruction)');
+
+  return sections.join('\n');
+}
+
+/**
+ * Wrapup PR 본문 생성 (전체 PR 변환용)
+ */
+function generateWrapupPrBody(
+  repository: Repository,
+  files: FileGenerationResult[],
+  commentCount: number
+): string {
+  const sections: string[] = [];
+
+  // Overview
+  sections.push('## Overview');
   sections.push('');
-  sections.push('🤖 This PR was automatically generated by [Review to Instruction](https://github.com/sunio00000/review-to-instruction).');
+  sections.push(`This PR adds AI Instructions extracted from **${commentCount} convention comments** in PR #${repository.prNumber}.`);
+  sections.push('');
+  sections.push('All comments have been analyzed and converted into structured AI Instructions for:');
+  sections.push('- Claude Code (.claude/rules/)');
+  sections.push('- Cursor (.cursor/rules/)');
+  sections.push('- Windsurf (.windsurf/rules/)');
+  sections.push('- Codex (AGENTS.md)');
+  sections.push('');
+
+  // File Summary
+  sections.push('## Files');
+  sections.push('');
+
+  const typeMap: Record<string, string> = {
+    'claude-code': 'Claude Code',
+    'cursor': 'Cursor',
+    'windsurf': 'Windsurf',
+    'codex': 'Codex'
+  };
+
+  // 프로젝트 타입별 그룹화
+  const filesByType = files.reduce((acc, file) => {
+    if (!acc[file.projectType]) {
+      acc[file.projectType] = [];
+    }
+    acc[file.projectType].push(file);
+    return acc;
+  }, {} as Record<string, FileGenerationResult[]>);
+
+  // 각 타입별 파일 수 표시
+  Object.entries(filesByType).forEach(([projectType, typeFiles]) => {
+    const typeName = typeMap[projectType] || projectType;
+    const newFiles = typeFiles.filter(f => !f.isUpdate).length;
+    const updatedFiles = typeFiles.filter(f => f.isUpdate).length;
+
+    let statusText = '';
+    if (newFiles > 0 && updatedFiles > 0) {
+      statusText = `${newFiles} new, ${updatedFiles} updated`;
+    } else if (newFiles > 0) {
+      statusText = `${newFiles} new`;
+    } else {
+      statusText = `${updatedFiles} updated`;
+    }
+
+    sections.push(`- **${typeName}**: ${typeFiles.length} files (${statusText})`);
+  });
+
+  sections.push('');
+
+  // Metadata
+  sections.push('## Metadata');
+  sections.push('');
+  sections.push(`- **Source PR**: #${repository.prNumber}`);
+  sections.push(`- **Total Conventions**: ${commentCount}`);
+  sections.push(`- **Total Files**: ${files.length}`);
+  sections.push('');
+
+  // Footer
+  sections.push('---');
+  sections.push('🤖 Auto-generated by [Review to Instruction](https://github.com/sunio00000/review-to-instruction)');
 
   return sections.join('\n');
 }

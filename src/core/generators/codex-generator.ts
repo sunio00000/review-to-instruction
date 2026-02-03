@@ -4,7 +4,7 @@
  */
 
 import { BaseGenerator, type GeneratorOptions, type GenerationResult } from './base-generator';
-import type { ParsedComment, EnhancedComment } from '../../types';
+import type { EnhancedComment } from '../../types';
 import { summarizeComment } from '../parser';
 
 /**
@@ -145,23 +145,4 @@ export class CodexGenerator extends BaseGenerator {
     return sections.join('\n');
   }
 
-  /**
-   * 제목 생성
-   */
-  private generateTitle(parsedComment: ParsedComment): string {
-    const category = parsedComment.category
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-
-    if (parsedComment.keywords.length > 0) {
-      const mainKeyword = parsedComment.keywords[0]
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      return `${mainKeyword} ${category}`;
-    }
-
-    return category;
-  }
 }

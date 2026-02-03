@@ -5,7 +5,6 @@
 
 import { globalCrypto } from '../global-crypto';
 import { iconManager } from './icon-manager';
-import { logger } from '../../utils/logger';
 
 export class SessionManager {
   private static readonly TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
@@ -30,7 +29,6 @@ export class SessionManager {
       this.updateActivity();
     });
 
-    logger.log('[SessionManager] Started with 30-minute timeout');
   }
 
   /**
@@ -47,7 +45,6 @@ export class SessionManager {
       this.activityCheckInterval = null;
     }
 
-    logger.log('[SessionManager] Stopped');
   }
 
   /**
@@ -85,7 +82,6 @@ export class SessionManager {
 
       if (timeSinceActivity > SessionManager.TIMEOUT_MS) {
         // Session expired
-        logger.log('[SessionManager] Session expired, locking...');
         await this.lockSession();
       } else {
         // Session still valid, schedule timeout
@@ -99,10 +95,8 @@ export class SessionManager {
           this.lockSession();
         }, remainingTime);
 
-        logger.log(`[SessionManager] Session valid, will lock in ${Math.ceil(remainingTime / 60000)} minutes`);
       }
     } catch (error) {
-      logger.error('[SessionManager] Error checking session validity:', error);
     }
   }
 
@@ -111,7 +105,6 @@ export class SessionManager {
    */
   private async lockSession() {
     try {
-      logger.log('[SessionManager] Locking session due to inactivity');
 
       // Clear master password from session storage
       await chrome.storage.session.remove(['masterPassword']);
@@ -128,9 +121,7 @@ export class SessionManager {
         this.timeoutId = null;
       }
 
-      logger.log('[SessionManager] Session locked successfully');
     } catch (error) {
-      logger.error('[SessionManager] Error locking session:', error);
     }
   }
 

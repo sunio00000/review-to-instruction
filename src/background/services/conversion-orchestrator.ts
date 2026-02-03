@@ -156,6 +156,109 @@ export class ConversionOrchestrator {
   }
 
   /**
+   * PR/MR 전체 Wrapup 변환 (여러 코멘트를 한 번에 변환)
+   */
+  async convertPrWrapup(payload: {
+    comments: Comment[];
+    repository: Repository;
+  }): Promise<{
+    prUrl: string;
+    fileCount: number;
+    tokenUsage?: {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    };
+  }> {
+    const { comments, repository } = payload;
+
+    // 1. 설정 로드
+    const config = await this.container.configService.loadConfig(repository.platform);
+
+    // 2. API 클라이언트 생성
+    const client = new ApiClient({
+      token: config.token,
+      platform: repository.platform,
+      gitlabUrl: config.gitlabUrl
+    });
+
+    // 3. 각 코멘트를 병렬로 처리
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const allFiles: Array<{
+      projectType: string;
+      filePath: string;
+      isUpdate: boolean;
+    }> = [];
+
+    // 병렬 처리를 위해 Promise.all 사용
+    const results = await Promise.all(
+      comments.map(async (comment) => {
+        try {
+          // 코멘트 검증 및 강화
+          const { enhancedComment, tokenUsage } =
+            await this.container.commentService.validateAndEnhance(comment, config.llmConfig);
+
+          // 파일 생성
+          const files = await this.container.fileGenerationService.generateForAllTypes(
+            client,
+            repository,
+            enhancedComment,
+            comment,
+            config.llmConfig
+          );
+
+          return { enhancedComment, comment, files, tokenUsage };
+        } catch (error) {
+          console.error(`Failed to process comment ${comment.id}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // 성공한 결과만 필터링
+    const successfulResults = results.filter((r) => r !== null);
+
+    if (successfulResults.length === 0) {
+      throw new Error('Failed to process any comments');
+    }
+
+    // 토큰 사용량 합산 및 파일 수집
+    for (const result of successfulResults) {
+      if (result.tokenUsage) {
+        totalInputTokens += result.tokenUsage.inputTokens;
+        totalOutputTokens += result.tokenUsage.outputTokens;
+      }
+      allFiles.push(
+        ...result.files.map((f) => ({
+          projectType: f.projectType,
+          filePath: f.filePath,
+          isUpdate: f.isUpdate
+        }))
+      );
+    }
+
+    // 4. 하나의 PR로 모든 파일 커밋
+    const prResult = await this.container.prService.createMultiFileWrapup(
+      client,
+      repository,
+      successfulResults,
+      config.llmConfig
+    );
+
+    // 5. 결과 반환
+    return {
+      prUrl: prResult.prUrl,
+      fileCount: allFiles.length,
+      tokenUsage: {
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        totalTokens: totalInputTokens + totalOutputTokens
+      }
+    };
+  }
+
+  /**
    * Thread 코멘트들을 하나의 Markdown으로 병합
    */
   private mergeThreadComments(thread: DiscussionThread): Comment {

@@ -49,6 +49,10 @@ export async function handleMessage(
       await handleConvertThread(message.payload, sendResponse);
       break;
 
+    case 'CONVERT_PR_WRAPUP':
+      await handleConvertPrWrapup(message.payload, sendResponse);
+      break;
+
     case 'GET_CACHE_STATS':
       await handleGetCacheStats(sendResponse);
       break;
@@ -173,6 +177,24 @@ async function handleConvertThread(
 ) {
   try {
     const result = await orchestrator.convertThread(payload);
+    sendResponse({ success: true, data: result });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * PR/MR 전체 Wrapup 변환
+ */
+async function handleConvertPrWrapup(
+  payload: { comments: Comment[]; repository: Repository },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    const result = await orchestrator.convertPrWrapup(payload);
     sendResponse({ success: true, data: result });
   } catch (error) {
     sendResponse({

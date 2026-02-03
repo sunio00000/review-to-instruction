@@ -6,7 +6,6 @@ import type { Message, MessageResponse } from '../types';
 import { handleMessage } from './message-handler';
 import { iconManager } from './services/icon-manager';
 import { globalCrypto } from './global-crypto';
-import { logger } from '../utils/logger';
 import { sessionManager } from './services/session-manager';
 
 /**
@@ -19,7 +18,6 @@ async function initializeIconState(): Promise<void> {
     const hasPassword = !!masterPassword;
     const isUnlocked = hasPassword;
 
-    logger.log('[Service Worker] Initializing icon state:', { hasPassword, isUnlocked });
 
     // 아이콘 상태 결정
     let targetState: 'active' | 'locked' | 'off';
@@ -106,7 +104,6 @@ async function checkTokensValid(): Promise<boolean> {
 
     return false;
   } catch (error) {
-    logger.error('[Service Worker] Failed to validate tokens:', error);
     return false;
   }
 }
@@ -148,7 +145,6 @@ chrome.runtime.onMessage.addListener(
 
     // 발신자 검증 - 이 extension에서만 메시지를 받도록
     if (!sender.id || sender.id !== chrome.runtime.id) {
-      logger.warn('[Security] Rejected message from unauthorized sender:', sender);
       sendResponse({
         success: false,
         error: 'Unauthorized sender'
@@ -165,7 +161,6 @@ chrome.runtime.onMessage.addListener(
         sender.url.includes('git.projectbro.com');
 
       if (!isExtensionUrl && !isAllowedUrl) {
-        logger.warn('[Security] Rejected message from unauthorized URL:', sender.url);
         sendResponse({
           success: false,
           error: 'Unauthorized origin'

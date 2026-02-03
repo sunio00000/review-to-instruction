@@ -448,6 +448,68 @@ export class ApiClient {
   }
 
   /**
+   * 브랜치로 기존 PR/MR 찾기
+   */
+  async findPullRequestByBranch(
+    repository: Repository,
+    branchName: string
+  ): Promise<{ url: string; number: number } | null> {
+    try {
+      if (this.platform === 'github') {
+        return await this.findGitHubPR(repository, branchName);
+      } else {
+        return await this.findGitLabMR(repository, branchName);
+      }
+    } catch (error) {
+      // PR/MR을 찾지 못하면 null 반환
+      return null;
+    }
+  }
+
+  /**
+   * GitHub에서 브랜치로 PR 찾기
+   */
+  private async findGitHubPR(
+    repository: Repository,
+    branchName: string
+  ): Promise<{ url: string; number: number } | null> {
+    const url = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/pulls?head=${repository.owner}:${branchName}&state=open`;
+    const response = await this.fetch(url);
+
+    if (Array.isArray(response) && response.length > 0) {
+      const pr = response[0];
+      return {
+        url: pr.html_url,
+        number: pr.number
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * GitLab에서 브랜치로 MR 찾기
+   */
+  private async findGitLabMR(
+    repository: Repository,
+    branchName: string
+  ): Promise<{ url: string; number: number } | null> {
+    const projectPath = encodeURIComponent(`${repository.owner}/${repository.name}`);
+    const url = `${this.baseUrl}/projects/${projectPath}/merge_requests?source_branch=${branchName}&state=opened`;
+    const response = await this.fetch(url);
+
+    if (Array.isArray(response) && response.length > 0) {
+      const mr = response[0];
+      return {
+        url: mr.web_url,
+        number: mr.iid
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * HTTP fetch 래퍼
    */
   private async fetch(url: string, options: RequestInit = {}): Promise<any> {

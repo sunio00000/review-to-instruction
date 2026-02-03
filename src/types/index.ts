@@ -134,6 +134,7 @@ export type MessageType =
   | 'SAVE_CONFIG'
   | 'CONVERT_COMMENT'
   | 'CONVERT_THREAD'       // Discussion Thread 전체 변환
+  | 'CONVERT_PR_WRAPUP'    // PR/MR 전체 Wrapup 변환
   | 'PREVIEW_INSTRUCTION'  // Instruction 미리보기 생성 (LLM 분석만)
   | 'CONFIRM_AND_CONVERT'  // 미리보기 확인 후 실제 변환
   | 'CREATE_PR'

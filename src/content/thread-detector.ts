@@ -10,11 +10,16 @@ import type { Platform, DiscussionThread, Comment } from '../types';
  */
 const GITHUB_THREAD_SELECTORS = {
   container: [
-    '.timeline-comment-group',  // 일반 코멘트 그룹
-    '.review-thread',           // 리뷰 스레드
-    '[data-discussion-id]'      // Discussion ID 속성
+    '.timeline-comment-group',       // 일반 코멘트 그룹
+    '.review-thread',                // 리뷰 스레드
+    '[data-discussion-id]',          // Discussion ID 속성
+    '.js-discussion',                // Discussion 컨테이너
+    '.discussion-timeline-actions',  // Timeline actions
+    'div[id^="discussion_r"]',       // Discussion ID로 시작하는 div
+    '.review-comment-group',         // Review comment group
+    '.js-comment-container'          // JS comment container
   ],
-  comment: '.timeline-comment, .review-comment',
+  comment: '.timeline-comment, .review-comment, .js-comment, div[id^="pullrequestreview"], div[id^="discussion_r"]',
   content: '.comment-body',
   author: '.author',
   time: 'relative-time'
@@ -61,6 +66,11 @@ export class ThreadDetector {
           return;
         }
 
+        // GitHub: PR Description 제외 (첫 번째 timeline-comment-group)
+        if (this.platform === 'github' && this.isPrDescription(container)) {
+          return;
+        }
+
         // Thread 추출
         const thread = this.extractThread(container);
 
@@ -73,6 +83,38 @@ export class ThreadDetector {
     }
 
     return threads;
+  }
+
+  /**
+   * GitHub PR Description 여부 확인
+   */
+  private isPrDescription(container: HTMLElement): boolean {
+    // 1. Timeline의 첫 번째 comment group인지 확인
+    const timeline = document.querySelector('.discussion-timeline, .js-discussion');
+    if (timeline) {
+      const firstCommentGroup = timeline.querySelector('.timeline-comment-group');
+      if (firstCommentGroup === container) {
+        return true;
+      }
+    }
+
+    // 2. PR 작성자의 initial comment인지 확인
+    const comment = container.querySelector('.timeline-comment');
+    if (comment) {
+      // PR description은 보통 특정 클래스나 속성을 가짐
+      if (comment.classList.contains('js-comment') &&
+          comment.querySelector('.timeline-comment-header')?.textContent?.includes('opened this pull request')) {
+        return true;
+      }
+    }
+
+    // 3. 첫 번째 comment의 ID 확인 (issue-로 시작하면 PR description)
+    const firstComment = container.querySelector('[id^="issue-"]');
+    if (firstComment) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

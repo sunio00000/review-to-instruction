@@ -3,7 +3,6 @@
  * MutationObserver를 사용하여 PR/MR 페이지의 코멘트를 감지합니다.
  */
 
-import { logger } from '../utils/logger';
 
 export interface CommentElement {
   element: HTMLElement;
@@ -15,12 +14,14 @@ export type CommentCallback = (comment: CommentElement) => void;
 
 export class CommentDetector {
   private observer: MutationObserver | null = null;
-  private processedComments = new WeakSet<HTMLElement>();
+  private processedCommentIds = new Map<string, boolean>();
   private callback: CommentCallback;
   private selectors: string[];
   private contentSelectors: string[];
   private debounceTimer: number | null = null;
   private pendingMutations: MutationRecord[] = [];
+  private cleanupTimer: number | null = null;
+  private retryCompleted = false; // 재시도 완료 플래그
 
   constructor(
     callback: CommentCallback,
@@ -40,19 +41,19 @@ export class CommentDetector {
     // 즉시 스캔
     this.processExistingComments();
 
-    // 2초 후 재스캔 (안정성 보장)
-    this.scheduleRetry();
+    // 지수 백오프 재시도 (0.5s, 1s, 2s, 4s)
+    this.scheduleRetries();
 
     // MutationObserver로 새 코멘트 감지
     this.observer = new MutationObserver((mutations) => {
       this.handleMutations(mutations);
     });
 
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    // 특정 컨테이너만 감시 (성능 최적화)
+    this.observeCommentContainers();
 
+    // 메모리 정리: 10분마다 processedCommentIds Map 정리
+    this.scheduleMemoryCleanup();
   }
 
   /**
@@ -70,18 +71,89 @@ export class CommentDetector {
       this.debounceTimer = null;
     }
 
-    // WeakSet은 자동으로 가비지 컬렉션되므로 clear() 불필요
+    if (this.cleanupTimer !== null) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
+    // Map 정리
+    this.processedCommentIds.clear();
     this.pendingMutations = [];
   }
 
   /**
-   * 재시도 로직: 2초 후 자동 재스캔
+   * 재시도 로직: 제한된 재시도 (1s, 2s 총 2번만)
    */
-  private scheduleRetry() {
-    setTimeout(() => {
-      logger.log('[CommentDetector] Running retry scan...');
-      this.processExistingComments();
-    }, 2000);
+  private scheduleRetries() {
+    if (this.retryCompleted) {
+      return; // 이미 재시도 완료
+    }
+
+    const retryDelays = [1000, 2000]; // 2번만 재시도 (성능 최적화)
+
+    retryDelays.forEach((delay, index) => {
+      setTimeout(() => {
+        if (this.retryCompleted) return;
+
+        this.processExistingComments();
+
+        // 마지막 재시도 완료
+        if (index === retryDelays.length - 1) {
+          this.retryCompleted = true;
+        }
+      }, delay);
+    });
+  }
+
+  /**
+   * 메모리 정리: 10분마다 processedCommentIds Map 정리
+   */
+  private scheduleMemoryCleanup() {
+    const CLEANUP_INTERVAL = 10 * 60 * 1000; // 10분
+
+    this.cleanupTimer = window.setInterval(() => {
+      this.processedCommentIds.clear();
+    }, CLEANUP_INTERVAL);
+  }
+
+  /**
+   * 특정 컨테이너만 감시 (성능 최적화)
+   */
+  private observeCommentContainers() {
+    const containerSelectors = [
+      // GitHub
+      '.js-discussion',
+      '.discussion-timeline',
+      '.js-timeline-item',
+      // GitLab
+      '.merge-request-tabs',
+      '.discussion-wrapper',
+      '.notes-container'
+    ];
+
+    const containers: HTMLElement[] = [];
+    for (const selector of containerSelectors) {
+      const container = document.querySelector<HTMLElement>(selector);
+      if (container) {
+        containers.push(container);
+      }
+    }
+
+    if (containers.length > 0) {
+      // 특정 컨테이너들만 감시
+      containers.forEach(container => {
+        this.observer!.observe(container, {
+          childList: true,
+          subtree: true
+        });
+      });
+    } else {
+      // Fallback: document.body 전체 감시
+      this.observer!.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
   }
 
   /**
@@ -163,12 +235,7 @@ export class CommentDetector {
    * 개별 코멘트 처리
    */
   private processComment(element: HTMLElement) {
-    // DOM 요소 자체로 중복 체크 (ID와 무관)
-    if (this.processedComments.has(element)) {
-      return;
-    }
-
-    // 시스템 노트나 커밋 히스토리 제외 (GitLab)
+    // 시스템 노트나 커밋 히스토리 제외 (먼저 체크)
     if (this.shouldExcludeComment(element)) {
       return;
     }
@@ -182,13 +249,18 @@ export class CommentDetector {
       }
     }
 
-    const id = this.getCommentId(element);
     if (!contentElement) {
       return;
     }
 
-    // DOM 요소를 처리됨으로 표시
-    this.processedComments.add(element);
+    // ID 기반 중복 체크 (DOM 교체에도 안정적)
+    const id = this.getCommentId(element);
+    if (this.processedCommentIds.has(id)) {
+      return;
+    }
+
+    // ID를 처리됨으로 표시
+    this.processedCommentIds.set(id, true);
 
     this.callback({
       element,

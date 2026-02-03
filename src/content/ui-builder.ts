@@ -423,7 +423,8 @@ export class UIBuilder {
     button: HTMLButtonElement,
     prUrl: string,
     isUpdate: boolean,
-    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; }
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; },
+    platform?: Platform
   ) {
     this.setButtonState(button, 'success', 'Converted!');
 
@@ -457,7 +458,8 @@ export class UIBuilder {
     const messageSpan = document.createElement('span');
     messageSpan.textContent = `Instruction ${actionText}! `;
 
-    // PR 링크 (URL 검증 및 escaping)
+    // PR/MR 링크 (URL 검증 및 escaping)
+    const prMr = platform === 'gitlab' ? 'MR' : 'PR';
     const link = document.createElement('a');
     try {
       // URL 유효성 검증
@@ -466,13 +468,13 @@ export class UIBuilder {
         link.href = prUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.textContent = 'View PR →';
+        link.textContent = `View ${prMr} →`;
       } else {
         throw new Error('Invalid URL');
       }
     } catch {
       // 잘못된 URL인 경우 링크 없이 텍스트만 표시
-      link.textContent = '(Invalid PR URL)';
+      link.textContent = `(Invalid ${prMr} URL)`;
     }
 
     messageSpan.appendChild(link);
@@ -507,9 +509,9 @@ export class UIBuilder {
   /**
    * 에러 메시지를 표시
    */
-  showErrorMessage(button: HTMLButtonElement, errorMessage: string) {
+  showErrorMessage(button: HTMLButtonElement, errorMessage: string, platform?: Platform) {
     // 사용자 친화적인 에러 메시지로 변환
-    const friendlyMessage = this.getFriendlyErrorMessage(errorMessage);
+    const friendlyMessage = this.getFriendlyErrorMessage(errorMessage, platform);
 
     this.setButtonState(button, 'error', 'Failed');
 
@@ -557,7 +559,7 @@ export class UIBuilder {
   /**
    * Convert error messages to user-friendly format
    */
-  private getFriendlyErrorMessage(error: string): string {
+  private getFriendlyErrorMessage(error: string, platform?: Platform): string {
     const errorLower = error.toLowerCase();
 
     // Token-related errors
@@ -603,7 +605,8 @@ export class UIBuilder {
 
     // Branch duplication
     if (errorLower.includes('already exists') || errorLower.includes('duplicate')) {
-      return 'A branch with the same name already exists. Please merge the existing PR first.';
+      const prMr = platform === 'gitlab' ? 'MR' : 'PR';
+      return `A branch with the same name already exists. Please merge the existing ${prMr} first.`;
     }
 
     // Other errors
@@ -681,63 +684,10 @@ export class UIBuilder {
     buttonContainer.className = 'review-to-instruction-thread-button-container';
     buttonContainer.appendChild(button);
 
-    // 플랫폼별 삽입 위치 찾기
-    const insertionPoint = this.findThreadButtonInsertionPoint(container);
-
-    if (insertionPoint) {
-      insertionPoint.appendChild(buttonContainer);
-    } else {
-      // Fallback: 컨테이너 최상단에 삽입
-      container.insertBefore(buttonContainer, container.firstChild);
-    }
+    // 컨테이너 최상단에 삽입 (GitHub/GitLab 통일)
+    container.insertBefore(buttonContainer, container.firstChild);
   }
 
-  /**
-   * Thread 버튼 삽입 위치 찾기 (GitHub/GitLab 호환)
-   */
-  private findThreadButtonInsertionPoint(container: HTMLElement): HTMLElement | null {
-    // GitHub: 첫 번째 코멘트의 헤더 영역
-    const githubSelectors = [
-      '.timeline-comment-header',           // 코멘트 헤더
-      '.timeline-comment-header-text',      // 헤더 텍스트 영역
-      '.timeline-comment .comment-header'   // 코멘트 내부 헤더
-    ];
-
-    for (const selector of githubSelectors) {
-      const header = container.querySelector(selector);
-      if (header) {
-        // 헤더 내부의 actions 영역 찾기 (있으면 그 옆에 추가)
-        const actions = header.querySelector('.timeline-comment-actions, .comment-actions');
-        if (actions) {
-          return actions as HTMLElement;
-        }
-        // actions 영역이 없으면 헤더 자체에 추가
-        return header as HTMLElement;
-      }
-    }
-
-    // GitLab: 첫 번째 노트의 헤더 영역
-    const gitlabSelectors = [
-      '.note-header',                       // 노트 헤더
-      '.note-header-info',                  // 헤더 정보 영역
-      '[data-testid="note-header"]'        // data-testid
-    ];
-
-    for (const selector of gitlabSelectors) {
-      const header = container.querySelector(selector);
-      if (header) {
-        // GitLab 헤더의 actions 영역 찾기
-        const actions = header.querySelector('.note-actions, .note-header-actions');
-        if (actions) {
-          return actions as HTMLElement;
-        }
-        return header as HTMLElement;
-      }
-    }
-
-    // Fallback: 컨테이너 자체
-    return null;
-  }
 
   /**
    * Thread 버튼 클릭 핸들러
