@@ -49,21 +49,16 @@ function createInstruction(options: InstructionOptions): string {
   // Title
   sections.push(`# ${title}\n`);
 
-  // Summary (if LLM enhanced)
-  if (enhanced?.summary) {
-    sections.push(`${enhanced.summary}\n`);
-  }
-
-  // Rules section (bullet points preferred)
+  // Rules section (compact, no redundant summary)
   sections.push('## Rules\n');
 
   if (enhanced?.detailedExplanation) {
-    // Use LLM explanation
+    // Use LLM explanation (already compact from prompt)
     const rules = convertToMarkdownList(enhanced.detailedExplanation);
     sections.push(rules);
   } else {
-    // Use original content as bullet points
-    const rules = convertToMarkdownList(summarizeComment(originalComment.content));
+    // Use original content as bullet points (compact)
+    const rules = convertToCompactList(summarizeComment(originalComment.content));
     sections.push(rules);
   }
   sections.push('');
@@ -172,4 +167,28 @@ function convertToMarkdownList(text: string): string {
 
   // Convert to bullet points
   return lines.map(line => `- ${line.trim()}`).join('\n');
+}
+
+/**
+ * 텍스트를 간결한 Markdown 리스트로 변환 (최대 3개 항목)
+ */
+function convertToCompactList(text: string): string {
+  // If already in bullet format, limit to 3 items
+  if (text.trim().startsWith('-') || text.trim().startsWith('*')) {
+    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    return lines.slice(0, 3).join('\n');
+  }
+
+  // Split by paragraphs or sentences, limit to 3
+  const lines = text.split(/\n+/).filter(line => line.trim().length > 0);
+  const compactLines = lines.slice(0, 3);
+
+  // Convert to bullet points
+  return compactLines.map(line => {
+    const trimmed = line.trim();
+    // Truncate if too long (over 100 chars)
+    return trimmed.length > 100
+      ? `- ${trimmed.substring(0, 97)}...`
+      : `- ${trimmed}`;
+  }).join('\n');
 }
