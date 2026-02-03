@@ -526,7 +526,7 @@ body.gl-dark .review-to-instruction-button.thread-button:hover:not(:disabled) {
   gap: 6px;
   width: 100%;
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 20px;
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
@@ -1183,10 +1183,21 @@ html[data-color-mode="dark"] .modal-btn-secondary:hover:not(:disabled) {
   position: relative;
   z-index: 1;
   color: #24292f;
-  font-size: 13px;
+  font-size: 13px !important;
   font-weight: 500;
+  line-height: 20px !important;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
   transition: color 0.3s ease;
+}
+
+/* GitLab 특정 override 방지 */
+body.gl-dark .progress-text,
+html[data-color-mode="dark"] .progress-text,
+.review-to-instruction-button.progress .progress-text,
+.review-to-instruction-button.thread-button.progress .progress-text,
+.review-to-instruction-wrapup-button.progress .progress-text {
+  font-size: 13px !important;
+  line-height: 20px !important;
 }
 
 /* Progress가 50% 이상일 때 텍스트 색상 변경 */
