@@ -102,6 +102,30 @@ describe('ConventionFilter', () => {
       }
     });
 
+    it('한글 명령형 표현이 있으면 포함해야 함 - P1 with 해주세요', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('P1: 소스 파일의 주석은 모두 한글이 아닌 영어로 작성되도록 해주세요');
+      expect(filter.isConventionComment(comment)).toBe(true);
+    });
+
+    it('한글 명령형 표현이 있으면 포함해야 함 - 하세요', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('함수명은 camelCase를 사용하세요');
+      expect(filter.isConventionComment(comment)).toBe(true);
+    });
+
+    it('한글 명령형 표현이 있으면 포함해야 함 - 합시다', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('모든 비동기 함수에는 에러 처리를 반드시 추가합시다');
+      expect(filter.isConventionComment(comment)).toBe(true);
+    });
+
+    it('한글 명령형 표현이 있으면 포함해야 함 - P2 with 해주세요', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('P2: 타입 정의는 interface를 사용해주세요');
+      expect(filter.isConventionComment(comment)).toBe(true);
+    });
+
     it('코드 예시가 있으면 포함해야 함', () => {
       const filter = new ConventionFilter();
       const withCode = [

@@ -8,9 +8,18 @@ import type { Comment } from '../types';
 export class ConventionFilter {
   // 컨벤션 키워드 (영문, 한글)
   private readonly conventionKeywords = [
+    // 영문 키워드
     'should', 'must', 'always', 'never', 'avoid', 'prefer', 'recommend',
-    'best practice', 'convention', 'pattern', 'standard',
-    '해야', '말아야', '권장', '지양', '패턴', '컨벤션', '규칙'
+    'best practice', 'convention', 'pattern', 'standard', 'required',
+    'mandatory', 'ensure', 'make sure', 'consider', 'important',
+    'suggestion', 'instead', 'use', 'dont', "don't",
+    // 한글 키워드
+    '해야', '말아야', '권장', '지양', '패턴', '컨벤션', '규칙',
+    '해주세요', '하세요', '합시다', '사용하세요', '작성하세요',
+    '추가하세요', '적용하세요', '사용해야', '작성해야', '필수',
+    '금지', '바람직', '추천', '권고', '주의', '제안',
+    // 우선순위 태그
+    'p1:', 'p2:', 'p3:', 'p4:'
   ];
 
   // 감사 인사 키워드
