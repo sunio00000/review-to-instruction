@@ -107,21 +107,50 @@ export class GitLabInjector {
       '[data-testid="source-branch"]',    // data-testid 속성
       '.merge-request-source-branch',     // MR 소스 브랜치
       '.issuable-source-branch',          // Issuable 소스 브랜치
-      '.source-branch .ref-name'          // ref-name 클래스
+      '.source-branch .ref-name',         // ref-name 클래스
+      'a[href*="/-/commits/"]',           // 커밋 링크
+      '.gl-link.gl-label-text'            // GitLab 레이블 텍스트 링크
     ];
 
     // 1. DOM 선택자로 추출 시도
     for (const selector of BRANCH_SELECTORS) {
-      const element = document.querySelector(selector);
-      const branch = element?.textContent?.trim();
+      const elements = document.querySelectorAll(selector);
 
-      if (branch) {
+      for (const element of elements) {
+        const branch = element?.textContent?.trim();
+
+        // "from" 또는 요청 정보에서 소스 브랜치 찾기
+        if (branch && element.parentElement?.textContent?.includes('from')) {
+          return branch;
+        }
+
+        // href 속성에서 브랜치 추출
+        if (element instanceof HTMLAnchorElement && element.href.includes('/-/commits/')) {
+          const match = element.href.match(/\/-\/commits\/([^/?#]+)/);
+          if (match && match[1]) {
+            const decodedBranch = decodeURIComponent(match[1]);
+            return decodedBranch;
+          }
+        }
+
+        if (branch) {
+          return branch;
+        }
+      }
+    }
+
+    // 2. MR 정보 영역에서 "Request to merge <branch>" 패턴 찾기
+    const mrInfo = document.querySelector('.merge-request-details, .issuable-details, .detail-page-description');
+    if (mrInfo) {
+      const infoText = mrInfo.textContent || '';
+      const mergeMatch = infoText.match(/merge\s+([^\s]+)\s+into/i);
+      if (mergeMatch && mergeMatch[1]) {
+        const branch = mergeMatch[1].trim();
         return branch;
       }
     }
 
-
-    // 2. URL에서 추출 시도 (Fallback)
+    // 3. URL에서 추출 시도 (Fallback)
     // GitLab MR URL 패턴: /owner/repo/-/merge_requests/123/diffs?start_sha=xxx&head_sha=yyy
     const urlParams = new URLSearchParams(window.location.search);
     const headSha = urlParams.get('head_sha');
@@ -130,7 +159,7 @@ export class GitLabInjector {
       return headSha.substring(0, 8);  // SHA의 앞 8자리 사용
     }
 
-    // 3. 페이지 제목에서 추출 시도 (최종 Fallback)
+    // 4. 페이지 제목에서 추출 시도 (최종 Fallback)
     // 페이지 제목 예: "Merge Request !123: Add new feature (branch-name → main)"
     const titleMatch = document.title.match(/\(([^)→]+)\s*→/);
     if (titleMatch && titleMatch[1]) {
@@ -150,24 +179,62 @@ export class GitLabInjector {
       '[data-testid="target-branch"]',    // data-testid 속성
       '.merge-request-target-branch',     // MR 타겟 브랜치
       '.issuable-target-branch',          // Issuable 타겟 브랜치
-      '.target-branch .ref-name'          // ref-name 클래스
+      '.target-branch .ref-name',         // ref-name 클래스
+      'a[href*="/-/tree/"]',              // 브랜치 트리 링크 (더 광범위한 선택자)
+      '.gl-link.gl-label-text'            // GitLab 레이블 텍스트 링크
     ];
 
     // 1. DOM 선택자로 추출 시도
     for (const selector of BASE_BRANCH_SELECTORS) {
-      const element = document.querySelector(selector);
-      const branch = element?.textContent?.trim();
+      const elements = document.querySelectorAll(selector);
 
-      if (branch) {
+      for (const element of elements) {
+        const branch = element?.textContent?.trim();
+
+        // "into" 또는 "→" 다음에 오는 브랜치 찾기
+        if (branch && element.parentElement?.textContent?.includes('into')) {
+          return branch;
+        }
+
+        // href 속성에서 브랜치 추출
+        if (element instanceof HTMLAnchorElement && element.href.includes('/-/tree/')) {
+          const match = element.href.match(/\/-\/tree\/([^/?#]+)/);
+          if (match && match[1]) {
+            const decodedBranch = decodeURIComponent(match[1]);
+            return decodedBranch;
+          }
+        }
+
+        if (branch) {
+          return branch;
+        }
+      }
+    }
+
+    // 2. MR 정보 영역에서 "into <branch>" 패턴 찾기
+    const mrInfo = document.querySelector('.merge-request-details, .issuable-details, .detail-page-description');
+    if (mrInfo) {
+      const infoText = mrInfo.textContent || '';
+      const intoMatch = infoText.match(/into\s+([^\s]+)/i);
+      if (intoMatch && intoMatch[1]) {
+        const branch = intoMatch[1].trim();
         return branch;
       }
     }
 
-    // 2. 페이지 제목에서 추출 시도
+    // 3. 페이지 제목에서 추출 시도
     // 페이지 제목 예: "Merge Request !123: Add new feature (branch-name → main)"
     const titleMatch = document.title.match(/→\s*([^)]+)\)/);
     if (titleMatch && titleMatch[1]) {
       const branch = titleMatch[1].trim();
+      return branch;
+    }
+
+    // 4. 페이지 본문에서 "wants to merge ... into ..." 패턴 찾기
+    const bodyText = document.body.textContent || '';
+    const wantsToMergeMatch = bodyText.match(/wants to merge.*?into\s+([^\s]+)/i);
+    if (wantsToMergeMatch && wantsToMergeMatch[1]) {
+      const branch = wantsToMergeMatch[1].trim();
       return branch;
     }
 

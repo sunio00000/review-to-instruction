@@ -119,7 +119,9 @@ export async function createPullRequest(
         filePath,
         fileContent,
         commitMessage,
-        branchName
+        branchName,
+        undefined,  // sha (GitHub only)
+        targetBranch  // baseBranch (파일 존재 여부 확인용)
       );
     } catch (error) {
       // API 클라이언트에서 던진 에러를 그대로 전달
@@ -465,7 +467,9 @@ export async function createPullRequestWithMultipleFiles(
         file.filePath,
         file.content,
         commitMessage,
-        branchName
+        branchName,
+        undefined,  // sha (GitHub only)
+        targetBranch  // baseBranch (파일 존재 여부 확인용)
       );
 
       if (!commitSuccess) {
