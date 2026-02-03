@@ -222,13 +222,14 @@ export class ApiClient {
     content: string,
     message: string,
     branch: string,
-    sha?: string
+    sha?: string,
+    baseBranch?: string  // base 브랜치 (파일 존재 여부 확인용)
   ): Promise<boolean> {
     try {
       if (this.platform === 'github') {
         await this.createOrUpdateGitHubFile(repository, path, content, message, branch, sha);
       } else {
-        await this.createOrUpdateGitLabFile(repository, path, content, message, branch);
+        await this.createOrUpdateGitLabFile(repository, path, content, message, branch, baseBranch);
       }
       return true;
     } catch (error) {
@@ -277,13 +278,41 @@ export class ApiClient {
     path: string,
     content: string,
     message: string,
-    branch: string
+    branch: string,
+    baseBranch?: string
   ): Promise<void> {
     const projectPath = encodeURIComponent(`${repository.owner}/${repository.name}`);
     const filePath = encodeURIComponent(path);
 
-    // 파일이 존재하는지 확인
-    const existingFile = await this.getGitLabFileContent(repository, path);
+    // 파일이 존재하는지 확인 (base 브랜치에서 확인)
+    // 새로 생성된 브랜치에는 커밋이 없어서 404 에러가 발생할 수 있음
+    let existingFile: FileContent | null = null;
+
+    try {
+      // base 브랜치가 제공되면 해당 브랜치에서 파일 확인
+      if (baseBranch && baseBranch !== branch) {
+        const checkUrl = `${this.baseUrl}/projects/${projectPath}/repository/files/${filePath}?ref=${encodeURIComponent(baseBranch)}`;
+        const response = await this.fetch(checkUrl);
+        existingFile = {
+          path: response.file_path,
+          content: response.content
+        };
+      } else {
+        // base 브랜치가 없으면 현재 브랜치에서 확인
+        existingFile = await this.getGitLabFileContent(repository, path);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 404 에러만 무시 (파일이 없음 - 정상)
+      if (errorMessage.includes('404')) {
+        existingFile = null;
+      } else {
+        // 다른 에러는 재발생 (인증 에러, 네트워크 에러 등)
+        throw error;
+      }
+    }
+
     const action = existingFile ? 'update' : 'create';
 
     const url = `${this.baseUrl}/projects/${projectPath}/repository/files/${filePath}`;
