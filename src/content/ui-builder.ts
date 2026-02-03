@@ -415,7 +415,10 @@ export class UIBuilder {
     prUrl: string,
     isUpdate: boolean,
     tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; },
-    platform?: Platform
+    platform?: Platform,
+    skipped?: boolean,
+    merged?: boolean,
+    similarityScore?: number
   ) {
     this.setButtonState(button, 'success', 'Converted!');
 
@@ -433,7 +436,23 @@ export class UIBuilder {
     const resultDiv = document.createElement('div');
     resultDiv.className = 'review-to-instruction-result success';
 
-    const actionText = isUpdate ? 'updated' : 'created';
+    // Phase 1: 중복 검사 결과에 따른 메시지 결정
+    let actionText: string;
+    let actionIcon = '✅';
+
+    if (skipped) {
+      actionText = `skipped (identical to existing, ${similarityScore}%)`;
+      actionIcon = '✅';
+    } else if (merged) {
+      actionText = `merged with existing (similarity: ${similarityScore}%)`;
+      actionIcon = '🔄';
+    } else if (isUpdate) {
+      actionText = 'updated';
+      actionIcon = '📝';
+    } else {
+      actionText = 'created';
+      actionIcon = '✨';
+    }
 
     // SVG 아이콘
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -447,7 +466,7 @@ export class UIBuilder {
 
     // 텍스트와 링크
     const messageSpan = document.createElement('span');
-    messageSpan.textContent = `Instruction ${actionText}! `;
+    messageSpan.textContent = `${actionIcon} Instruction ${actionText}! `;
 
     // PR/MR 링크 (URL 검증 및 escaping)
     const prMr = platform === 'gitlab' ? 'MR' : 'PR';
