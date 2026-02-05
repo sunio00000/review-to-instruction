@@ -515,7 +515,10 @@ export class GitLabInjector {
             convertResponse.data.prUrl,
             convertResponse.data.isUpdate,
             convertResponse.data.tokenUsage,
-            'gitlab'
+            'gitlab',
+            convertResponse.data.skipped,
+            convertResponse.data.merged,
+            convertResponse.data.similarityScore
           );
         } else {
           throw new Error(convertResponse.error || 'Conversion failed');
@@ -664,7 +667,10 @@ export class GitLabInjector {
           response.data.prUrl,
           response.data.isUpdate,
           response.data.tokenUsage,
-          'gitlab'
+          'gitlab',
+          response.data.skipped,
+          response.data.merged,
+          response.data.similarityScore
         );
       } else {
         throw new Error(response.error || 'Unknown error');

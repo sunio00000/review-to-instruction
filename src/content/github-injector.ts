@@ -424,7 +424,10 @@ export class GitHubInjector {
             convertResponse.data.prUrl,
             convertResponse.data.isUpdate,
             convertResponse.data.tokenUsage,
-            'github'
+            'github',
+            convertResponse.data.skipped,
+            convertResponse.data.merged,
+            convertResponse.data.similarityScore
           );
         } else {
           throw new Error(convertResponse.error || 'Conversion failed');
@@ -574,7 +577,10 @@ export class GitHubInjector {
           response.data.prUrl,
           response.data.isUpdate,
           response.data.tokenUsage,
-          'github'
+          'github',
+          response.data.skipped,
+          response.data.merged,
+          response.data.similarityScore
         );
       } else {
         throw new Error(response.error || 'Unknown error');

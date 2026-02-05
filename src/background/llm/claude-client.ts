@@ -3,9 +3,9 @@
  */
 
 import { BaseLLMClient } from './base-client';
-import type { LLMProvider, LLMResponse, LLMAnalysisResult, TokenUsage } from './types';
+import type { LLMProvider, LLMResponse, LLMAnalysisResult, TokenUsage, SimilarityCheckResult } from './types';
 import { LLMError } from './types';
-import { buildAnalysisPrompt, SYSTEM_PROMPT } from './prompts';
+import { buildAnalysisPrompt, buildSimilarityCheckPrompt, buildMergeInstructionsPrompt, SYSTEM_PROMPT } from './prompts';
 
 export class ClaudeClient extends BaseLLMClient {
   provider: LLMProvider = 'claude';
@@ -237,6 +237,128 @@ export class ClaudeClient extends BaseLLMClient {
       throw new LLMError('Empty response from Claude API', 'claude');
     }
 
+    return textContent;
+  }
+
+  /**
+   * 유사도 검사 API 호출 (Phase 1: 중복 파일 방지)
+   */
+  protected async callSimilarityAPI(
+    existingContent: string,
+    newContent: string
+  ): Promise<SimilarityCheckResult> {
+    const prompt = buildSimilarityCheckPrompt(existingContent, newContent);
+
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 512,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        system: 'You are a code convention comparison expert.'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new LLMError(
+        errorData.error?.message || `API error: ${response.status}`,
+        'claude',
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const textContent = data.content?.[0]?.text;
+
+    if (!textContent) {
+      throw new LLMError('Empty response from Claude API', 'claude');
+    }
+
+    // JSON 파싱
+    const parsed = this.parseJSON(textContent);
+
+    // 타입 검증
+    if (typeof parsed.similarity !== 'number' || !parsed.decision || !parsed.reasoning) {
+      throw new LLMError('Invalid similarity check response format', 'claude');
+    }
+
+    // 토큰 사용량 추출
+    const tokenUsage: TokenUsage = {
+      inputTokens: data.usage?.input_tokens || 0,
+      outputTokens: data.usage?.output_tokens || 0,
+      totalTokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0)
+    };
+
+    return {
+      success: true,
+      data: {
+        similarity: parsed.similarity,
+        decision: parsed.decision,
+        reasoning: parsed.reasoning
+      },
+      tokenUsage
+    };
+  }
+
+  /**
+   * 병합 API 호출 (Phase 1: 파일 병합)
+   */
+  protected async callMergeAPI(
+    existingContent: string,
+    newContent: string
+  ): Promise<string> {
+    const prompt = buildMergeInstructionsPrompt(existingContent, newContent);
+
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 2048,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        system: 'You are an expert at merging code review conventions intelligently.'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new LLMError(
+        errorData.error?.message || `API error: ${response.status}`,
+        'claude',
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const textContent = data.content?.[0]?.text;
+
+    if (!textContent) {
+      throw new LLMError('Empty response from Claude API', 'claude');
+    }
+
+    // 병합된 내용 그대로 반환 (JSON 아님)
     return textContent;
   }
 }

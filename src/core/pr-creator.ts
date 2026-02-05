@@ -450,32 +450,28 @@ export async function createPullRequestWithMultipleFiles(
     }
 
 
-    // 4. 각 파일 순차적으로 커밋
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    // 4. 모든 파일을 하나의 커밋으로 생성
+    const commitMessage = generateUnifiedCommitMessage(
+      parsedComment,
+      originalComment,
+      repository,
+      files,
+      llmSummary
+    );
 
-      const commitMessage = generateMultiFileCommitMessage(
-        parsedComment,
-        originalComment,
-        repository,
-        file,
-        llmSummary
-      );
+    const commitSuccess = await client.createOrUpdateMultipleFiles(
+      repository,
+      files.map(file => ({
+        path: file.filePath,
+        content: file.content
+      })),
+      commitMessage,
+      branchName,
+      targetBranch
+    );
 
-      const commitSuccess = await client.createOrUpdateFile(
-        repository,
-        file.filePath,
-        file.content,
-        commitMessage,
-        branchName,
-        undefined,  // sha (GitHub only)
-        targetBranch  // baseBranch (파일 존재 여부 확인용)
-      );
-
-      if (!commitSuccess) {
-        throw new Error(`Failed to commit file: ${file.filePath}`);
-      }
-
+    if (!commitSuccess) {
+      throw new Error('Failed to commit files');
     }
 
     // 5. PR/MR 생성
@@ -513,37 +509,47 @@ export async function createPullRequestWithMultipleFiles(
 }
 
 /**
- * 다중 파일 커밋 메시지 생성 (영어로)
+ * 통합 커밋 메시지 생성 (여러 파일을 하나의 커밋으로)
  */
-function generateMultiFileCommitMessage(
+function generateUnifiedCommitMessage(
   parsedComment: ParsedComment,
   originalComment: Comment,
   repository: Repository,
-  file: FileGenerationResult,
+  files: FileGenerationResult[],
   llmSummary: string | null
 ): string {
-  const action = file.isUpdate ? 'Update' : 'Add';
-  const projectType = file.projectType;
+  const hasUpdates = files.some(f => f.isUpdate);
+  const action = hasUpdates ? 'Update' : 'Add';
+
+  // 프로젝트 타입 목록
+  const projectTypes = [...new Set(files.map(f => f.projectType))];
+  const typesStr = projectTypes.length > 1
+    ? `${projectTypes.length} AI tools`
+    : projectTypes[0];
 
   // LLM 요약이 있으면 사용, 없으면 기존 방식
   const title = llmSummary
-    ? `${action} ${projectType} convention: ${llmSummary}`
+    ? `${action} conventions for ${typesStr}: ${llmSummary}`
     : (() => {
         const category = parsedComment.category
           .split('-')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
-        return `${action} ${category} convention for ${projectType}`;
+        return `${action} ${category} conventions for ${typesStr}`;
       })();
 
-  const purpose = file.isUpdate
-    ? `Reflects additional cases identified in PR #${repository.prNumber} review to ${projectType} conventions`
-    : `Adds rules established in PR #${repository.prNumber} review for ${projectType}`;
+  // 파일 목록
+  const fileList = files.map(f => `  - ${f.filePath} (${f.projectType})`).join('\n');
+
+  const purpose = hasUpdates
+    ? `Reflects additional cases identified in PR #${repository.prNumber} review`
+    : `Adds rules established in PR #${repository.prNumber} review`;
 
   const source = `\n\nSource: PR #${repository.prNumber}, comment by ${originalComment.author}`;
 
-  return `${title}\n\nPurpose: ${purpose}${source}`;
+  return `${title}\n\nFiles:\n${fileList}\n\nPurpose: ${purpose}${source}`;
 }
+
 
 /**
  * 다중 파일 PR 제목 생성
