@@ -241,6 +241,30 @@ export class ApiClient {
   }
 
   /**
+   * 여러 파일을 하나의 커밋으로 생성 또는 업데이트
+   */
+  async createOrUpdateMultipleFiles(
+    repository: Repository,
+    files: Array<{ path: string; content: string }>,
+    message: string,
+    branch: string,
+    baseBranch?: string
+  ): Promise<boolean> {
+    try {
+      if (this.platform === 'github') {
+        await this.createOrUpdateGitHubMultipleFiles(repository, files, message, branch);
+      } else {
+        await this.createOrUpdateGitLabMultipleFiles(repository, files, message, branch, baseBranch);
+      }
+      return true;
+    } catch (error) {
+      console.error(`[ApiClient] Failed to commit multiple files`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to commit multiple files\n\nReason: ${errorMessage}`);
+    }
+  }
+
+  /**
    * GitHub 파일 생성/업데이트
    */
   private async createOrUpdateGitHubFile(
@@ -327,6 +351,122 @@ export class ApiClient {
     await this.fetch(url, {
       method: action === 'create' ? 'POST' : 'PUT',
       body: JSON.stringify(body)
+    });
+  }
+
+  /**
+   * GitHub 다중 파일 생성/업데이트 (하나의 커밋으로)
+   */
+  private async createOrUpdateGitHubMultipleFiles(
+    repository: Repository,
+    files: Array<{ path: string; content: string }>,
+    message: string,
+    branch: string
+  ): Promise<void> {
+    // 1. 현재 브랜치의 최신 커밋 SHA 가져오기
+    const refUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/refs/heads/${encodeURIComponent(branch)}`;
+    const refResponse = await this.fetch(refUrl);
+    const latestCommitSha = refResponse.object.sha;
+
+    // 2. 최신 커밋의 트리 SHA 가져오기
+    const commitUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/commits/${latestCommitSha}`;
+    const commitResponse = await this.fetch(commitUrl);
+    const baseTreeSha = commitResponse.tree.sha;
+
+    // 3. 새 트리 생성 (여러 파일 포함)
+    const treeUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/trees`;
+    const tree = files.map(file => ({
+      path: file.path,
+      mode: '100644',  // 일반 파일
+      type: 'blob',
+      content: file.content
+    }));
+
+    const treeResponse = await this.fetch(treeUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree
+      })
+    });
+
+    // 4. 새 커밋 생성
+    const newCommitUrl = `${this.baseUrl}/repos/${repository.owner}/${repository.name}/git/commits`;
+    const newCommitResponse = await this.fetch(newCommitUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        tree: treeResponse.sha,
+        parents: [latestCommitSha]
+      })
+    });
+
+    // 5. 브랜치 ref 업데이트
+    await this.fetch(refUrl, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        sha: newCommitResponse.sha,
+        force: false
+      })
+    });
+  }
+
+  /**
+   * GitLab 다중 파일 생성/업데이트 (하나의 커밋으로)
+   */
+  private async createOrUpdateGitLabMultipleFiles(
+    repository: Repository,
+    files: Array<{ path: string; content: string }>,
+    message: string,
+    branch: string,
+    baseBranch?: string
+  ): Promise<void> {
+    const projectPath = encodeURIComponent(`${repository.owner}/${repository.name}`);
+
+    // 각 파일이 존재하는지 확인하여 action 결정
+    const actions = await Promise.all(
+      files.map(async (file) => {
+        const filePath = encodeURIComponent(file.path);
+        let exists = false;
+
+        try {
+          // base 브랜치가 제공되면 해당 브랜치에서 파일 확인
+          if (baseBranch && baseBranch !== branch) {
+            const checkUrl = `${this.baseUrl}/projects/${projectPath}/repository/files/${filePath}?ref=${encodeURIComponent(baseBranch)}`;
+            await this.fetch(checkUrl);
+            exists = true;
+          } else {
+            // base 브랜치가 없으면 현재 브랜치에서 확인
+            const tempRepo = { ...repository, branch };
+            await this.getGitLabFileContent(tempRepo, file.path);
+            exists = true;
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (!errorMessage.includes('404')) {
+            // 404가 아닌 다른 에러는 재발생
+            throw error;
+          }
+          // 404는 파일이 없음을 의미 (정상)
+        }
+
+        return {
+          action: exists ? 'update' : 'create',
+          file_path: file.path,
+          content: file.content
+        };
+      })
+    );
+
+    // GitLab Commits API로 한 번에 커밋
+    const url = `${this.baseUrl}/projects/${projectPath}/repository/commits`;
+    await this.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        branch,
+        commit_message: message,
+        actions
+      })
     });
   }
 
