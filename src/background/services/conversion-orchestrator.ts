@@ -17,6 +17,11 @@ export interface ConversionResult {
     projectType: string;
     filePath: string;
     isUpdate: boolean;
+    // Phase 1: 중복 검사 결과 필드 추가
+    skipped?: boolean;
+    merged?: boolean;
+    similarityScore?: number;
+    reasoning?: string;
   }>;
   category: string;
   keywords: string[];
@@ -26,6 +31,11 @@ export interface ConversionResult {
     outputTokens: number;
     totalTokens: number;
   };
+  // Phase 1: 최상위 레벨에도 추가 (첫 번째 파일의 결과)
+  isUpdate?: boolean;
+  skipped?: boolean;
+  merged?: boolean;
+  similarityScore?: number;
 }
 
 /**
@@ -75,18 +85,28 @@ export class ConversionOrchestrator {
       config.llmConfig  // LLM으로 PR 타이틀/커밋 메시지 요약
     );
 
-    // 6. 결과 반환 (토큰 사용량 포함)
+    // 6. 결과 반환 (토큰 사용량 포함, Phase 1: 중복 검사 결과 포함)
+    const firstFile = files[0];
     return {
       prUrl: prResult.prUrl,
       files: files.map(f => ({
         projectType: f.projectType,
         filePath: f.filePath,
-        isUpdate: f.isUpdate
+        isUpdate: f.isUpdate,
+        skipped: f.skipped,
+        merged: f.merged,
+        similarityScore: f.similarityScore,
+        reasoning: f.reasoning
       })),
       category: enhancedComment.category,
       keywords: enhancedComment.keywords,
       llmEnhanced: enhancedComment.llmEnhanced,
-      tokenUsage
+      tokenUsage,
+      // Phase 1: 최상위 레벨에 첫 번째 파일의 결과 복사 (UI 편의성)
+      isUpdate: firstFile?.isUpdate,
+      skipped: firstFile?.skipped,
+      merged: firstFile?.merged,
+      similarityScore: firstFile?.similarityScore
     };
   }
 
@@ -140,18 +160,28 @@ export class ConversionOrchestrator {
       config.llmConfig
     );
 
-    // 7. 결과 반환
+    // 7. 결과 반환 (Phase 1: 중복 검사 결과 포함)
+    const firstFile = files[0];
     return {
       prUrl: prResult.prUrl,
       files: files.map(f => ({
         projectType: f.projectType,
         filePath: f.filePath,
-        isUpdate: f.isUpdate
+        isUpdate: f.isUpdate,
+        skipped: f.skipped,
+        merged: f.merged,
+        similarityScore: f.similarityScore,
+        reasoning: f.reasoning
       })),
       category: enhancedComment.category,
       keywords: enhancedComment.keywords,
       llmEnhanced: enhancedComment.llmEnhanced,
-      tokenUsage
+      tokenUsage,
+      // Phase 1: 최상위 레벨에 첫 번째 파일의 결과 복사 (UI 편의성)
+      isUpdate: firstFile?.isUpdate,
+      skipped: firstFile?.skipped,
+      merged: firstFile?.merged,
+      similarityScore: firstFile?.similarityScore
     };
   }
 
