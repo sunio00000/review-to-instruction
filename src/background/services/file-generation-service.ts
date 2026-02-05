@@ -153,7 +153,6 @@ export class FileGenerationServiceImpl implements FileGenerationService {
     );
 
     // 2.5. LLM 기반 중복 검사 (Phase 1: 중복 파일 방지)
-    let skipped = false;
     let merged = false;
     let similarityScore: number | undefined;
     let reasoning: string | undefined;
@@ -182,7 +181,6 @@ export class FileGenerationServiceImpl implements FileGenerationService {
           switch (similarityResult.data.decision) {
             case 'IDENTICAL':
               // 스킵: 기존 파일 그대로 유지
-              skipped = true;
               return {
                 projectType,
                 filePath: matchResult.filePath,

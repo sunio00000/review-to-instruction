@@ -125,7 +125,7 @@ export abstract class BaseLLMClient implements ILLMClient {
       // 2. 캐시 조회
       const cachedData = await llmCache.get(cacheKey);
       if (cachedData) {
-        return { success: true, data: cachedData };
+        return { success: true, data: cachedData as any };
       }
 
       // 3. Rate limiting 체크
@@ -142,7 +142,7 @@ export abstract class BaseLLMClient implements ILLMClient {
 
       // 5. 캐싱 (30일 TTL, 성공한 경우만)
       if (response.success && response.data) {
-        await llmCache.set(cacheKey, response.data, this.provider);
+        await llmCache.set(cacheKey, response.data as any, this.provider);
       }
 
       return response;
@@ -180,7 +180,7 @@ export abstract class BaseLLMClient implements ILLMClient {
     // 2. 캐시 조회
     const cachedData = await llmCache.get(cacheKey);
     if (cachedData) {
-      return cachedData as string;
+      return cachedData as unknown as string;
     }
 
     // 3. Rate limiting 체크
@@ -193,7 +193,7 @@ export abstract class BaseLLMClient implements ILLMClient {
     const mergedContent = await this.callMergeAPI(existingContent, newContent);
 
     // 5. 캐싱 (30일 TTL)
-    await llmCache.set(cacheKey, mergedContent, this.provider);
+    await llmCache.set(cacheKey, mergedContent as any, this.provider);
 
     return mergedContent;
   }

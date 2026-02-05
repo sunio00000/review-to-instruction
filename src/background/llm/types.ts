@@ -84,10 +84,13 @@ export class LLMError extends Error {
 }
 
 // 유사도 검사 결과 (Phase 1: 중복 파일 방지)
-export interface SimilarityCheckResult extends LLMResponse {
+export interface SimilarityCheckResult {
+  success: boolean;
   data?: {
     similarity: number;  // 0-100
     decision: 'IDENTICAL' | 'MERGE' | 'DIFFERENT';
     reasoning: string;
   };
+  error?: string;
+  tokenUsage?: TokenUsage;
 }
