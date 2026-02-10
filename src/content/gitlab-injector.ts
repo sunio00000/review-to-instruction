@@ -8,7 +8,8 @@ import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import { WrapupButtonManager } from './wrapup-button-manager';
-import type { Comment, Repository, DiscussionThread } from '../types';
+import { extractCodeContextFromDOM } from './code-context-extractor';
+import type { Comment, Repository, DiscussionThread, PRReviewData, ApiReviewThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
 export class GitLabInjector {
@@ -19,6 +20,7 @@ export class GitLabInjector {
   private repository: Repository | null = null;
   private threadObserver: MutationObserver | null = null;
   private hasApiToken: boolean = false;
+  private reviewData: PRReviewData | null = null;
 
   constructor() {
     this.uiBuilder = new UIBuilder();
@@ -266,11 +268,20 @@ export class GitLabInjector {
     // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
     this.detector.start();
 
-    // Thread 감지 및 버튼 추가 (Wrapup 버튼이 discussions를 expand한 후 실행)
-    this.detectAndAddThreadButtons();
-
-    // 새로운 Thread 감지 (MutationObserver)
-    this.observeThreads();
+    // API 기반 리뷰 데이터 조회 → Thread 버튼 생성
+    this.fetchReviewData().then(() => {
+      if (this.reviewData) {
+        this.addThreadButtonsFromApi();
+      } else {
+        // API 실패 시 기존 DOM 기반 fallback
+        this.detectAndAddThreadButtons();
+        this.observeThreads();
+      }
+    }).catch(() => {
+      // fallback: 기존 DOM 기반
+      this.detectAndAddThreadButtons();
+      this.observeThreads();
+    });
   }
 
   /**
@@ -384,6 +395,9 @@ export class GitLabInjector {
       // 디스커션 답글 추출 (Feature 2)
       const replies = this.extractDiscussionReplies(element);
 
+      // 코드 컨텍스트 추출 (인라인 리뷰인 경우)
+      const codeContext = extractCodeContextFromDOM(element, 'gitlab');
+
       return {
         id: commentElement.id,
         author,
@@ -392,7 +406,8 @@ export class GitLabInjector {
         url,
         createdAt,
         platform: 'gitlab',
-        replies: replies.length > 0 ? replies : undefined
+        replies: replies.length > 0 ? replies : undefined,
+        codeContext
       };
     } catch (error) {
       return null;
@@ -636,6 +651,110 @@ export class GitLabInjector {
         subtree: false // subtree를 false로 변경하여 성능 향상
       });
     }
+  }
+
+  /**
+   * API로 MR 리뷰 데이터 조회
+   */
+  private async fetchReviewData(): Promise<void> {
+    if (!this.repository) return;
+
+    try {
+      if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_PR_REVIEW_DATA',
+        payload: {
+          owner: this.repository.owner,
+          name: this.repository.name,
+          prNumber: this.repository.prNumber,
+          platform: 'gitlab'
+        }
+      });
+
+      if (response.success && response.data) {
+        this.reviewData = response.data;
+      }
+    } catch {
+      // API 실패 시 reviewData는 null 유지 → fallback
+    }
+  }
+
+  /**
+   * API 데이터 기반 Thread 버튼 추가
+   */
+  private addThreadButtonsFromApi(): void {
+    if (!this.reviewData) return;
+
+    for (const apiThread of this.reviewData.threads) {
+      if (apiThread.comments.length < 2) continue;
+
+      const container = this.findThreadContainerForApi(apiThread);
+      if (!container) continue;
+
+      const thread = this.apiThreadToDiscussionThread(apiThread, container);
+
+      this.uiBuilder.addThreadButton({
+        platform: 'gitlab',
+        thread,
+        onClick: (t) => this.onThreadButtonClick(t)
+      });
+    }
+  }
+
+  /**
+   * API 스레드에 대응하는 DOM 컨테이너 찾기
+   */
+  private findThreadContainerForApi(apiThread: ApiReviewThread): HTMLElement | null {
+    // 1. discussion ID 기반 탐색
+    const byId = document.querySelector<HTMLElement>(
+      `[data-discussion-id="${apiThread.id}"]`
+    );
+    if (byId) return byId;
+
+    // 2. 첫 번째 노트 ID 기반 탐색
+    const firstNoteId = apiThread.comments[0]?.id;
+    if (firstNoteId) {
+      const byNoteId = document.querySelector<HTMLElement>(
+        `#note_${firstNoteId}, [data-note-id="${firstNoteId}"]`
+      );
+      if (byNoteId) {
+        return byNoteId.closest<HTMLElement>('.discussion-notes, .notes, [data-discussion-id]');
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * API 스레드 → DiscussionThread 변환
+   */
+  private apiThreadToDiscussionThread(
+    apiThread: ApiReviewThread,
+    container: HTMLElement
+  ): DiscussionThread {
+    const comments: Comment[] = apiThread.comments.map(c => ({
+      id: String(c.id),
+      author: c.author,
+      content: c.body,
+      htmlContent: c.body,
+      url: window.location.href,
+      createdAt: c.createdAt,
+      platform: 'gitlab' as const,
+      codeContext: c.path ? {
+        filePath: c.path,
+        lines: c.diffHunk || '',
+        startLine: c.line,
+        endLine: c.line
+      } : undefined
+    }));
+
+    return {
+      id: `thread-api-${apiThread.id}`,
+      platform: 'gitlab',
+      comments,
+      containerElement: container
+    };
   }
 
   /**

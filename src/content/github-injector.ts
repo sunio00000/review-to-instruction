@@ -8,7 +8,8 @@ import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import { WrapupButtonManager } from './wrapup-button-manager';
-import type { Comment, Repository, DiscussionThread } from '../types';
+import { extractCodeContextFromDOM } from './code-context-extractor';
+import type { Comment, Repository, DiscussionThread, PRReviewData, ApiReviewThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
 export class GitHubInjector {
@@ -19,6 +20,7 @@ export class GitHubInjector {
   private repository: Repository | null = null;
   private threadObserver: MutationObserver | null = null;
   private hasApiToken: boolean = false;
+  private reviewData: PRReviewData | null = null;
 
   constructor() {
     this.uiBuilder = new UIBuilder();
@@ -132,11 +134,20 @@ export class GitHubInjector {
     // ✅ 즉시 버튼 감지 시작 (차단 없음)
     this.detector.start();
 
-    // Thread 감지 및 버튼 추가
-    this.detectAndAddThreadButtons();
-
-    // 새로운 Thread 감지 (MutationObserver)
-    this.observeThreads();
+    // API 기반 리뷰 데이터 조회 → Thread 버튼 생성
+    this.fetchReviewData().then(() => {
+      if (this.reviewData) {
+        this.addThreadButtonsFromApi();
+      } else {
+        // API 실패 시 기존 DOM 기반 fallback
+        this.detectAndAddThreadButtons();
+        this.observeThreads();
+      }
+    }).catch(() => {
+      // fallback: 기존 DOM 기반
+      this.detectAndAddThreadButtons();
+      this.observeThreads();
+    });
 
     // Wrapup 버튼 추가
 
@@ -296,6 +307,9 @@ export class GitHubInjector {
       // 스레드 답글 추출 (Feature 2)
       const replies = this.extractCommentReplies(element);
 
+      // 코드 컨텍스트 추출 (인라인 리뷰인 경우)
+      const codeContext = extractCodeContextFromDOM(element, 'github');
+
       return {
         id: commentElement.id,
         author,
@@ -304,7 +318,8 @@ export class GitHubInjector {
         url,
         createdAt,
         platform: 'github',
-        replies: replies.length > 0 ? replies : undefined
+        replies: replies.length > 0 ? replies : undefined,
+        codeContext
       };
     } catch (error) {
       return null;
@@ -546,6 +561,129 @@ export class GitHubInjector {
         subtree: false // subtree를 false로 변경하여 성능 향상
       });
     }
+  }
+
+  /**
+   * API로 PR 리뷰 데이터 조회
+   */
+  private async fetchReviewData(): Promise<void> {
+    if (!this.repository) return;
+
+    try {
+      if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_PR_REVIEW_DATA',
+        payload: {
+          owner: this.repository.owner,
+          name: this.repository.name,
+          prNumber: this.repository.prNumber,
+          platform: 'github'
+        }
+      });
+
+      if (response.success && response.data) {
+        this.reviewData = response.data;
+      }
+    } catch {
+      // API 실패 시 reviewData는 null 유지 → fallback
+    }
+  }
+
+  /**
+   * API 데이터 기반 Thread 버튼 추가
+   */
+  private addThreadButtonsFromApi(): void {
+    if (!this.reviewData) return;
+
+    for (const apiThread of this.reviewData.threads) {
+      if (apiThread.comments.length < 2) continue;
+
+      // DOM에서 스레드 컨테이너 찾기 (위치 매칭)
+      const container = this.findThreadContainerForApi(apiThread);
+      if (!container) continue;
+
+      // API 스레드를 DiscussionThread로 변환
+      const thread = this.apiThreadToDiscussionThread(apiThread, container);
+
+      this.uiBuilder.addThreadButton({
+        platform: 'github',
+        thread,
+        onClick: (t) => this.onThreadButtonClick(t)
+      });
+    }
+  }
+
+  /**
+   * API 스레드에 대응하는 DOM 컨테이너 찾기
+   */
+  private findThreadContainerForApi(apiThread: ApiReviewThread): HTMLElement | null {
+    // 1. discussion ID 기반 탐색
+    const byId = document.querySelector<HTMLElement>(
+      `div[id*="${apiThread.id}"], [data-discussion-id="${apiThread.id}"]`
+    );
+    if (byId) return byId;
+
+    // 2. 첫 번째 코멘트 ID 기반 탐색
+    const firstCommentId = apiThread.comments[0]?.id;
+    if (firstCommentId) {
+      const byCommentId = document.querySelector<HTMLElement>(
+        `div[id*="${firstCommentId}"], [data-comment-id="${firstCommentId}"]`
+      );
+      if (byCommentId) {
+        // 코멘트의 부모 스레드 컨테이너 반환
+        return byCommentId.closest<HTMLElement>(
+          '.review-thread, .timeline-comment-group, .inline-comments'
+        );
+      }
+    }
+
+    // 3. 파일 경로 + 라인 기반 fallback
+    if (apiThread.path) {
+      const fileContainer = document.querySelector<HTMLElement>(`[data-path="${apiThread.path}"]`);
+      if (fileContainer) {
+        const threads = fileContainer.querySelectorAll<HTMLElement>('.review-thread, .inline-comments');
+        for (const t of threads) {
+          // 이미 버튼이 있는 컨테이너는 스킵
+          if (!t.querySelector('.review-to-instruction-thread-button-container')) {
+            return t;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * API 스레드 → DiscussionThread 변환
+   */
+  private apiThreadToDiscussionThread(
+    apiThread: ApiReviewThread,
+    container: HTMLElement
+  ): DiscussionThread {
+    const comments: Comment[] = apiThread.comments.map(c => ({
+      id: String(c.id),
+      author: c.author,
+      content: c.body,
+      htmlContent: c.body,
+      url: window.location.href,
+      createdAt: c.createdAt,
+      platform: 'github' as const,
+      codeContext: c.diffHunk && c.path ? {
+        filePath: c.path,
+        lines: c.diffHunk,
+        startLine: c.line,
+        endLine: c.line
+      } : undefined
+    }));
+
+    return {
+      id: `thread-api-${apiThread.id}`,
+      platform: 'github',
+      comments,
+      containerElement: container
+    };
   }
 
   /**
