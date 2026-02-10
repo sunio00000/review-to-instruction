@@ -8,7 +8,7 @@ import { ThreadDetector } from './thread-detector';
 import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import { WrapupButtonManager } from './wrapup-button-manager';
-import { extractCodeContextFromDOM } from './code-context-extractor';
+import { extractCodeContextFromDOM, apiToCodeContext } from './code-context-extractor';
 import type { Comment, Repository, DiscussionThread, PRReviewData, ApiReviewThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
@@ -305,8 +305,11 @@ export class GitHubInjector {
       // 스레드 답글 추출 (Feature 2)
       const replies = this.extractCommentReplies(element);
 
-      // 코드 컨텍스트 추출 (인라인 리뷰인 경우)
-      const codeContext = extractCodeContextFromDOM(element, 'github');
+      // 코드 컨텍스트 추출: API 데이터 우선, DOM fallback
+      const apiComment = this.findApiCommentForElement(commentElement);
+      const codeContext = apiComment
+        ? apiToCodeContext(apiComment)
+        : extractCodeContextFromDOM(element, 'github');
 
       return {
         id: commentElement.id,
@@ -559,6 +562,34 @@ export class GitHubInjector {
         subtree: false // subtree를 false로 변경하여 성능 향상
       });
     }
+  }
+
+  /**
+   * DOM 코멘트 요소에 대응하는 API 코멘트 찾기
+   */
+  private findApiCommentForElement(commentElement: CommentElement): import('../types').ApiReviewComment | undefined {
+    if (!this.reviewData) return undefined;
+
+    const elementId = commentElement.id;
+
+    // 모든 스레드의 코멘트에서 ID 매칭
+    for (const thread of this.reviewData.threads) {
+      for (const c of thread.comments) {
+        // DOM의 comment ID에 API comment ID가 포함되어 있는지 확인
+        if (elementId.includes(String(c.id))) {
+          return c;
+        }
+      }
+    }
+
+    // 일반 코멘트에서도 검색
+    for (const c of this.reviewData.generalComments) {
+      if (elementId.includes(String(c.id))) {
+        return c;
+      }
+    }
+
+    return undefined;
   }
 
   /**
