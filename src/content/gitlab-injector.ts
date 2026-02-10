@@ -261,26 +261,28 @@ export class GitLabInjector {
     this.repository = this.extractRepository();
     // repository 정보 없이도 계속 진행 (버튼은 표시되지만 클릭 시 재시도)
 
-    // Wrapup 버튼 추가 (먼저 실행하여 collapsed discussions를 expand)
-    // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
-    await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
+    // GitLab: Collapsed 토론 펼치기 (API 데이터 조회 전 DOM 준비)
+    this.expandCollapsedDiscussionsOnPage();
 
     // 코멘트 감지 시작 (repository 정보 유무와 관계없이)
     this.detector.start();
 
-    // API 기반 리뷰 데이터 조회 → Thread 버튼 생성
-    this.fetchReviewData().then(() => {
+    // API 기반 리뷰 데이터 조회 → Thread/Wrapup 버튼 생성
+    this.fetchReviewData().then(async () => {
       if (this.reviewData) {
         this.addThreadButtonsFromApi();
+        this.wrapupManager.addWrapupButtonFromApi(this.reviewData, (comments) => this.onWrapupButtonClick(comments));
       } else {
         // API 실패 시 기존 DOM 기반 fallback
         this.detectAndAddThreadButtons();
         this.observeThreads();
+        await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
       }
-    }).catch(() => {
+    }).catch(async () => {
       // fallback: 기존 DOM 기반
       this.detectAndAddThreadButtons();
       this.observeThreads();
+      await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
     });
   }
 
@@ -314,6 +316,32 @@ export class GitLabInjector {
   /**
    * 중지
    */
+  /**
+   * GitLab: Collapsed 토론 펼치기
+   */
+  private expandCollapsedDiscussionsOnPage(): void {
+    const collapsed = Array.from(
+      document.querySelectorAll<HTMLElement>('.discussion.collapsed, .timeline-content.collapsed')
+    );
+
+    for (const discussion of collapsed) {
+      try {
+        discussion.classList.remove('collapsed');
+        const expandButton = discussion.querySelector<HTMLElement>(
+          '.discussion-toggle-button, .js-toggle-button, [aria-label*="Expand"]'
+        );
+        if (expandButton) expandButton.click();
+
+        const body = discussion.querySelector<HTMLElement>('.discussion-body, .note-body');
+        if (body && body.style.display === 'none') {
+          body.style.display = '';
+        }
+      } catch {
+        // 펼치기 실패는 무시
+      }
+    }
+  }
+
   stop() {
     this.detector.stop();
     this.uiBuilder.removeAllButtons();

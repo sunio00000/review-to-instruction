@@ -3,8 +3,9 @@
  * PR/MR 전체 코멘트를 변환하는 Wrapup 버튼 관리
  */
 
-import type { Platform, Comment } from '../types';
+import type { Platform, Comment, PRReviewData, ApiReviewComment } from '../types';
 import { ConventionFilter } from '../core/convention-filter';
+import { extractCodeContextFromDOM } from './code-context-extractor';
 
 /**
  * WrapupButtonManager - PR/MR 전체 변환 버튼 관리
@@ -152,6 +153,93 @@ export class WrapupButtonManager {
     }
   }
 
+
+  /**
+   * API 데이터 기반 Wrapup 버튼 추가
+   */
+  addWrapupButtonFromApi(
+    reviewData: PRReviewData,
+    onClick: (comments: Comment[]) => void
+  ): void {
+    if (this.button) {
+      this.removeWrapupButton();
+    }
+
+    // API 데이터에서 전체 코멘트를 Comment 형태로 변환
+    const allComments = this.apiReviewDataToComments(reviewData);
+
+    if (allComments.length === 0) {
+      return;
+    }
+
+    // 버튼 생성
+    this.button = this.createWrapupButton(allComments.length);
+
+    // 클릭 이벤트
+    this.button.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (allComments.length === 0) {
+        const prMr = this.platform === 'github' ? 'PR' : 'MR';
+        alert(`No comments found in this ${prMr}`);
+        return;
+      }
+
+      onClick(allComments);
+    });
+
+    // 버튼 삽입
+    const insertionPoint = this.findButtonInsertionPoint();
+    if (insertionPoint) {
+      this.buttonContainer = document.createElement('div');
+      this.buttonContainer.className = 'review-to-instruction-wrapup-container';
+      this.buttonContainer.appendChild(this.button);
+      insertionPoint.insertBefore(this.buttonContainer, insertionPoint.firstChild);
+    }
+  }
+
+  /**
+   * API 리뷰 데이터 → Comment 배열 변환
+   */
+  private apiReviewDataToComments(reviewData: PRReviewData): Comment[] {
+    const comments: Comment[] = [];
+
+    // 스레드의 코멘트들
+    for (const thread of reviewData.threads) {
+      for (const c of thread.comments) {
+        comments.push(this.apiCommentToComment(c));
+      }
+    }
+
+    // 일반 코멘트들
+    for (const c of reviewData.generalComments) {
+      comments.push(this.apiCommentToComment(c));
+    }
+
+    return comments;
+  }
+
+  /**
+   * ApiReviewComment → Comment 변환
+   */
+  private apiCommentToComment(c: ApiReviewComment): Comment {
+    return {
+      id: String(c.id),
+      author: c.author,
+      content: c.body,
+      htmlContent: c.body,
+      url: window.location.href,
+      createdAt: c.createdAt,
+      platform: this.platform,
+      codeContext: c.diffHunk && c.path ? {
+        filePath: c.path,
+        lines: c.diffHunk,
+        startLine: c.line,
+        endLine: c.line
+      } : undefined
+    };
+  }
 
   /**
    * Wrapup 버튼 제거
@@ -364,6 +452,9 @@ export class WrapupButtonManager {
       // URL
       const url = window.location.href;
 
+      // 코드 컨텍스트 추출 (인라인 리뷰인 경우)
+      const codeContext = extractCodeContextFromDOM(element, this.platform);
+
       return {
         id,
         author,
@@ -372,7 +463,8 @@ export class WrapupButtonManager {
         url,
         createdAt,
         platform: this.platform,
-        replies: undefined
+        replies: undefined,
+        codeContext
       };
     } catch (error) {
       return null;

@@ -134,25 +134,23 @@ export class GitHubInjector {
     // ✅ 즉시 버튼 감지 시작 (차단 없음)
     this.detector.start();
 
-    // API 기반 리뷰 데이터 조회 → Thread 버튼 생성
-    this.fetchReviewData().then(() => {
+    // API 기반 리뷰 데이터 조회 → Thread/Wrapup 버튼 생성
+    this.fetchReviewData().then(async () => {
       if (this.reviewData) {
         this.addThreadButtonsFromApi();
+        this.wrapupManager.addWrapupButtonFromApi(this.reviewData, (comments) => this.onWrapupButtonClick(comments));
       } else {
         // API 실패 시 기존 DOM 기반 fallback
         this.detectAndAddThreadButtons();
         this.observeThreads();
+        await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
       }
-    }).catch(() => {
+    }).catch(async () => {
       // fallback: 기존 DOM 기반
       this.detectAndAddThreadButtons();
       this.observeThreads();
+      await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
     });
-
-    // Wrapup 버튼 추가
-
-    // API Token 여부와 관계없이 버튼 추가 (클릭 시 체크)
-    await this.wrapupManager.addWrapupButton((comments) => this.onWrapupButtonClick(comments));
 
     // ✅ 브랜치 정보는 백그라운드에서 업데이트
     this.updateDefaultBranch().catch(() => {
