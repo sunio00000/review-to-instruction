@@ -69,6 +69,10 @@ export async function handleMessage(
       await handleGetPRInfo(message.payload, sendResponse);
       break;
 
+    case 'GET_PR_REVIEW_DATA':
+      await handleGetPRReviewData(message.payload, sendResponse);
+      break;
+
     case 'SET_MASTER_PASSWORD':
       await handleSetMasterPassword(message.payload, sendResponse);
       break;
@@ -355,6 +359,39 @@ async function handleGetPRInfo(
 }
 
 /**
+ * PR 리뷰 코멘트 데이터 조회 (API 기반)
+ */
+async function handleGetPRReviewData(
+  payload: { owner: string; name: string; prNumber: number; platform: Platform },
+  sendResponse: (response: MessageResponse) => void
+) {
+  try {
+    const config = await orchestrator.container.configService.loadConfig(payload.platform);
+
+    const client = new ApiClient({
+      token: config.token,
+      platform: payload.platform,
+      gitlabUrl: config.gitlabUrl
+    });
+
+    const reviewData = await client.getReviewData({
+      owner: payload.owner,
+      name: payload.name,
+      platform: payload.platform,
+      prNumber: payload.prNumber,
+      branch: ''
+    });
+
+    sendResponse({ success: true, data: reviewData });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
  * 마스터 비밀번호 설정
  */
 async function handleSetMasterPassword(
@@ -453,6 +490,10 @@ async function handlePreviewInstruction(
     );
 
     // 3. Instruction 내용 생성
+    const codeContextSection = payload.comment.codeContext && payload.comment.codeContext.lines
+      ? `\n## Reviewed Code\n\nFile: \`${payload.comment.codeContext.filePath}\`${payload.comment.codeContext.startLine ? ` (lines ${payload.comment.codeContext.startLine}-${payload.comment.codeContext.endLine})` : ''}\n\n\`\`\`\n${payload.comment.codeContext.lines}\n\`\`\`\n`
+      : '';
+
     const instructionContent = `# ${enhancedComment.suggestedCategory || 'Convention'}
 
 ${enhancedComment.summary}
@@ -460,7 +501,7 @@ ${enhancedComment.summary}
 ## Details
 
 ${enhancedComment.detailedExplanation}
-
+${codeContextSection}
 ${enhancedComment.codeExplanations && enhancedComment.codeExplanations.length > 0 ? `
 ## Examples
 

@@ -186,6 +186,7 @@ export type MessageType =
   | 'CLEAR_CACHE'          // Feature 2: 캐시 초기화
   | 'GET_REPOSITORY_INFO'  // Repository 기본 브랜치 조회
   | 'GET_PR_INFO'          // PR head/base 브랜치 조회
+  | 'GET_PR_REVIEW_DATA'  // PR 리뷰 코멘트 데이터 조회 (API 기반)
   | 'SET_MASTER_PASSWORD'  // 마스터 비밀번호 설정
   | 'CHECK_TOKEN_STATUS';  // API Token 유효성 확인 (복호화 가능 여부)
 
