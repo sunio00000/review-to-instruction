@@ -5,6 +5,14 @@
 // GitHub/GitLab 플랫폼 타입
 export type Platform = 'github' | 'gitlab';
 
+// 리뷰 코멘트의 코드 컨텍스트 (diff hunk)
+export interface CodeContext {
+  filePath: string;           // 리뷰된 파일 경로 (예: "src/utils/helper.ts")
+  lines: string;              // diff hunk 코드 라인들 (텍스트, 최대 50줄)
+  startLine?: number;         // 시작 라인 번호
+  endLine?: number;           // 끝 라인 번호
+}
+
 // 코멘트 정보
 export interface Comment {
   id: string;
@@ -15,6 +23,7 @@ export interface Comment {
   createdAt: string;
   platform: Platform;
   replies?: CommentReply[];  // 스레드의 답글들 (optional)
+  codeContext?: CodeContext;  // 인라인 리뷰의 코드 컨텍스트 (optional)
 }
 
 // 코멘트 답글
@@ -112,6 +121,34 @@ export interface ApiConfig {
   gitlabUrl?: string;          // Self-hosted GitLab URL (선택)
   showButtons?: boolean;
   llm?: LLMConfig;             // LLM 설정 추가
+}
+
+// API에서 가져온 리뷰 코멘트
+export interface ApiReviewComment {
+  id: number;
+  body: string;
+  author: string;
+  path?: string;           // 파일 경로 (인라인 리뷰만)
+  line?: number;           // 라인 번호
+  diffHunk?: string;       // diff 컨텍스트 (GitHub: diff_hunk)
+  createdAt: string;
+  inReplyToId?: number;    // GitHub: 스레드 연결용
+}
+
+// API에서 구성한 리뷰 스레드
+export interface ApiReviewThread {
+  id: string;
+  comments: ApiReviewComment[];
+  path?: string;           // 파일 경로
+  line?: number;           // 시작 라인
+  diffHunk?: string;       // 코드 컨텍스트
+}
+
+// PR 전체 리뷰 데이터
+export interface PRReviewData {
+  threads: ApiReviewThread[];           // 인라인 리뷰 스레드들
+  generalComments: ApiReviewComment[];  // 일반 PR 코멘트
+  totalCommentCount: number;            // 전체 코멘트 수
 }
 
 // 프로젝트 타입 관련 (Feature 1)

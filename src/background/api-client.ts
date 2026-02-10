@@ -3,7 +3,7 @@
  * GitHub/GitLab REST API 클라이언트
  */
 
-import type { Platform, Repository } from '../types';
+import type { Platform, Repository, PRReviewData, ApiReviewComment, ApiReviewThread } from '../types';
 
 export interface ApiClientOptions {
   token: string;
@@ -679,6 +679,193 @@ export class ApiClient {
     }
 
     return null;
+  }
+
+  /**
+   * PR/MR 리뷰 데이터 조회 (스레드 + 일반 코멘트)
+   */
+  async getReviewData(repository: Repository): Promise<PRReviewData> {
+    if (this.platform === 'github') {
+      return this.getGitHubReviewData(repository);
+    } else {
+      return this.getGitLabReviewData(repository);
+    }
+  }
+
+  /**
+   * GitHub PR 리뷰 데이터 조회
+   * - GET /repos/{owner}/{repo}/pulls/{pull_number}/comments (인라인 리뷰)
+   * - GET /repos/{owner}/{repo}/issues/{issue_number}/comments (일반 코멘트)
+   */
+  private async getGitHubReviewData(repository: Repository): Promise<PRReviewData> {
+    const { owner, name, prNumber } = repository;
+
+    // 1. 인라인 리뷰 코멘트 조회 (페이지네이션)
+    const reviewComments = await this.fetchAllPages<any>(
+      `${this.baseUrl}/repos/${owner}/${name}/pulls/${prNumber}/comments?per_page=100`
+    );
+
+    // 2. 일반 PR 코멘트 조회 (페이지네이션)
+    const issueComments = await this.fetchAllPages<any>(
+      `${this.baseUrl}/repos/${owner}/${name}/issues/${prNumber}/comments?per_page=100`
+    );
+
+    // 3. 인라인 코멘트를 스레드로 그룹화 (in_reply_to_id 기반)
+    const threads = this.groupGitHubCommentsIntoThreads(reviewComments);
+
+    // 4. 일반 코멘트 변환
+    const generalComments: ApiReviewComment[] = issueComments.map((c: any) => ({
+      id: c.id,
+      body: c.body || '',
+      author: c.user?.login || 'Unknown',
+      createdAt: c.created_at || new Date().toISOString()
+    }));
+
+    const totalCommentCount = reviewComments.length + issueComments.length;
+
+    return { threads, generalComments, totalCommentCount };
+  }
+
+  /**
+   * GitHub 인라인 코멘트를 스레드로 그룹화
+   */
+  private groupGitHubCommentsIntoThreads(comments: any[]): ApiReviewThread[] {
+    const threadMap = new Map<number, ApiReviewComment[]>();
+
+    // 각 코멘트를 스레드 루트 ID 기준으로 그룹화
+    for (const c of comments) {
+      const comment: ApiReviewComment = {
+        id: c.id,
+        body: c.body || '',
+        author: c.user?.login || 'Unknown',
+        path: c.path,
+        line: c.line || c.original_line,
+        diffHunk: c.diff_hunk,
+        createdAt: c.created_at || new Date().toISOString(),
+        inReplyToId: c.in_reply_to_id
+      };
+
+      // in_reply_to_id가 있으면 해당 스레드에 추가, 없으면 새 스레드 시작
+      const rootId = c.in_reply_to_id || c.id;
+      const existing = threadMap.get(rootId) || [];
+      existing.push(comment);
+      threadMap.set(rootId, existing);
+    }
+
+    // Map을 ApiReviewThread 배열로 변환
+    const threads: ApiReviewThread[] = [];
+    for (const [rootId, threadComments] of threadMap) {
+      // 시간순 정렬
+      threadComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const first = threadComments[0];
+      threads.push({
+        id: String(rootId),
+        comments: threadComments,
+        path: first.path,
+        line: first.line,
+        diffHunk: first.diffHunk
+      });
+    }
+
+    return threads;
+  }
+
+  /**
+   * GitLab MR 리뷰 데이터 조회
+   * - GET /projects/{id}/merge_requests/{mr_iid}/discussions
+   */
+  private async getGitLabReviewData(repository: Repository): Promise<PRReviewData> {
+    const { owner, name, prNumber } = repository;
+    const projectPath = encodeURIComponent(`${owner}/${name}`);
+
+    // discussions 조회 (페이지네이션)
+    const discussions = await this.fetchAllPages<any>(
+      `${this.baseUrl}/projects/${projectPath}/merge_requests/${prNumber}/discussions?per_page=100`
+    );
+
+    const threads: ApiReviewThread[] = [];
+    const generalComments: ApiReviewComment[] = [];
+    let totalCommentCount = 0;
+
+    for (const discussion of discussions) {
+      const notes: any[] = discussion.notes || [];
+      // 시스템 노트 제외
+      const userNotes = notes.filter((n: any) => !n.system);
+      if (userNotes.length === 0) continue;
+
+      totalCommentCount += userNotes.length;
+
+      const apiComments: ApiReviewComment[] = userNotes.map((n: any) => ({
+        id: n.id,
+        body: n.body || '',
+        author: n.author?.username || 'Unknown',
+        path: n.position?.new_path || n.position?.old_path,
+        line: n.position?.new_line || n.position?.old_line,
+        diffHunk: undefined, // GitLab discussions API는 diff_hunk를 직접 제공하지 않음
+        createdAt: n.created_at || new Date().toISOString()
+      }));
+
+      const first = apiComments[0];
+      const isInline = !!first.path;
+
+      if (isInline) {
+        threads.push({
+          id: discussion.id,
+          comments: apiComments,
+          path: first.path,
+          line: first.line
+        });
+      } else {
+        generalComments.push(...apiComments);
+      }
+    }
+
+    return { threads, generalComments, totalCommentCount };
+  }
+
+  /**
+   * 페이지네이션을 처리하여 모든 결과 조회
+   */
+  private async fetchAllPages<T>(url: string): Promise<T[]> {
+    const allItems: T[] = [];
+    let nextUrl: string | null = url;
+
+    while (nextUrl) {
+      const response = await globalThis.fetch(nextUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(this.platform === 'github'
+            ? { 'Authorization': `Bearer ${this.token}` }
+            : { 'PRIVATE-TOKEN': this.token }
+          )
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : [];
+      allItems.push(...items);
+
+      // Link 헤더에서 다음 페이지 URL 추출
+      nextUrl = this.getNextPageUrl(response.headers.get('link'));
+    }
+
+    return allItems;
+  }
+
+  /**
+   * Link 헤더에서 다음 페이지 URL 추출
+   */
+  private getNextPageUrl(linkHeader: string | null): string | null {
+    if (!linkHeader) return null;
+
+    const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+    return match ? match[1] : null;
   }
 
   /**
