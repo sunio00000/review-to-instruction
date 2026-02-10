@@ -43,8 +43,8 @@ export class ConventionFilter {
     const content = comment.content.trim();
     const contentLower = content.toLowerCase();
 
-    // 1. 너무 짧은 코멘트 제외 (20자 이하)
-    if (content.length < 20) {
+    // 1. 너무 짧은 코멘트 제외 (10자 이하로 완화)
+    if (content.length < 10) {
       return false;
     }
 
@@ -63,28 +63,23 @@ export class ConventionFilter {
       return false;
     }
 
-    // 5. 일회성 지적 제외
+    // 5. 일회성 지적 제외 (3개 이상으로 완화)
     if (this.isOneTimeComment(contentLower)) {
       return false;
     }
 
-    // 6. 불확실성 표현이 있으면 제외 (컨벤션이 아님)
-    if (this.hasUncertainty(contentLower)) {
-      return false;
-    }
-
-    // 7. 컨벤션 키워드가 있으면 포함
+    // 6. 컨벤션 키워드가 있으면 포함
     if (this.hasConventionKeyword(contentLower)) {
       return true;
     }
 
-    // 8. 코드 예시가 있으면 포함
+    // 7. 코드 예시가 있으면 포함
     if (this.hasCodeExample(content)) {
       return true;
     }
 
-    // 9. 50자 이상이고 일반적인 규칙/패턴을 설명하면 포함
-    if (content.length >= 50 && this.isGeneralPattern(content)) {
+    // 8. 30자 이상이면 통과 (기존 50자에서 완화)
+    if (content.length >= 30) {
       return true;
     }
 
@@ -187,12 +182,12 @@ export class ConventionFilter {
    * 일회성 지적인지 확인
    */
   private isOneTimeComment(contentLower: string): boolean {
-    // 일회성 키워드가 2개 이상 포함되면 일회성 지적으로 판단
+    // 일회성 키워드가 3개 이상 포함되면 일회성 지적으로 판단 (기존 2개에서 완화)
     const matchCount = this.oneTimeKeywords.filter(keyword =>
       contentLower.includes(keyword)
     ).length;
 
-    return matchCount >= 2;
+    return matchCount >= 3;
   }
 
   /**
@@ -208,19 +203,6 @@ export class ConventionFilter {
   private hasCodeExample(content: string): boolean {
     // 코드 블록 (```) 또는 인라인 코드 (`)가 있는지 확인
     return content.includes('```') || /`[^`]+`/.test(content);
-  }
-
-  /**
-   * 불확실성 표현이 있는지 확인
-   */
-  private hasUncertainty(contentLower: string): boolean {
-    const uncertaintyKeywords = [
-      'i think', 'maybe', 'perhaps', 'not sure', 'hmm',
-      'what do you think', 'should we', 'could we',
-      '생각', '아마', '혹시', '확실'
-    ];
-
-    return uncertaintyKeywords.some(keyword => contentLower.includes(keyword));
   }
 
   /**

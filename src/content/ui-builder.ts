@@ -6,7 +6,7 @@
 import type { Platform, Comment, DiscussionThread } from '../types';
 import { calculateCost, formatCost } from '../utils/token-pricing';
 import { Debouncer } from '../utils/rate-limiter';
-import { ConventionFilter } from '../core/convention-filter';
+
 
 export interface ButtonOptions {
   platform: Platform;
@@ -655,34 +655,17 @@ export class UIBuilder {
     button.setAttribute('data-thread-id', options.thread.id);
     button.setAttribute('type', 'button');
 
-    // Thread 전용 아이콘 + convention 코멘트 수 표시
-    const conventionComments = this.filterConventionComments(options.thread.comments);
-    const commentCount = conventionComments.length;
     const totalCount = options.thread.comments.length;
 
-    // Convention 댓글이 없으면 버튼을 비활성화
-    if (commentCount === 0) {
-      button.disabled = true;
-      button.title = `🧵 No Convention Comments in Thread\n\nThis thread has ${totalCount} ${totalCount === 1 ? 'comment' : 'comments'}, but none meet the convention criteria.`;
-      button.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0114.25 14H1.75A1.75 1.75 0 010 12.25v-9.5C0 1.784.784 1 1.75 1zM1.5 2.75v9.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25z"/>
-          <path d="M3.5 6.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z"/>
-        </svg>
-        <span>No Conventions (${totalCount})</span>
-      `;
-      return button;
-    }
-
-    // Thread 버튼 툴팁
-    button.title = `🧵 Convert Discussion Thread to AI Instruction\n\n⚡ This thread contains ${commentCount} convention ${commentCount === 1 ? 'comment' : 'comments'} (${totalCount} total)\nAll convention comments in this thread will be analyzed together to create a unified AI Instruction that captures the complete discussion context.\n(LLM analysis will be performed, costs may apply)`;
+    // Thread 버튼 툴팁 (느슨한 활성화: 2+ 코멘트면 항상 활성)
+    button.title = `🧵 Convert Discussion Thread to AI Instruction\n\n⚡ This thread contains ${totalCount} ${totalCount === 1 ? 'comment' : 'comments'}\nAll comments in this thread will be analyzed together to create a unified AI Instruction that captures the complete discussion context.\n(LLM analysis will be performed, costs may apply)`;
 
     button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0114.25 14H1.75A1.75 1.75 0 010 12.25v-9.5C0 1.784.784 1 1.75 1zM1.5 2.75v9.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25z"/>
         <path d="M3.5 6.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z"/>
       </svg>
-      <span>Convert Thread (${commentCount})</span>
+      <span>Convert Thread (${totalCount})</span>
     `;
 
     // 클릭 이벤트
@@ -750,11 +733,4 @@ export class UIBuilder {
     this.threadButtons.clear();
   }
 
-  /**
-   * Convention 댓글만 필터링 (Thread용 - 완화된 기준)
-   */
-  private filterConventionComments(comments: Comment[]): Comment[] {
-    const filter = new ConventionFilter();
-    return filter.filterThreadComments(comments);
-  }
 }

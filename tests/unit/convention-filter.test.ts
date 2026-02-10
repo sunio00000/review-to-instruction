@@ -152,15 +152,15 @@ describe('ConventionFilter', () => {
       }
     });
 
-    it('50자 이상이지만 컨벤션이 아니면 필터링해야 함', () => {
+    it('30자 이상이면 불확실성 표현이 있어도 포함해야 함 (완화된 기준)', () => {
       const filter = new ConventionFilter();
-      const nonConventions = [
+      const comments = [
         createComment('I think this implementation is good but maybe we could discuss this in the next meeting to align with the team.'),
         createComment('Hmm I am not sure about this approach. What do you think? Should we try a different method or keep this one?')
       ];
 
-      for (const n of nonConventions) {
-        expect(filter.isConventionComment(n)).toBe(false);
+      for (const c of comments) {
+        expect(filter.isConventionComment(c)).toBe(true);
       }
     });
   });
