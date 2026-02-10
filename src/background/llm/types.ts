@@ -62,7 +62,8 @@ export interface ILLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse>;
   generateText(prompt: string, options?: {
     max_tokens?: number;

@@ -16,22 +16,24 @@ export class OpenAIClient extends BaseLLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse> {
     // Feature 2: 캐시를 활용한 분석 (replies 포함, 기존 키워드 전달)
-    return this.analyzeWithCache(content, codeExamples, replies, existingKeywords);
+    return this.analyzeWithCache(content, codeExamples, replies, existingKeywords, codeContext);
   }
 
   protected async callAnalysisAPI(
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse> {
     try {
 
       const { result, tokenUsage } = await this.retry(() =>
-        this.withTimeout(this.callAPIInternal(content, codeExamples, replies, existingKeywords))
+        this.withTimeout(this.callAPIInternal(content, codeExamples, replies, existingKeywords, codeContext))
       );
 
       return { success: true, data: result, tokenUsage };
@@ -48,9 +50,10 @@ export class OpenAIClient extends BaseLLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<{ result: LLMAnalysisResult; tokenUsage: TokenUsage }> {
-    const prompt = buildAnalysisPrompt(content, codeExamples, replies, existingKeywords);
+    const prompt = buildAnalysisPrompt(content, codeExamples, replies, existingKeywords, codeContext);
 
     const response = await fetch(this.apiUrl, {
       method: 'POST',

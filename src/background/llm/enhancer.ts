@@ -2,7 +2,7 @@
  * LLM 강화 엔트리포인트
  */
 
-import type { ParsedComment, EnhancedComment, LLMConfig, DiscussionThread } from '../../types';
+import type { ParsedComment, EnhancedComment, LLMConfig, DiscussionThread, CodeContext } from '../../types';
 import { ClaudeClient } from './claude-client';
 import { OpenAIClient } from './openai-client';
 import type { ILLMClient } from './types';
@@ -14,7 +14,8 @@ export async function enhanceWithLLM(
   parsedComment: ParsedComment,
   config: LLMConfig,
   replies?: Array<{ author: string; content: string; createdAt: string; }>,
-  thread?: DiscussionThread
+  thread?: DiscussionThread,
+  codeContext?: CodeContext
 ): Promise<{ enhancedComment: EnhancedComment; tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; } }> {
 
   // API 키 확인
@@ -33,12 +34,13 @@ export async function enhanceWithLLM(
       contentToAnalyze = createThreadContextPrompt(thread, parsedComment.content);
     }
 
-    // LLM 분석 호출 (replies 포함, 기존 키워드 전달)
+    // LLM 분석 호출 (replies 포함, 기존 키워드 전달, 코드 컨텍스트 전달)
     const response = await client.analyzeComment(
       contentToAnalyze,
       parsedComment.codeExamples,
       replies,
-      parsedComment.keywords  // 기존 규칙 기반 키워드 전달
+      parsedComment.keywords,  // 기존 규칙 기반 키워드 전달
+      codeContext               // 인라인 리뷰의 코드 컨텍스트
     );
 
     if (!response.success || !response.data) {

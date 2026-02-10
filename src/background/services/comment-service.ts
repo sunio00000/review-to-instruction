@@ -40,11 +40,13 @@ export class CommentServiceImpl implements CommentService {
 
     // 3. 키워드 검증 제거 - LLM이 키워드를 추출할 것
 
-    // 4. LLM 강화 (답글 포함, 키워드 병합)
+    // 4. LLM 강화 (답글 포함, 키워드 병합, 코드 컨텍스트 전달)
     const { enhancedComment, tokenUsage } = await enhanceWithLLM(
       parsedComment,
       llmConfig,
-      comment.replies
+      comment.replies,
+      undefined,         // thread
+      comment.codeContext // 인라인 리뷰의 코드 컨텍스트
     );
 
     // 5. 선택적 경고 (디버깅용)
@@ -63,13 +65,14 @@ export class CommentServiceImpl implements CommentService {
     thread: DiscussionThread,
     llmConfig: LLMConfig
   ): Promise<{ enhancedComment: EnhancedComment; tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number; } }> {
-    // 1. Thread가 컨벤션 관련인지 확인 (하나라도 컨벤션이면 OK)
-    const isConvention = thread.comments.some(comment =>
-      isConventionComment(comment.content)
+    // 1. Thread에 충분한 내용이 있는지 확인 (느슨한 검증)
+    // Thread는 여러 코멘트가 모여 컨벤션을 논의하므로 컨벤션 키워드 체크 대신 최소 내용만 확인
+    const hasSubstantiveContent = thread.comments.some(comment =>
+      comment.content.trim().length >= 20
     );
 
-    if (!isConvention) {
-      throw new Error('이 Thread는 컨벤션 관련 내용이 아닙니다.');
+    if (!hasSubstantiveContent) {
+      throw new Error('이 Thread에 충분한 내용이 없습니다.');
     }
 
     // 2. 통합 코멘트 파싱

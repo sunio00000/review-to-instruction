@@ -9,16 +9,26 @@ export function buildAnalysisPrompt(
   content: string,
   codeExamples: string[],
   replies?: Array<{ author: string; content: string; createdAt: string; }>,
-  existingKeywords?: string[]
+  existingKeywords?: string[],
+  codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
 ): string {
   const hasCode = codeExamples.length > 0;
   const hasReplies = replies && replies.length > 0;
   const hasExistingKeywords = existingKeywords && existingKeywords.length > 0;
+  const hasCodeContext = codeContext && codeContext.lines.length > 0;
 
   return `You are a code review analyzer. Analyze the following code review comment${hasReplies ? ' and discussion thread' : ''} and provide structured output IN ENGLISH.
 
 **Review Comment:**
 ${content}
+
+${hasCodeContext ? `**Code Under Review (${codeContext.filePath}${codeContext.startLine ? `, lines ${codeContext.startLine}-${codeContext.endLine}` : ''}):**
+\`\`\`
+${codeContext.lines}
+\`\`\`
+
+This is the actual code the reviewer commented on. Use this context to understand what specific code pattern or issue the reviewer is addressing.
+` : ''}
 
 ${hasReplies ? `**Discussion Thread (${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}):**
 ${replies.map((reply, i) => `Reply ${i + 1} by ${reply.author}:

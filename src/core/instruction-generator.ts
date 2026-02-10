@@ -63,6 +63,16 @@ function createInstruction(options: InstructionOptions): string {
   }
   sections.push('');
 
+  // Reviewed Code section (인라인 리뷰의 코드 컨텍스트)
+  if (originalComment.codeContext && originalComment.codeContext.lines) {
+    const ctx = originalComment.codeContext;
+    sections.push('## Reviewed Code\n');
+    sections.push(`File: \`${ctx.filePath}\`${ctx.startLine ? ` (lines ${ctx.startLine}-${ctx.endLine})` : ''}\n`);
+    sections.push('```');
+    sections.push(ctx.lines);
+    sections.push('```\n');
+  }
+
   // Examples section
   if (parsedComment.codeExamples.length > 0) {
     sections.push('## Examples\n');

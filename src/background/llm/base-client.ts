@@ -22,7 +22,8 @@ export abstract class BaseLLMClient implements ILLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse>;
 
   /**
@@ -48,12 +49,13 @@ export abstract class BaseLLMClient implements ILLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse> {
     try {
-      // 1. 캐시 키 생성 (replies + existingKeywords 포함)
+      // 1. 캐시 키 생성 (replies + existingKeywords + codeContext 포함)
       const cacheKey = await llmCache.generateCacheKey(
-        content + (replies ? JSON.stringify(replies) : '') + (existingKeywords ? JSON.stringify(existingKeywords) : ''),
+        content + (replies ? JSON.stringify(replies) : '') + (existingKeywords ? JSON.stringify(existingKeywords) : '') + (codeContext ? JSON.stringify(codeContext) : ''),
         codeExamples,
         this.provider
       );
@@ -79,7 +81,7 @@ export abstract class BaseLLMClient implements ILLMClient {
       }
 
       // 4. 캐시 MISS - API 호출
-      const response = await this.callAnalysisAPI(content, codeExamples, replies, existingKeywords);
+      const response = await this.callAnalysisAPI(content, codeExamples, replies, existingKeywords, codeContext);
 
       // 5. 응답 캐싱 (성공한 경우만)
       if (response.success && response.data) {
@@ -91,7 +93,7 @@ export abstract class BaseLLMClient implements ILLMClient {
 
     } catch (error) {
       // 캐시 실패 시 API 직접 호출 (Fail-safe)
-      return this.callAnalysisAPI(content, codeExamples, replies, existingKeywords);
+      return this.callAnalysisAPI(content, codeExamples, replies, existingKeywords, codeContext);
     }
   }
 
@@ -104,7 +106,8 @@ export abstract class BaseLLMClient implements ILLMClient {
     content: string,
     codeExamples: string[],
     replies?: Array<{ author: string; content: string; createdAt: string; }>,
-    existingKeywords?: string[]
+    existingKeywords?: string[],
+    codeContext?: { filePath: string; lines: string; startLine?: number; endLine?: number; }
   ): Promise<LLMResponse>;
 
   /**
