@@ -111,62 +111,64 @@ Generates instruction files for all detected project types simultaneously:
 
 ## Architecture
 
-```mermaid
-graph TB
-    subgraph EXT["Chrome Extension (Manifest V3)"]
-        direction TB
+```
+  +----------------------------------------------+
+  |          Chrome Extension (MV3)              |
+  +----------------------------------------------+
 
-        subgraph CS["Content Script"]
-            direction TB
-            INJ["GitHub / GitLab Injectors"]
-            DET["CommentDetector · ThreadDetector"]
-            UI["UIBuilder · WrapupButtonManager"]
-            PM["PreviewModal"]
-        end
+  +- Content Script (PR pages) -----------------+
+  |                                              |
+  |  GitHub/GitLab Injectors                     |
+  |  CommentDetector  *  ThreadDetector          |
+  |  UIBuilder  *  WrapupButtonManager           |
+  |  PreviewModal                                |
+  |                                              |
+  +---------------------+------------------------+
+                        |
+                chrome.runtime
+                  .sendMessage
+                        |
+  +---------------------v------------------------+
+  |                                              |
+  |  Background Service Worker                   |
+  |                                              |
+  |  MessageHandler                              |
+  |    -> ConversionOrchestrator                 |
+  |         |-- CommentService --> LLM Clients   |
+  |         |                     (Claude/OpenAI)|
+  |         |-- FileGenerationService            |
+  |         |     +-- GeneratorFactory           |
+  |         |         Claude Code | Cursor       |
+  |         |         Windsurf   | Codex         |
+  |         +-- PRService                        |
+  |                                              |
+  |  ConfigService * CryptoService               |
+  |  SessionManager                              |
+  |                                              |
+  +------------+-------------------+-------------+
+               |                   |
+               v                   v
+       GitHub/GitLab API    Claude/OpenAI API
 
-        subgraph BG["Background Service Worker"]
-            direction TB
-            MH["MessageHandler"]
-            CO["ConversionOrchestrator"]
-            CSVC["CommentService"]
-            FGS["FileGenerationService"]
-            GF["GeneratorFactory"]
-            GEN["Claude Code · Cursor · Windsurf · Codex"]
-            PR["PRService"]
-            LLM["ClaudeClient · OpenAIClient"]
-            SVC["ConfigService · CryptoService · SessionManager"]
-        end
-
-        subgraph POP["Popup (Settings UI)"]
-            direction TB
-            POPT["Master Password · API Tokens · LLM Provider · Cache Stats"]
-        end
-    end
-
-    CS -- "chrome.runtime\n.sendMessage" --> MH
-    MH --> CO
-    CO --> CSVC
-    CO --> FGS
-    FGS --> GF --> GEN
-    CO --> PR
-    CSVC --> LLM
-
-    PR -- "REST API" --> GHGL["GitHub / GitLab API"]
-    LLM -- "REST API" --> LLMAPI["Claude / OpenAI API"]
+  +- Popup (Settings UI) -----------------------+
+  |                                              |
+  |  Master Password  *  API Tokens              |
+  |  LLM Provider  *  Cache Stats & Token Usage  |
+  |                                              |
+  +----------------------------------------------+
 ```
 
 ### Data Flow
 
-```mermaid
-graph LR
-    A["Click Button"] --> B["Collect Comment"]
-    B --> C["Background\nMessage"]
-    C --> D["Fetch Metadata\n& Replies"]
-    D --> E["LLM Analysis\n(optional)"]
-    E --> F["Generate\nInstruction Files"]
-    F --> G["Duplicate Check\n& Merge"]
-    G --> H["Create PR"]
-    H --> I["Success\nNotification"]
+```
+  Click --> Collect --> Background --> Fetch Metadata
+  Button    Comment     Message       & Replies
+                                         |
+  Success <-- Create <-- Dedupe <-- LLM Analysis
+  Notice      PR         & Merge    (optional)
+                                         |
+                                    Generate Files
+                                    (per AI tool)
 ```
 
 ## Tech Stack
