@@ -102,33 +102,33 @@ export class ConventionFilter {
     const content = comment.content.trim();
     const contentLower = content.toLowerCase();
 
-    // 1. 너무 짧은 코멘트 제외 (10자 이하로 완화)
-    if (content.length < 10) {
-      return false;
-    }
-
-    // 2. 이모지만 있는 코멘트 제외
+    // 1. 이모지만 있는 코멘트 제외
     if (this.isOnlyEmojis(content)) {
       return false;
     }
 
-    // 3. 감사 인사는 제외 (Thread에서도 의미 없음)
-    if (this.isThanksComment(contentLower)) {
-      return false;
-    }
-
-    // 4. 컨벤션 키워드가 있으면 무조건 포함 (길이 무관)
-    if (this.hasConventionKeyword(contentLower)) {
+    // 2. 우선순위 태그가 있으면 포함 (길이 무관, 최우선 체크)
+    if (this.hasPriorityTag(contentLower)) {
       return true;
     }
 
-    // 5. 코드 예시가 있으면 포함 (길이 무관)
+    // 3. 코드 예시가 있으면 포함 (길이 무관)
     if (this.hasCodeExample(content)) {
       return true;
     }
 
-    // 6. 우선순위 태그가 있으면 포함 (길이 무관)
-    if (this.hasPriorityTag(contentLower)) {
+    // 4. 너무 짧은 코멘트 제외 (10자 미만)
+    if (content.length < 10) {
+      return false;
+    }
+
+    // 5. 감사 인사는 제외 (Thread에서도 의미 없음)
+    if (this.isThanksComment(contentLower)) {
+      return false;
+    }
+
+    // 6. 컨벤션 키워드가 있으면 무조건 포함
+    if (this.hasConventionKeyword(contentLower)) {
       return true;
     }
 
