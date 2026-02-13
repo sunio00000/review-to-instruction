@@ -11,28 +11,44 @@ https://github.com/user-attachments/assets/a78b3033-9021-4fa2-8a7e-e2c038182d31
 
 > Transform PR review comments into structured AI instructions with a single click
 
-A Chrome extension that automatically converts GitHub/GitLab review comments into instruction files for Claude Code, Cursor, and Windsurf. Simply click a button on any convention-related comment, and the extension generates properly formatted instructions, creates a PR, and keeps your AI agents aligned with your team's standards.
+A Chrome extension that converts GitHub/GitLab review comments into instruction files for **Claude Code**, **Cursor**, **Windsurf**, and **Codex**. Click a button on any convention-related comment, and the extension generates properly formatted instruction files, commits them, and creates a PR — keeping your AI agents aligned with your team's standards.
 
-## Overview
+## How It Works
 
-When reviewing code, teams often establish conventions through PR comments. This extension automates the tedious process of documenting those conventions into AI-readable instruction files.
+> **Your team's code review comments are goldmines of coding standards.**
+> But they get buried in closed PRs, never to be seen again.
+>
+> This extension captures them — instantly turning tribal knowledge into AI-readable rules.
 
-**Example:**
+```diff
+  💬 PR Review Comment
+  ─────────────────────────────────────────
+  "Our team uses PascalCase for component file names.
+   ✅ UserProfile.tsx
+   ❌ userProfile.tsx"
 
-A PR comment like this:
+                    ⚡ One Click
+
+  📁 Auto-generated files:
++ .claude/rules/component-naming.md
++ .cursor/rules/component-naming.md
++ .windsurf/rules/component-naming.md
++ AGENTS.md  (Codex — appended)
+
+  🔀 → New PR created, ready to merge
 ```
-Our team uses PascalCase for component file names.
 
-✅ UserProfile.tsx
-❌ userProfile.tsx
-```
+Every AI agent on your team now follows the same conventions. No copy-paste. No forgotten rules.
 
-Becomes these files automatically:
-- `.claude/rules/component-naming.md`
-- `.cursor/rules/component-naming.md`
-- `.windsurf/rules/component-naming.md`
+## 3-Level Conversion
 
-All committed to a new PR with proper formatting and metadata.
+| Level | Scope | Trigger |
+|-------|-------|---------|
+| **Level 1** | Single comment | "Convert to AI Instruction" button on individual comments |
+| **Level 2** | Discussion thread | "Convert Thread (N comments)" button on threads with 2+ comments |
+| **Level 3** | Entire PR/MR | "Wrapup" button — collects all convention comments across the PR |
+
+Each level analyzes comments at a different granularity, filtering out non-convention content (thanks, LGTM, etc.) and merging related instructions.
 
 ## Installation
 
@@ -51,58 +67,142 @@ All committed to a new PR with proper formatting and metadata.
 
 3. **Configure API access:**
    - Click the extension icon in your browser
-   - Enter your GitHub/GitLab API token (requires `repo` scope)
+   - Set a master password (encrypts all stored tokens)
+   - Enter your GitHub/GitLab API token (`repo` scope for GitHub, `api` scope for GitLab)
+   - Optionally enter a Claude or OpenAI API key for LLM-enhanced analysis
    - Test the connection and save
 
 4. **Start using:**
-   - Navigate to any PR/MR on GitHub or GitLab
-   - **For individual comments**: Click the "Convert to AI Instruction" button on any convention-related comment
-   - **For discussion threads**: Click the purple "Convert Thread (N comments)" button at the top of discussions with 2+ comments
-   - Review and merge the generated PR
+   - Navigate to any PR on GitHub or MR on GitLab
+   - Use Level 1/2/3 buttons depending on scope
+   - Review the preview modal, edit if needed, then confirm
+   - Merge the generated PR
 
 ## Features
 
 ### Multi-Platform Support
-Automatically detects and generates instruction files for:
-- **Claude Code** (`.claude/rules/`, `.claude/skills/`)
-- **Cursor** (`.cursor/rules/`)
-- **Windsurf** (`.windsurf/rules/`)
+- **GitHub** (github.com)
+- **GitLab** (gitlab.com + self-hosted instances)
+
+### Multi-AI-Tool Output
+Generates instruction files for all detected project types simultaneously:
+
+| AI Tool | Output Path | Format |
+|---------|-------------|--------|
+| Claude Code | `.claude/rules/<name>.md` | Markdown with frontmatter |
+| Cursor | `.cursor/rules/<name>.md` | Markdown |
+| Windsurf | `.windsurf/rules/<name>.md` | Markdown |
+| Codex | `AGENTS.md` (root) | Single file, append-based |
 
 ### Intelligent Processing
-- **Smart File Matching**: Automatically updates existing files or creates new ones based on similarity scoring
-- **Discussion Thread Conversion** (New!): Convert entire discussion threads into unified instructions
-  - Detects threads with 2+ comments automatically
-  - Displays distinctive "Convert Thread" button on discussion headers
-  - Merges all comments with author and timestamp metadata
-  - Analyzes discussion evolution, consensus, and actionable outcomes
-  - Generates filenames reflecting the thread's central topic (e.g., "component-naming-discussion.md")
-  - Works alongside individual comment buttons for maximum flexibility
-- **Thread Analysis**: Analyzes entire comment threads including all replies for comprehensive context
-- **AI Enhancement** (Optional): Uses Claude or OpenAI APIs to improve summaries and generate better explanations
+- **Convention Filtering**: Automatically distinguishes convention comments from casual ones (supports English and Korean keywords)
+- **LLM Enhancement** (Optional): Uses Claude or OpenAI to improve summaries, classify categories, and generate detailed explanations
+- **Code Context Extraction**: Captures `diff_hunk` from inline review comments via API for richer context
+- **Smart File Matching**: Detects existing instruction files and updates or merges instead of duplicating
+- **Smart File Naming**: Generates filenames matching your project's naming convention (kebab-case, PascalCase, snake_case)
+- **Preview Modal**: Review and edit generated instructions before committing
 - **Caching**: Reduces LLM API costs by 50-70% through intelligent result caching
-- **Token Tracking**: Displays API token usage for transparency
+- **Token Tracking**: Displays real-time API token usage and cost estimates
 
-### Project-Aware
-- **Convention Detection**: Learns your project's existing file naming patterns (kebab-case, PascalCase, snake_case)
-- **Smart Naming**: Generates appropriate filenames that match your project's style
-- **Duplicate Prevention**: Detects similar existing instructions to avoid file proliferation
+### Security
+- **AES-GCM 256-bit encryption** for all stored API tokens
+- **PBKDF2 key derivation** (500K iterations) from master password
+- **Web Crypto API** — browser-native cryptography, no external dependencies
 
-## Technical Details
+## Architecture
 
-**Built with:**
-- TypeScript, Vite, Chrome Extension API (Manifest V3)
-- GitHub/GitLab REST APIs
-- Claude API & OpenAI API (optional)
-- Playwright for E2E testing
-- Service layer architecture with dependency injection
+```
+┌─────────────────────────────────────────────────────┐
+│                 Chrome Extension (MV3)               │
+├──────────────────┬──────────────────────────────────┤
+│  Content Script  │  Background Service Worker        │
+│                  │                                    │
+│  • GitHub/GitLab │  • MessageHandler                 │
+│    Injectors     │  • ConversionOrchestrator         │
+│  • CommentDetector│    ├─ CommentService             │
+│  • ThreadDetector│    ├─ FileGenerationService       │
+│  • UIBuilder     │    │   └─ GeneratorFactory        │
+│  • WrapupButton  │    │      ├─ ClaudeCodeGenerator  │
+│    Manager       │    │      ├─ CursorGenerator      │
+│  • PreviewModal  │    │      ├─ WindsurfGenerator    │
+│                  │    │      └─ CodexGenerator       │
+│                  │    └─ PRService                   │
+│                  │  • LLM Clients                    │
+│                  │    ├─ ClaudeClient                │
+│                  │    └─ OpenAIClient                │
+│                  │  • Services                       │
+│                  │    ├─ ConfigService               │
+│                  │    ├─ CryptoService               │
+│                  │    └─ SessionManager              │
+├──────────────────┴──────────────────────────────────┤
+│  Popup (Settings UI)                                 │
+│  • Master password setup                             │
+│  • API token management                              │
+│  • LLM provider selection                            │
+│  • Cache stats & token usage display                 │
+└─────────────────────────────────────────────────────┘
+         │                        │
+         ▼                        ▼
+  GitHub/GitLab API        Claude/OpenAI API
+```
 
-**Supported Platforms:**
-- GitHub (github.com)
-- GitLab (gitlab.com)
+### Data Flow
+
+```
+User clicks button → Content Script collects comment data
+  → Background receives message (chrome.runtime)
+  → API Client fetches metadata & thread replies
+  → LLM Enhancer analyzes & enriches content (optional)
+  → GeneratorFactory creates instruction files per AI tool
+  → FileMatcher checks for duplicates / merges
+  → PRService commits files & creates PR
+  → Content Script shows success notification
+```
+
+## Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| Language | TypeScript (strict mode) |
+| Build | Vite 7 + @crxjs/vite-plugin |
+| Extension | Chrome Manifest V3 |
+| Unit/Integration Tests | Vitest + happy-dom |
+| E2E Tests | Playwright |
+| API Mocking | MSW (Mock Service Worker) |
+| Encryption | Web Crypto API (AES-GCM, PBKDF2) |
+| LLM | Claude API (Sonnet 4.5), OpenAI API (GPT-4) |
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode (watch)
+npm run dev
+
+# Production build
+npm run build
+
+# Run unit/integration tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Test coverage report
+npm run test:coverage
+
+# Vitest UI
+npm run test:ui
+
+# E2E tests (requires build first)
+npx playwright test
+```
 
 ## License
 
-MIT License - See [LICENSE](./LICENSE) for details.
+MIT License — See [LICENSE](./LICENSE) for details.
 
 ---
 
