@@ -1,6 +1,6 @@
 {
   "name": "review-to-instruction",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Chrome Extension to convert GitHub/GitLab PR review comments into AI-readable instructions and skills",
   "type": "module",
   "scripts": {
