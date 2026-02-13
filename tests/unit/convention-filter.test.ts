@@ -333,4 +333,69 @@ describe('ConventionFilter', () => {
       expect(filtered.length).toBe(0);
     });
   });
+
+  describe('isConventionComment - 커버리지 보완', () => {
+    it('일회성 키워드가 3개 미만이면 필터링하지 않아야 함', () => {
+      const filter = new ConventionFilter();
+      // 'typo', 'fix' 2개 → 3개 미만이므로 일회성으로 판단하지 않음
+      const comment = createComment('Please fix the typo in this variable naming convention');
+      expect(filter.isConventionComment(comment)).toBe(true);
+    });
+
+    it('일회성 키워드가 3개 이상이면 필터링해야 함', () => {
+      const filter = new ConventionFilter();
+      // 'typo', 'fix', 'remove' 3개 → 일회성 판단
+      const comment = createComment('fix the typo and remove this line');
+      expect(filter.isConventionComment(comment)).toBe(false);
+    });
+
+    it('10자 이상 30자 미만이고 키워드 없으면 제외', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('hello world123');
+      expect(filter.isConventionComment(comment)).toBe(false);
+    });
+  });
+
+  describe('isConventionThreadComment - 커버리지 보완', () => {
+    it('isGeneralPattern으로 30자 이상 일반 패턴이 포함되면 포함', () => {
+      const filter = new ConventionFilter();
+      // 'when' 포함, 30자 이상
+      const comment = createComment('When deploying to production, all feature flags need to be reviewed first');
+      expect(filter.isConventionThreadComment(comment)).toBe(true);
+    });
+
+    it('일반 패턴 키워드가 없고 30자 이상이어도 제외', () => {
+      const filter = new ConventionFilter();
+      // 일반화 키워드(when, if, always 등)도 없고 컨벤션 키워드도 없는 문장
+      // 주의: "really"에 "all" 부분 문자열이 포함되므로 "really" 사용 회피
+      const comment = createComment('The blue theme looks decent and the fonts were chosen fine for this project');
+      expect(filter.isConventionThreadComment(comment)).toBe(false);
+    });
+
+    it('hasQuestionContext - 한글 질문 패턴', () => {
+      const filter = new ConventionFilter();
+      // 20자 이상이어야 hasQuestionContext에 도달
+      const comment = createComment('이 로직은 왜 이렇게 구현했나요? 다른 방법은 없었나요?');
+      expect(filter.isConventionThreadComment(comment)).toBe(true);
+    });
+
+    it('hasQuestionContext - 영문 질문 패턴', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('Should we consider using a different approach here?');
+      // 'should' 컨벤션 키워드로 true
+      expect(filter.isConventionThreadComment(comment)).toBe(true);
+    });
+
+    it('짧은 질문(20자 미만)은 제외', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('Why is this?');
+      expect(filter.isConventionThreadComment(comment)).toBe(false);
+    });
+
+    it('이모지만 있으면 제외', () => {
+      const filter = new ConventionFilter();
+      const comment = createComment('🎉 🔥 ✨');
+      expect(filter.isConventionThreadComment(comment)).toBe(false);
+    });
+  });
 });
