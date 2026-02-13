@@ -14,6 +14,7 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     const mockApiClient = {
       createBranch: vi.fn().mockResolvedValue(true),
       createOrUpdateFile: vi.fn().mockResolvedValue(true),
+      createOrUpdateMultipleFiles: vi.fn().mockResolvedValue(true),
       createPullRequest: vi.fn().mockResolvedValue({
         success: true,
         url: 'https://github.com/test/repo/pull/123'
@@ -100,12 +101,17 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     // Verify
     expect(result.prUrl).toBe('https://github.com/test/repo/pull/123');
 
-    // createOrUpdateFile이 1번만 호출되어야 함 (2개 파일이 1개로 병합)
-    expect(mockApiClient.createOrUpdateFile).toHaveBeenCalledTimes(1);
+    // createOrUpdateMultipleFiles가 1번 호출되어야 함
+    expect(mockApiClient.createOrUpdateMultipleFiles).toHaveBeenCalledTimes(1);
 
     // 병합된 파일 내용 확인
-    const fileCall = (mockApiClient.createOrUpdateFile as any).mock.calls[0];
-    const mergedContent = fileCall[2]; // content 파라미터
+    const fileCall = (mockApiClient.createOrUpdateMultipleFiles as any).mock.calls[0];
+    const files = fileCall[1] as Array<{ path: string; content: string }>; // files 파라미터
+
+    // 2개 파일이 1개로 병합되어야 함
+    expect(files.length).toBe(1);
+
+    const mergedContent = files[0].content;
 
     // 두 코멘트의 내용이 모두 포함되어야 함
     expect(mergedContent).toContain('Component Naming');
@@ -123,6 +129,7 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     const mockApiClient = {
       createBranch: vi.fn().mockResolvedValue(true),
       createOrUpdateFile: vi.fn().mockResolvedValue(true),
+      createOrUpdateMultipleFiles: vi.fn().mockResolvedValue(true),
       createPullRequest: vi.fn().mockResolvedValue({
         success: true,
         url: 'https://github.com/test/repo/pull/123'
@@ -208,13 +215,16 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     // Verify
     expect(result.prUrl).toBe('https://github.com/test/repo/pull/123');
 
-    // createOrUpdateFile이 2번 호출되어야 함 (파일 경로가 다름)
-    expect(mockApiClient.createOrUpdateFile).toHaveBeenCalledTimes(2);
+    // createOrUpdateMultipleFiles가 1번 호출되어야 함 (모든 파일을 하나의 커밋으로)
+    expect(mockApiClient.createOrUpdateMultipleFiles).toHaveBeenCalledTimes(1);
 
-    // 각 파일의 경로 확인
-    const calls = (mockApiClient.createOrUpdateFile as any).mock.calls;
-    const filePaths = calls.map((call: any) => call[1]);
+    // 병합되지 않은 2개 파일이 전달되어야 함 (경로가 다르므로)
+    const fileCall = (mockApiClient.createOrUpdateMultipleFiles as any).mock.calls[0];
+    const files = fileCall[1] as Array<{ path: string; content: string }>;
 
+    expect(files.length).toBe(2);
+
+    const filePaths = files.map((f: { path: string }) => f.path);
     expect(filePaths).toContain('.claude/rules/naming-conventions.md');
     expect(filePaths).toContain('.claude/rules/error-handling.md');
   });
@@ -224,6 +234,7 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     const mockApiClient = {
       createBranch: vi.fn().mockResolvedValue(true),
       createOrUpdateFile: vi.fn().mockResolvedValue(true),
+      createOrUpdateMultipleFiles: vi.fn().mockResolvedValue(true),
       createPullRequest: vi.fn().mockResolvedValue({
         success: true,
         url: 'https://github.com/test/repo/pull/123'
@@ -336,12 +347,16 @@ describe('Wrapup 파일 병합 통합 테스트', () => {
     // Verify
     expect(result.prUrl).toBe('https://github.com/test/repo/pull/123');
 
-    // createOrUpdateFile이 1번만 호출되어야 함 (3개 파일이 1개로 병합)
-    expect(mockApiClient.createOrUpdateFile).toHaveBeenCalledTimes(1);
+    // createOrUpdateMultipleFiles가 1번 호출되어야 함 (3개 파일이 1개로 병합)
+    expect(mockApiClient.createOrUpdateMultipleFiles).toHaveBeenCalledTimes(1);
 
     // 병합된 파일 내용 확인
-    const fileCall = (mockApiClient.createOrUpdateFile as any).mock.calls[0];
-    const mergedContent = fileCall[2];
+    const fileCall = (mockApiClient.createOrUpdateMultipleFiles as any).mock.calls[0];
+    const files = fileCall[1] as Array<{ path: string; content: string }>;
+
+    expect(files.length).toBe(1);
+
+    const mergedContent = files[0].content;
 
     // 세 코멘트의 내용이 모두 포함되어야 함
     expect(mergedContent).toContain('Unit Tests');
