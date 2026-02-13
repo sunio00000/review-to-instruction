@@ -111,52 +111,62 @@ Generates instruction files for all detected project types simultaneously:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 Chrome Extension (MV3)               │
-├──────────────────┬──────────────────────────────────┤
-│  Content Script  │  Background Service Worker        │
-│                  │                                    │
-│  • GitHub/GitLab │  • MessageHandler                 │
-│    Injectors     │  • ConversionOrchestrator         │
-│  • CommentDetector│    ├─ CommentService             │
-│  • ThreadDetector│    ├─ FileGenerationService       │
-│  • UIBuilder     │    │   └─ GeneratorFactory        │
-│  • WrapupButton  │    │      ├─ ClaudeCodeGenerator  │
-│    Manager       │    │      ├─ CursorGenerator      │
-│  • PreviewModal  │    │      ├─ WindsurfGenerator    │
-│                  │    │      └─ CodexGenerator       │
-│                  │    └─ PRService                   │
-│                  │  • LLM Clients                    │
-│                  │    ├─ ClaudeClient                │
-│                  │    └─ OpenAIClient                │
-│                  │  • Services                       │
-│                  │    ├─ ConfigService               │
-│                  │    ├─ CryptoService               │
-│                  │    └─ SessionManager              │
-├──────────────────┴──────────────────────────────────┤
-│  Popup (Settings UI)                                 │
-│  • Master password setup                             │
-│  • API token management                              │
-│  • LLM provider selection                            │
-│  • Cache stats & token usage display                 │
-└─────────────────────────────────────────────────────┘
-         │                        │
-         ▼                        ▼
-  GitHub/GitLab API        Claude/OpenAI API
+```mermaid
+graph TB
+    subgraph EXT["Chrome Extension (Manifest V3)"]
+        direction TB
+
+        subgraph CS["Content Script"]
+            direction TB
+            INJ["GitHub / GitLab Injectors"]
+            DET["CommentDetector · ThreadDetector"]
+            UI["UIBuilder · WrapupButtonManager"]
+            PM["PreviewModal"]
+        end
+
+        subgraph BG["Background Service Worker"]
+            direction TB
+            MH["MessageHandler"]
+            CO["ConversionOrchestrator"]
+            CSVC["CommentService"]
+            FGS["FileGenerationService"]
+            GF["GeneratorFactory"]
+            GEN["Claude Code · Cursor · Windsurf · Codex"]
+            PR["PRService"]
+            LLM["ClaudeClient · OpenAIClient"]
+            SVC["ConfigService · CryptoService · SessionManager"]
+        end
+
+        subgraph POP["Popup (Settings UI)"]
+            direction TB
+            POPT["Master Password · API Tokens · LLM Provider · Cache Stats"]
+        end
+    end
+
+    CS -- "chrome.runtime\n.sendMessage" --> MH
+    MH --> CO
+    CO --> CSVC
+    CO --> FGS
+    FGS --> GF --> GEN
+    CO --> PR
+    CSVC --> LLM
+
+    PR -- "REST API" --> GHGL["GitHub / GitLab API"]
+    LLM -- "REST API" --> LLMAPI["Claude / OpenAI API"]
 ```
 
 ### Data Flow
 
-```
-User clicks button → Content Script collects comment data
-  → Background receives message (chrome.runtime)
-  → API Client fetches metadata & thread replies
-  → LLM Enhancer analyzes & enriches content (optional)
-  → GeneratorFactory creates instruction files per AI tool
-  → FileMatcher checks for duplicates / merges
-  → PRService commits files & creates PR
-  → Content Script shows success notification
+```mermaid
+graph LR
+    A["Click Button"] --> B["Collect Comment"]
+    B --> C["Background\nMessage"]
+    C --> D["Fetch Metadata\n& Replies"]
+    D --> E["LLM Analysis\n(optional)"]
+    E --> F["Generate\nInstruction Files"]
+    F --> G["Duplicate Check\n& Merge"]
+    G --> H["Create PR"]
+    H --> I["Success\nNotification"]
 ```
 
 ## Tech Stack
