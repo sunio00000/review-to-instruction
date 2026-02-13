@@ -9,6 +9,7 @@ import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import { WrapupButtonManager } from './wrapup-button-manager';
 import { extractCodeContextFromDOM, apiToCodeContext } from './code-context-extractor';
+import { GITLAB_SELECTORS } from './platform-selectors';
 import type { Comment, Repository, DiscussionThread, PRReviewData, ApiReviewThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
@@ -27,33 +28,12 @@ export class GitLabInjector {
     this.threadDetector = new ThreadDetector('gitlab');
     this.wrapupManager = new WrapupButtonManager('gitlab');
 
-    // GitLab MR 페이지의 코멘트 선택자 (Fallback 지원)
-    // MR discussion notes, 리뷰 코멘트, diff 노트, 답글을 모두 포함
+    // GitLab MR 페이지의 코멘트 선택자 (platform-selectors.ts에서 중앙 관리)
     // 시스템 노트, 커밋 히스토리, 새 코멘트 작성 폼은 shouldExcludeComment에서 필터링
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
-      // 코멘트 컨테이너 선택자 (여러 Fallback 시도)
-      [
-        '.note',                           // 모든 GitLab 노트 (답글 포함)
-        '[data-testid="note"]',            // data-testid 속성
-        '.timeline-entry',                 // 타임라인 엔트리
-        '.discussion-note',                // 디스커션 노트
-        'article[data-note-id]',           // article with note id
-        '.diff-note',                      // diff 내부 노트
-        '.note-wrapper',                   // 노트 래퍼
-        'li.note',                         // li 태그 노트
-        '[data-note-type="DiffNote"]'      // diff 노트 타입
-      ],
-      // 코멘트 내용 선택자 (여러 Fallback 시도)
-      [
-        '.note-text',                      // 기존 GitLab 선택자
-        '[data-testid="note-text"]',       // data-testid 속성
-        '.timeline-entry-body',            // 타임라인 본문
-        '.note-body',                      // 노트 본문
-        '.js-note-text',                   // JS 타겟 클래스
-        '.note-text.md',                   // 마크다운 노트 텍스트
-        '.note-body .note-text'            // 노트 본문 내부 텍스트
-      ]
+      GITLAB_SELECTORS.comment.containers,
+      GITLAB_SELECTORS.comment.content
     );
   }
 
@@ -104,18 +84,8 @@ export class GitLabInjector {
    * GitLab MR 페이지에서 브랜치 정보 추출 (Fallback 지원)
    */
   private extractBranch(): string | null {
-    const BRANCH_SELECTORS = [
-      '.source-branch-link',              // 기존 선택자
-      '[data-testid="source-branch"]',    // data-testid 속성
-      '.merge-request-source-branch',     // MR 소스 브랜치
-      '.issuable-source-branch',          // Issuable 소스 브랜치
-      '.source-branch .ref-name',         // ref-name 클래스
-      'a[href*="/-/commits/"]',           // 커밋 링크
-      '.gl-link.gl-label-text'            // GitLab 레이블 텍스트 링크
-    ];
-
-    // 1. DOM 선택자로 추출 시도
-    for (const selector of BRANCH_SELECTORS) {
+    // 1. DOM 선택자로 추출 시도 (platform-selectors.ts에서 관리)
+    for (const selector of GITLAB_SELECTORS.branch.source) {
       const elements = document.querySelectorAll(selector);
 
       for (const element of elements) {
@@ -176,18 +146,8 @@ export class GitLabInjector {
    * GitLab MR 페이지에서 타겟 브랜치(base branch) 정보 추출
    */
   private extractBaseBranch(): string | null {
-    const BASE_BRANCH_SELECTORS = [
-      '.target-branch-link',              // 타겟 브랜치 링크
-      '[data-testid="target-branch"]',    // data-testid 속성
-      '.merge-request-target-branch',     // MR 타겟 브랜치
-      '.issuable-target-branch',          // Issuable 타겟 브랜치
-      '.target-branch .ref-name',         // ref-name 클래스
-      'a[href*="/-/tree/"]',              // 브랜치 트리 링크 (더 광범위한 선택자)
-      '.gl-link.gl-label-text'            // GitLab 레이블 텍스트 링크
-    ];
-
-    // 1. DOM 선택자로 추출 시도
-    for (const selector of BASE_BRANCH_SELECTORS) {
+    // 1. DOM 선택자로 추출 시도 (platform-selectors.ts에서 관리)
+    for (const selector of GITLAB_SELECTORS.branch.target) {
       const elements = document.querySelectorAll(selector);
 
       for (const element of elements) {
@@ -405,17 +365,30 @@ export class GitLabInjector {
     try {
       const element = commentElement.element;
 
-      // 작성자
-      const authorElement = element.querySelector('.note-header-author-name');
-      const author = authorElement?.textContent?.trim() || 'Unknown';
+      // 작성자 (platform-selectors.ts에서 관리)
+      let author = 'Unknown';
+      for (const selector of GITLAB_SELECTORS.comment.author) {
+        const authorElement = element.querySelector(selector);
+        if (authorElement?.textContent?.trim()) {
+          author = authorElement.textContent.trim();
+          break;
+        }
+      }
 
       // 코멘트 내용
       const content = commentElement.contentElement.textContent?.trim() || '';
       const htmlContent = commentElement.contentElement.innerHTML || '';
 
-      // 작성 시간
-      const timeElement = element.querySelector('time');
-      const createdAt = timeElement?.getAttribute('datetime') || new Date().toISOString();
+      // 작성 시간 (platform-selectors.ts에서 관리)
+      let createdAt = new Date().toISOString();
+      for (const selector of GITLAB_SELECTORS.comment.timestamp) {
+        const timeElement = element.querySelector(selector);
+        const datetime = timeElement?.getAttribute('datetime');
+        if (datetime) {
+          createdAt = datetime;
+          break;
+        }
+      }
 
       // 코멘트 URL
       const url = window.location.href;
@@ -452,8 +425,9 @@ export class GitLabInjector {
     const replies: Array<{ id: string; author: string; content: string; createdAt: string; }> = [];
 
     try {
-      // GitLab에서 답글은 discussion 컨테이너 내의 다른 note 요소들
-      const discussionContainer = noteElement.closest('.discussion-notes, .notes, [data-discussion-id]');
+      // GitLab에서 답글은 thread.replyArea 컨테이너 내의 다른 note 요소들
+      const replyAreaSelector = GITLAB_SELECTORS.thread.replyArea.join(', ');
+      const discussionContainer = noteElement.closest(replyAreaSelector);
       if (!discussionContainer) return replies;
 
       // 모든 note 요소 찾기 (system-note 제외)
@@ -467,10 +441,22 @@ export class GitLabInjector {
       for (let i = currentIndex + 1; i < allNotes.length; i++) {
         const replyElement = allNotes[i];
 
-        const replyAuthor = replyElement.querySelector('.note-header-author-name')?.textContent?.trim() || 'Unknown';
-        const replyBody = replyElement.querySelector('.note-text, [data-testid="note-text"]');
+        let replyAuthor = 'Unknown';
+        for (const selector of GITLAB_SELECTORS.comment.author) {
+          replyAuthor = replyElement.querySelector(selector)?.textContent?.trim() || 'Unknown';
+          if (replyAuthor !== 'Unknown') break;
+        }
+        let replyBody: Element | null = null;
+        for (const selector of GITLAB_SELECTORS.comment.content) {
+          replyBody = replyElement.querySelector(selector);
+          if (replyBody) break;
+        }
         const replyContent = replyBody?.textContent?.trim() || '';
-        const replyTime = replyElement.querySelector('time')?.getAttribute('datetime') || '';
+        let replyTime = '';
+        for (const selector of GITLAB_SELECTORS.comment.timestamp) {
+          replyTime = replyElement.querySelector(selector)?.getAttribute('datetime') || '';
+          if (replyTime) break;
+        }
         const replyId = replyElement.id || `reply-${i}`;
 
         if (replyContent) {
@@ -528,31 +514,31 @@ export class GitLabInjector {
       // 4. 버튼 상태 복원
       this.uiBuilder.setButtonState(button, 'default');
 
-      // 5. PreviewModal 표시
+      // 5. PreviewModal 표시 (edit 콜백 포함)
+      let editedContent: string | null = null;
       const modal = new PreviewModal();
       const action = await modal.show({
         result: previewResponse.data.result,
-        warnings: []
+        warnings: [],
+        onEdit: (content) => { editedContent = content; }
       });
 
       // 6. 사용자 액션 처리
       if (action === 'cancel') {
-        return; // 취소 - 아무것도 안 함
-      }
-
-      if (action === 'edit') {
-        // Phase 2에서 구현
-        alert('Edit feature will be implemented in the next phase.');
         return;
       }
 
-      // 7. 확인 버튼: 실제 변환 수행
-      if (action === 'confirm') {
+      // 7. edit 또는 confirm: 실제 변환 수행
+      if (action === 'edit' || action === 'confirm') {
         this.uiBuilder.setButtonState(button, 'loading');
+
+        const payload = action === 'edit' && editedContent !== null
+          ? { comment, repository: this.repository, editedContent }
+          : { comment, repository: this.repository };
 
         const convertResponse = await chrome.runtime.sendMessage({
           type: 'CONFIRM_AND_CONVERT',
-          payload: { comment, repository: this.repository }
+          payload
         });
 
         if (convertResponse.success) {

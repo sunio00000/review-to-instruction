@@ -1144,6 +1144,61 @@ html[data-color-mode="dark"] .modal-btn-secondary:hover:not(:disabled) {
   border-color: #484f58;
 }
 
+/* ==================== Edit 모드 스타일 ==================== */
+
+/* Edit 모드 instruction-content 컨테이너 */
+.instruction-content.editing {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+/* Edit textarea */
+.instruction-edit-textarea {
+  width: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  padding: 16px;
+  margin: 0;
+  border: none;
+  outline: none;
+  resize: vertical;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #24292f;
+  background-color: #f6f8fa;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+
+.instruction-edit-textarea:focus {
+  outline: none;
+}
+
+/* 다크 모드 - Edit 모드 */
+@media (prefers-color-scheme: dark) {
+  .instruction-content.editing {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+
+  .instruction-edit-textarea {
+    color: #c9d1d9;
+    background-color: #0d1117;
+  }
+}
+
+html[data-color-mode="dark"] .instruction-content.editing {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+html[data-color-mode="dark"] .instruction-edit-textarea {
+  color: #c9d1d9;
+  background-color: #0d1117;
+}
+
 /* ==================== Progress Bar 스타일 ==================== */
 
 /* Progress 상태 버튼 */

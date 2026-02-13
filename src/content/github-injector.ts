@@ -9,6 +9,7 @@ import { UIBuilder } from './ui-builder';
 import { PreviewModal } from './preview-modal';
 import { WrapupButtonManager } from './wrapup-button-manager';
 import { extractCodeContextFromDOM, apiToCodeContext } from './code-context-extractor';
+import { GITHUB_SELECTORS } from './platform-selectors';
 import type { Comment, Repository, DiscussionThread, PRReviewData, ApiReviewThread } from '../types';
 import { isConventionComment } from '../core/parser';
 
@@ -25,25 +26,11 @@ export class GitHubInjector {
   constructor() {
     this.uiBuilder = new UIBuilder();
 
-    // GitHub PR 페이지의 코멘트 선택자
-    // 일반 코멘트, 리뷰 코멘트, 인라인 코드 리뷰 코멘트 포함
+    // GitHub PR 페이지의 코멘트 선택자 (platform-selectors.ts에서 중앙 관리)
     this.detector = new CommentDetector(
       (comment) => this.onCommentDetected(comment),
-      [
-        '.timeline-comment',           // 일반 타임라인 코멘트
-        '.review-comment',             // 리뷰 코멘트
-        '.js-comment',                 // JS 타겟 코멘트
-        '.inline-comment',             // 인라인 코멘트
-        '.js-comment-container',       // 코멘트 컨테이너
-        'div[id^="discussion_r"]',     // 디스커션 ID로 시작하는 div
-        'div[id^="pullrequestreview"]' // PR 리뷰 ID로 시작하는 div
-      ],
-      [
-        '.comment-body',               // 기본 코멘트 본문
-        '.js-comment-body',            // JS 타겟 본문
-        '.review-comment-contents .comment-body', // 리뷰 코멘트 본문
-        '.edit-comment-hide'           // 편집 가능 코멘트
-      ]
+      GITHUB_SELECTORS.comment.containers,
+      GITHUB_SELECTORS.comment.content
     );
 
     // Thread 감지기
@@ -66,33 +53,26 @@ export class GitHubInjector {
         const name = pathParts[1];
         const prNumber = parseInt(pathParts[3], 10);
 
-        // PR의 작업 브랜치 정보 추출 (instruction을 추가할 대상)
-        // 1. head-ref 시도 (PR의 source/head branch - 작업 중인 브랜치)
-        let branch = document.querySelector('.head-ref')?.textContent?.trim();
-
-        // 2. branch-name 클래스 시도
-        if (!branch) {
-          const branchElement = document.querySelector('.commit-ref.head-ref .css-truncate-target');
-          branch = branchElement?.textContent?.trim();
+        // PR의 작업 브랜치 정보 추출 (platform-selectors.ts에서 관리)
+        let branch: string | undefined;
+        for (const selector of GITHUB_SELECTORS.branch.source) {
+          branch = document.querySelector(selector)?.textContent?.trim();
+          if (branch) break;
         }
 
-        // 3. API를 통해 PR 정보 가져오기 (fallback)
+        // API fallback은 updateDefaultBranch에서 처리
         if (!branch) {
-          // API fallback은 updateDefaultBranch에서 처리
           branch = 'main';  // 임시값
         }
 
-        // PR의 타겟 브랜치(base branch) 정보 추출
-        // 1. base-ref 시도 (PR의 target/base branch - 머지 대상 브랜치)
-        let baseBranch = document.querySelector('.base-ref')?.textContent?.trim();
-
-        // 2. branch-name 클래스 시도
-        if (!baseBranch) {
-          const baseBranchElement = document.querySelector('.commit-ref.base-ref .css-truncate-target');
-          baseBranch = baseBranchElement?.textContent?.trim();
+        // PR의 타겟 브랜치(base branch) 정보 추출 (platform-selectors.ts에서 관리)
+        let baseBranch: string | undefined;
+        for (const selector of GITHUB_SELECTORS.branch.target) {
+          baseBranch = document.querySelector(selector)?.textContent?.trim();
+          if (baseBranch) break;
         }
 
-        // 3. fallback to 'main'
+        // fallback to 'main'
         if (!baseBranch) {
           baseBranch = 'main';
         }
@@ -287,17 +267,30 @@ export class GitHubInjector {
     try {
       const element = commentElement.element;
 
-      // 작성자
-      const authorElement = element.querySelector('.author');
-      const author = authorElement?.textContent?.trim() || 'Unknown';
+      // 작성자 (platform-selectors.ts에서 관리)
+      let author = 'Unknown';
+      for (const selector of GITHUB_SELECTORS.comment.author) {
+        const authorElement = element.querySelector(selector);
+        if (authorElement?.textContent?.trim()) {
+          author = authorElement.textContent.trim();
+          break;
+        }
+      }
 
       // 코멘트 내용
       const content = commentElement.contentElement.textContent?.trim() || '';
       const htmlContent = commentElement.contentElement.innerHTML || '';
 
-      // 작성 시간
-      const timeElement = element.querySelector('relative-time');
-      const createdAt = timeElement?.getAttribute('datetime') || new Date().toISOString();
+      // 작성 시간 (platform-selectors.ts에서 관리)
+      let createdAt = new Date().toISOString();
+      for (const selector of GITHUB_SELECTORS.comment.timestamp) {
+        const timeElement = element.querySelector(selector);
+        const datetime = timeElement?.getAttribute('datetime');
+        if (datetime) {
+          createdAt = datetime;
+          break;
+        }
+      }
 
       // 코멘트 URL
       const url = window.location.href;
@@ -334,22 +327,37 @@ export class GitHubInjector {
     const replies: Array<{ id: string; author: string; content: string; createdAt: string; }> = [];
 
     try {
-      // GitHub에서 답글은 같은 timeline-comment-group 내에 있거나
-      // review-thread-reply 클래스를 가진 요소들에 있음
-      const parentGroup = commentElement.closest('.timeline-comment-group, .review-thread');
+      // GitHub에서 답글은 같은 thread.replyArea 컨테이너 내에 위치
+      const replyAreaSelector = GITHUB_SELECTORS.thread.replyArea.join(', ');
+      const parentGroup = commentElement.closest(replyAreaSelector);
       if (!parentGroup) return replies;
 
       // 모든 코멘트 요소 찾기 (첫 번째는 원본 코멘트, 나머지는 답글)
-      const allComments = Array.from(parentGroup.querySelectorAll('.timeline-comment, .review-comment'));
+      const commentContainerSelector = GITHUB_SELECTORS.comment.containers
+        .filter(s => ['.timeline-comment', '.review-comment'].includes(s))
+        .join(', ');
+      const allComments = Array.from(parentGroup.querySelectorAll(commentContainerSelector));
 
       // 첫 번째 요소(원본 코멘트) 제외하고 답글만 추출
       for (let i = 1; i < allComments.length; i++) {
         const replyElement = allComments[i];
 
-        const replyAuthor = replyElement.querySelector('.author')?.textContent?.trim() || 'Unknown';
-        const replyBody = replyElement.querySelector('.comment-body');
+        let replyAuthor = 'Unknown';
+        for (const selector of GITHUB_SELECTORS.comment.author) {
+          replyAuthor = replyElement.querySelector(selector)?.textContent?.trim() || 'Unknown';
+          if (replyAuthor !== 'Unknown') break;
+        }
+        let replyBody: Element | null = null;
+        for (const selector of GITHUB_SELECTORS.comment.content) {
+          replyBody = replyElement.querySelector(selector);
+          if (replyBody) break;
+        }
         const replyContent = replyBody?.textContent?.trim() || '';
-        const replyTime = replyElement.querySelector('relative-time')?.getAttribute('datetime') || '';
+        let replyTime = '';
+        for (const selector of GITHUB_SELECTORS.comment.timestamp) {
+          replyTime = replyElement.querySelector(selector)?.getAttribute('datetime') || '';
+          if (replyTime) break;
+        }
         const replyId = replyElement.id || `reply-${i}`;
 
         if (replyContent) {
@@ -407,31 +415,31 @@ export class GitHubInjector {
       // 4. 버튼 상태 복원
       this.uiBuilder.setButtonState(button, 'default');
 
-      // 5. PreviewModal 표시
+      // 5. PreviewModal 표시 (edit 콜백 포함)
+      let editedContent: string | null = null;
       const modal = new PreviewModal();
       const action = await modal.show({
         result: previewResponse.data.result,
-        warnings: []
+        warnings: [],
+        onEdit: (content) => { editedContent = content; }
       });
 
       // 6. 사용자 액션 처리
       if (action === 'cancel') {
-        return; // 취소 - 아무것도 안 함
-      }
-
-      if (action === 'edit') {
-        // Phase 2에서 구현
-        alert('Edit feature will be implemented in the next phase.');
         return;
       }
 
-      // 7. 확인 버튼: 실제 변환 수행
-      if (action === 'confirm') {
+      // 7. edit 또는 confirm: 실제 변환 수행
+      if (action === 'edit' || action === 'confirm') {
         this.uiBuilder.setButtonState(button, 'loading');
+
+        const payload = action === 'edit' && editedContent !== null
+          ? { comment, repository: this.repository, editedContent }
+          : { comment, repository: this.repository };
 
         const convertResponse = await chrome.runtime.sendMessage({
           type: 'CONFIRM_AND_CONVERT',
-          payload: { comment, repository: this.repository }
+          payload
         });
 
         if (convertResponse.success) {
@@ -554,8 +562,9 @@ export class GitHubInjector {
       }, 500) as unknown as number;
     });
 
-    // PR 타임라인 컨테이너 감시
-    const timelineContainer = document.querySelector('.js-discussion, .discussion-timeline');
+    // PR 타임라인 컨테이너 감시 (platform-selectors.ts에서 관리)
+    const timelineSelector = GITHUB_SELECTORS.page.timeline.join(', ');
+    const timelineContainer = document.querySelector(timelineSelector);
     if (timelineContainer) {
       this.threadObserver.observe(timelineContainer, {
         childList: true,
