@@ -600,25 +600,33 @@ function extractCodeExamples(content: string): string[] {
 
 /**
  * Generate filename from category and keywords
+ * 카테고리 수준의 추상화된 파일명을 생성하여 파일 폭증을 방지
  */
 function generateFileName(category: string, keywords: string[]): string {
-  let baseName = category;
-
-  // Find relevant keywords (exclude category itself and tech stack)
-  const techKeywords = [
-    ...PROGRAMMING_LANGUAGES,
-    ...FRAMEWORKS_LIBRARIES,
-    ...CODE_STRUCTURE_KEYWORDS.map(k => k.toLowerCase())
+  // 카테고리가 충분히 구체적이면 그대로 사용
+  const specificCategories = [
+    'naming', 'style', 'architecture', 'testing', 'security',
+    'performance', 'error-handling', 'documentation', 'accessibility',
+    'i18n', 'api', 'database', 'state-management', 'git', 'ci-cd',
+    'dependencies'
   ];
 
-  const relevantKeywords = keywords
-    .filter(k => k !== category)
-    .filter(k => k.length > 2 && !k.includes(' '))
-    .filter(k => !techKeywords.includes(k))
-    .slice(0, 2);
+  // 카테고리 기반으로만 파일명 생성 (키워드 제외하여 추상화)
+  let baseName = category;
 
-  if (relevantKeywords.length > 0) {
-    baseName = `${relevantKeywords.join('-')}-${category}`;
+  // 'conventions'처럼 너무 일반적인 카테고리만 키워드 1개 추가
+  const genericCategories = ['conventions', 'general', 'best-practices', 'guidelines'];
+  if (genericCategories.includes(category) && keywords.length > 0) {
+    // tech 스택 키워드 제외, 카테고리 레벨의 키워드만 사용
+    const categoryLevelKeyword = keywords.find(k =>
+      specificCategories.includes(k) || CATEGORY_KEYWORDS[k] !== undefined
+    );
+
+    if (categoryLevelKeyword) {
+      baseName = categoryLevelKeyword;
+    } else if (keywords[0] && keywords[0].length > 2 && !keywords[0].includes(' ')) {
+      baseName = keywords[0];
+    }
   }
 
   // Normalize to kebab-case
