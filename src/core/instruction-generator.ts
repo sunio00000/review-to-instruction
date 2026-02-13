@@ -39,9 +39,21 @@ function createInstruction(options: InstructionOptions): string {
   const isEnhanced = 'llmEnhanced' in parsedComment && parsedComment.llmEnhanced;
   const enhanced = isEnhanced ? (parsedComment as EnhancedComment) : null;
 
-  // YAML frontmatter (optional, simplified for Claude Code)
-  // Only include paths for conditional rules if needed
-  const frontmatter = '---\n# Optional: Scope this rule to specific files\n# paths:\n#   - "src/**/*.ts"\n---\n\n';
+  // YAML frontmatter (source 정보를 구조화하여 본문에서 분리)
+  const date = new Date().toISOString().split('T')[0];
+  const frontmatter = [
+    '---',
+    `source:`,
+    `  pr: ${repository.prNumber}`,
+    `  url: "${originalComment.url}"`,
+    `  author: "${originalComment.author}"`,
+    `  date: "${date}"`,
+    `category: ${parsedComment.category}`,
+    `keywords: [${parsedComment.keywords.slice(0, 5).join(', ')}]`,
+    '---',
+    '',
+    ''
+  ].join('\n');
 
   // Markdown content
   const sections: string[] = [];
@@ -53,12 +65,13 @@ function createInstruction(options: InstructionOptions): string {
   sections.push('## Rules\n');
 
   if (enhanced?.detailedExplanation) {
-    // Use LLM explanation (already compact from prompt)
+    // LLM이 생성한 설명 사용 (이미 정제됨)
     const rules = convertToMarkdownList(enhanced.detailedExplanation);
     sections.push(rules);
   } else {
-    // Use original content as bullet points (compact)
-    const rules = convertToCompactList(summarizeComment(originalComment.content));
+    // 원본 코멘트에서 리뷰 맥락을 제거한 규칙만 추출
+    const cleanedContent = stripReviewContext(originalComment.content);
+    const rules = convertToCompactList(cleanedContent);
     sections.push(rules);
   }
   sections.push('');
@@ -81,7 +94,7 @@ function createInstruction(options: InstructionOptions): string {
       // LLM explanations available
       enhanced.codeExplanations.forEach((explanation) => {
         const label = explanation.isGoodExample !== undefined
-          ? (explanation.isGoodExample ? '### ✅ Correct' : '### ❌ Incorrect')
+          ? (explanation.isGoodExample ? '### Correct' : '### Incorrect')
           : '### Example';
         sections.push(`${label}\n`);
         sections.push('```');
@@ -100,12 +113,6 @@ function createInstruction(options: InstructionOptions): string {
     }
   }
 
-  // Metadata footer
-  sections.push('---\n');
-  sections.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
-  sections.push(`**Keywords:** ${parsedComment.keywords.join(', ')}`);
-  sections.push(`**Category:** ${parsedComment.category}`);
-
   return frontmatter + sections.join('\n') + '\n';
 }
 
@@ -113,9 +120,12 @@ function createInstruction(options: InstructionOptions): string {
  * 기존 instruction 파일 업데이트 (simplified)
  */
 function updateInstruction(options: InstructionOptions, existingContent: string): string {
-  const { parsedComment, originalComment, repository } = options;
+  const { parsedComment, originalComment } = options;
 
   const date = new Date().toISOString().split('T')[0];
+
+  // 리뷰 맥락을 제거한 내용으로 업데이트
+  const cleanedContent = stripReviewContext(originalComment.content);
 
   // Add new section at the end
   const addendum: string[] = [
@@ -123,7 +133,7 @@ function updateInstruction(options: InstructionOptions, existingContent: string)
     '',
     `## Update (${date})`,
     '',
-    convertToMarkdownList(summarizeComment(originalComment.content)),
+    convertToMarkdownList(cleanedContent),
     ''
   ];
 
@@ -136,8 +146,6 @@ function updateInstruction(options: InstructionOptions, existingContent: string)
       addendum.push('```\n');
     });
   }
-
-  addendum.push(`**Source:** [PR #${repository.prNumber}](${originalComment.url}) by @${originalComment.author}`);
 
   return existingContent.trim() + addendum.join('\n') + '\n';
 }
@@ -177,6 +185,82 @@ function convertToMarkdownList(text: string): string {
 
   // Convert to bullet points
   return lines.map(line => `- ${line.trim()}`).join('\n');
+}
+
+/**
+ * 리뷰 코멘트에서 리뷰 특정 맥락(구문)만 제거하여 범용 규칙으로 변환
+ * - "여기서는", "이 코드에서", "please fix this" 등의 리뷰 맥락 구문만 제거
+ * - 코드 블록은 보존, 규칙/지시 내용은 유지
+ */
+function stripReviewContext(content: string): string {
+  // 코드 블록 보존을 위해 임시 치환
+  const codeBlocks: string[] = [];
+  let processed = content.replace(/```[\s\S]*?```/g, (match) => {
+    codeBlocks.push(match);
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+  });
+
+  // 리뷰 특정 구문만 제거 (문장 전체가 아닌 구문만)
+  const reviewPhrases = [
+    /\bI noticed\s*(that\s*)?/gi,
+    /\bI see\s*(that\s*)?/gi,
+    /\bI think you\s*/gi,
+    /\bI found\s*(that\s*)?/gi,
+    /\blooking at\s*(this[,]?\s*)?/gi,
+    /\bplease fix\s*/gi,
+    /\bplease change\s*/gi,
+    /\bplease update\s*/gi,
+    /\bcan you\s*/gi,
+    /\bcould you\s*/gi,
+    /\bwould you\s*/gi,
+    /\bin this PR\b/gi,
+    /\bin this MR\b/gi,
+    /\bin this file\b/gi,
+    /\bthis line\b/gi,
+    /\bnit:\s*/gi,
+    /\bnitpick:\s*/gi,
+  ];
+
+  // 한글 리뷰 구문 제거
+  const reviewPhrasesKr = [
+    /여기서는\s*/g,
+    /이 코드에서\s*/g,
+    /이 부분에서\s*/g,
+    /이 파일에서\s*/g,
+    /이 PR에서\s*/g,
+    /이 MR에서\s*/g,
+    /수정해 ?주세요\.?/g,
+    /변경해 ?주세요\.?/g,
+    /고쳐 ?주세요\.?/g,
+    /바꿔 ?주세요\.?/g,
+    /보니까\s*/g,
+    /봤는데\s*/g,
+    /확인해 보면\s*/g,
+    /살펴보면\s*/g,
+  ];
+
+  for (const pattern of [...reviewPhrases, ...reviewPhrasesKr]) {
+    processed = processed.replace(pattern, '');
+  }
+
+  // 빈 문장("." 만 남은 경우) 제거 및 다중 공백 정리
+  processed = processed
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // 코드 블록 복원
+  processed = processed.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => {
+    return codeBlocks[parseInt(index, 10)];
+  });
+
+  // 내용이 너무 짧아지면 원본 요약 사용
+  if (processed.length < 10) {
+    return summarizeComment(content);
+  }
+
+  return processed;
 }
 
 /**
